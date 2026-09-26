@@ -102,6 +102,9 @@ pub fn key_bindings() -> Vec<KeyBinding> {
         KeyBinding::new("ctrl-k", CtrlK, c),
         // Legacy Vue alternative: Ctrl+Alt+Z toggles zen directly.
         KeyBinding::new("ctrl-alt-z", ZenToggle, c),
+        // Code-block language picker («Поиск языка...») — Vue opens it from
+        // the block toolbar; M3 binds a physical key instead.
+        KeyBinding::new("ctrl-shift-l", OpenLangPicker, c),
         // Zoom — `useKeyboard.ts` ZOOM_STEP table (physical Equal/Minus/0 +
         // numpad add/subtract; numpad 0 arrives as `0`).
         KeyBinding::new("ctrl-=", ZoomIn, c),
@@ -205,7 +208,7 @@ fn picker_overlay(p: &crate::picker::LangPicker) -> impl IntoElement {
                 },
             ));
     for (i, lang) in p.filtered().iter().enumerate().take(40) {
-        let mut row = div().px_3().py_1().child(lang.name.to_string());
+        let mut row = div().px_3().py_1().child(lang.label.to_string());
         if i == p.selected {
             row = row.bg(style::selection_bg());
         }
@@ -222,11 +225,10 @@ impl MemoriaEditor {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        // Picker keys are consumed earlier by the `intercept_keystrokes`
+        // hook registered in `MemoriaEditor::new` — it runs before action
+        // dispatch, which `capture_key_down` does not in this gpui-kit.
         let k = &event.keystroke;
-        if self.picker.is_some() && self.picker_key(&k.key, k.key_char.as_deref(), cx) {
-            cx.stop_propagation();
-            return;
-        }
         // Zen chord: armed `ctrl-k` + plain `z` (Vue CHORD_WINDOW_MS).
         if self.zen_chord_active()
             && k.key == "z"
@@ -248,6 +250,7 @@ impl MemoriaEditor {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        cx.stop_propagation();
         let dy = match event.delta {
             ScrollDelta::Pixels(p) => -p.y,
             ScrollDelta::Lines(p) => px(-p.y * style::BODY_SIZE * style::BODY_LH * self.zoom.0),

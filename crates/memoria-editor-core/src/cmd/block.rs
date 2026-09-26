@@ -214,9 +214,13 @@ pub fn set_code_block_lang(doc: &Doc, src: &str, pos: usize, lang: &str) -> Tx {
         .find('\n')
         .map(|o| r.start + o)
         .unwrap_or(r.end);
-    let Some((_, fence_end, _old)) = fence_line(src, r.start, first_end) else {
+    let Some((_, fence_end, old)) = fence_line(src, r.start, first_end) else {
         return tx;
     };
+    if old == lang {
+        // Info string already matches — leave a true no-op.
+        return tx;
+    }
     tx.replace(
         fence_end,
         first_end,

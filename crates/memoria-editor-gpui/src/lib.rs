@@ -25,6 +25,8 @@ mod view;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_regressions;
 
 pub use editor::{EditorEvent, MemoriaEditor, AUTOSAVE_DEBOUNCE, PLACEHOLDER};
 pub use element::EditorElement;

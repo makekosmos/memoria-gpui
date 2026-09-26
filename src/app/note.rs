@@ -146,9 +146,11 @@ impl Memoria {
                             .text_color(c(MUTED_FG()))
                             .child(SharedString::from(format!("{char_count} символов"))),
                     )
-                    .children(self.status.clone().map(|s| {
-                        div().text_size(px(12.)).text_color(c(MUTED_FG())).child(s)
-                    })),
+                    .children(
+                        self.status
+                            .clone()
+                            .map(|s| div().text_size(px(12.)).text_color(c(MUTED_FG())).child(s)),
+                    ),
             )
     }
 }

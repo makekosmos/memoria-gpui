@@ -45,25 +45,31 @@ impl Memoria {
 
     /// `eden.navigateTo` — conflict guard, collection redirect, then load.
     pub(crate) fn open_entry(&mut self, id: String, cx: &mut Context<Self>) {
+        // Flush pending edits so the note-switch can't lose the last
+        // <300ms of typing or misattribute them to the next entry.
+        if let Some(editor) = self.editor.clone() {
+            editor.update(cx, |e, cx| e.flush_autosave(cx));
+        }
         if let Some(conflict) = conflict_for_entry(&self.conflicts.conflicts, &id) {
-            self.queue_editor_fill(&conflict.local);
-            self.current = Some(conflict.local.clone());
+            let local = conflict.local.clone();
+            self.queue_editor_fill(&local);
+            self.current = Some(local);
             self.loading_entry = None;
             self.route = Route::Entry(id);
             self.start_conflict_recheck(cx);
             return;
         }
-        if let Some(preview) = self.list.iter().find(|e| e.id == id) {
-            if let Some(target) = collection_target_type_id(Some(preview)) {
+        if let Some(preview) = self.list.iter().find(|e| e.id == id).cloned() {
+            if let Some(target) = collection_target_type_id(Some(&preview)) {
                 self.route = Route::Collection(target.clone());
                 // Route was already recorded as Entry — rewrite the snapshot.
                 self.history.record(Route::Collection(target));
-                self.current = Some(preview.clone());
+                self.current = Some(preview);
                 return;
             }
             if preview.content_loaded == Some(true) {
-                self.queue_editor_fill(preview);
-                self.current = Some(preview.clone());
+                self.queue_editor_fill(&preview);
+                self.current = Some(preview);
                 self.loading_entry = None;
                 self.send(
                     Command::LoadEntry {

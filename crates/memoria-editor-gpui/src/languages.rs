@@ -1,10 +1,12 @@
-//! The 31 languages of Vue `SHIKI_LANGUAGES` (`TiptapEditor.vue`), mapped onto
-//! gpui-component's `LanguageRegistry`. Twenty-five resolve through
-//! gpui-component features; six (`ini`, `less`, `objective-c`, `perl`, `r`,
-//! `xml`) come from direct grammar crates registered here.
+//! The code-block languages of Vue `CODE_BLOCK_LANGUAGES`/`SHIKI_LANGUAGES`
+//! (`TiptapEditor.vue`), mapped onto gpui-component's `LanguageRegistry`.
+//! Twenty-five resolve through gpui-component features; six (`ini`, `less`,
+//! `objective-c`, `perl`, `r`, `xml`) come from direct grammar crates
+//! registered here.
 //!
-//! A language whose grammar fails to register still shows in the picker and
-//! renders as plain text — the GAP fallback the issue calls for.
+//! Fence aliases normalize like Vue `languageAliasToValue` (`js`→`javascript`,
+//! `objc`→`objective-c`, …). A language whose grammar fails to register still
+//! shows in the picker and renders as plain text — the issue's GAP fallback.
 
 use gpui::SharedString;
 use gpui_component::highlighter::{GrammarConfig, LanguageRegistry};
@@ -13,143 +15,55 @@ use std::sync::OnceLock;
 /// One pickable language.
 #[derive(Clone, Copy, Debug)]
 pub struct Lang {
-    /// Fence-info / picker key (the Vue `SHIKI_LANGUAGES` token).
+    /// Canonical fence token (Vue `value`).
     pub name: &'static str,
+    /// Picker label (Vue `label`).
+    pub label: &'static str,
     /// Registry key — differs only where gpui-component canonicalizes
-    /// (`makefile` → `make`, `objective-c` → `objc`).
+    /// (`makefile` → `make`).
     pub registry: &'static str,
+    /// Vue `aliases` — normalize to `name` (and match picker search).
+    pub aliases: &'static [&'static str],
 }
 
-/// The Vue `SHIKI_LANGUAGES` table, in Vue order.
+/// Vue `CODE_BLOCK_LANGUAGES`, in Vue order — "Plain text" (`""`) first.
+#[rustfmt::skip]
 pub const LANGUAGES: &[Lang] = &[
-    Lang {
-        name: "bash",
-        registry: "bash",
-    },
-    Lang {
-        name: "c",
-        registry: "c",
-    },
-    Lang {
-        name: "cpp",
-        registry: "cpp",
-    },
-    Lang {
-        name: "csharp",
-        registry: "csharp",
-    },
-    Lang {
-        name: "css",
-        registry: "css",
-    },
-    Lang {
-        name: "diff",
-        registry: "diff",
-    },
-    Lang {
-        name: "go",
-        registry: "go",
-    },
-    Lang {
-        name: "graphql",
-        registry: "graphql",
-    },
-    Lang {
-        name: "html",
-        registry: "html",
-    },
-    Lang {
-        name: "ini",
-        registry: "ini",
-    },
-    Lang {
-        name: "java",
-        registry: "java",
-    },
-    Lang {
-        name: "javascript",
-        registry: "javascript",
-    },
-    Lang {
-        name: "json",
-        registry: "json",
-    },
-    Lang {
-        name: "kotlin",
-        registry: "kotlin",
-    },
-    Lang {
-        name: "less",
-        registry: "less",
-    },
-    Lang {
-        name: "lua",
-        registry: "lua",
-    },
-    Lang {
-        name: "makefile",
-        registry: "make",
-    },
-    Lang {
-        name: "markdown",
-        registry: "markdown",
-    },
-    Lang {
-        name: "objective-c",
-        registry: "objective-c",
-    },
-    Lang {
-        name: "perl",
-        registry: "perl",
-    },
-    Lang {
-        name: "php",
-        registry: "php",
-    },
-    Lang {
-        name: "python",
-        registry: "python",
-    },
-    Lang {
-        name: "r",
-        registry: "r",
-    },
-    Lang {
-        name: "ruby",
-        registry: "ruby",
-    },
-    Lang {
-        name: "rust",
-        registry: "rust",
-    },
-    Lang {
-        name: "scss",
-        registry: "scss",
-    },
-    Lang {
-        name: "sql",
-        registry: "sql",
-    },
-    Lang {
-        name: "swift",
-        registry: "swift",
-    },
-    Lang {
-        name: "typescript",
-        registry: "typescript",
-    },
-    Lang {
-        name: "xml",
-        registry: "xml",
-    },
-    Lang {
-        name: "yaml",
-        registry: "yaml",
-    },
+    Lang { name: "", label: "Plain text", registry: "plaintext", aliases: &["text", "plain", "plain text"] },
+    Lang { name: "bash", label: "Bash / Shell", registry: "bash", aliases: &["sh", "shell", "zsh"] },
+    Lang { name: "c", label: "C", registry: "c", aliases: &[] },
+    Lang { name: "cpp", label: "C++", registry: "cpp", aliases: &["c++", "cc", "cxx"] },
+    Lang { name: "csharp", label: "C Sharp", registry: "csharp", aliases: &["cs", "c#"] },
+    Lang { name: "css", label: "CSS", registry: "css", aliases: &[] },
+    Lang { name: "diff", label: "Diff", registry: "diff", aliases: &["patch"] },
+    Lang { name: "go", label: "Go", registry: "go", aliases: &["golang"] },
+    Lang { name: "graphql", label: "GraphQL", registry: "graphql", aliases: &["gql"] },
+    Lang { name: "html", label: "HTML", registry: "html", aliases: &[] },
+    Lang { name: "ini", label: "INI", registry: "ini", aliases: &["conf", "cfg"] },
+    Lang { name: "java", label: "Java", registry: "java", aliases: &[] },
+    Lang { name: "javascript", label: "JavaScript", registry: "javascript", aliases: &["js", "jsx"] },
+    Lang { name: "json", label: "JSON", registry: "json", aliases: &[] },
+    Lang { name: "kotlin", label: "Kotlin", registry: "kotlin", aliases: &["kt", "kts"] },
+    Lang { name: "less", label: "Less", registry: "less", aliases: &[] },
+    Lang { name: "lua", label: "Lua", registry: "lua", aliases: &[] },
+    Lang { name: "makefile", label: "Makefile", registry: "make", aliases: &["make"] },
+    Lang { name: "markdown", label: "Markdown", registry: "markdown", aliases: &["md"] },
+    Lang { name: "objective-c", label: "Objective-C", registry: "objective-c", aliases: &["objc", "objectivec"] },
+    Lang { name: "perl", label: "Perl", registry: "perl", aliases: &["pl"] },
+    Lang { name: "php", label: "PHP", registry: "php", aliases: &[] },
+    Lang { name: "python", label: "Python", registry: "python", aliases: &["py"] },
+    Lang { name: "r", label: "R", registry: "r", aliases: &[] },
+    Lang { name: "ruby", label: "Ruby", registry: "ruby", aliases: &["rb"] },
+    Lang { name: "rust", label: "Rust", registry: "rust", aliases: &["rs"] },
+    Lang { name: "scss", label: "SCSS", registry: "scss", aliases: &[] },
+    Lang { name: "sql", label: "SQL", registry: "sql", aliases: &[] },
+    Lang { name: "swift", label: "Swift", registry: "swift", aliases: &[] },
+    Lang { name: "typescript", label: "TypeScript", registry: "typescript", aliases: &["ts", "tsx"] },
+    Lang { name: "xml", label: "XML", registry: "xml", aliases: &[] },
+    Lang { name: "yaml", label: "YAML", registry: "yaml", aliases: &["yml"] },
 ];
 
-/// Register the six direct grammars; idempotent. Returns names that ended up
-/// without a grammar (for GAP reporting/tests).
+/// Register the six direct grammars; idempotent.
 pub fn init_languages() {
     static ONCE: OnceLock<()> = OnceLock::new();
     ONCE.get_or_init(|| {
@@ -208,23 +122,31 @@ static EXTRA: &[(&str, LangFn, &str, &str, &str)] = &[
     ),
 ];
 
-/// Picker/filter lookup: case-insensitive prefix-substring over the Vue list.
+/// Vue `languageAliasToValue` — fence token/alias → canonical `Lang`.
+pub fn lookup(fence_lang: &str) -> Option<&'static Lang> {
+    let l = fence_lang.trim().to_lowercase();
+    LANGUAGES
+        .iter()
+        .find(|lang| lang.name == l || lang.aliases.iter().any(|a| *a == l))
+}
+
+/// Picker filter: case-insensitive substring over name, label and aliases.
 pub fn filter_languages(query: &str) -> Vec<&'static Lang> {
     let q = query.trim().to_lowercase();
     LANGUAGES
         .iter()
-        .filter(|l| q.is_empty() || l.name.contains(q.as_str()))
+        .filter(|l| {
+            q.is_empty()
+                || l.name.contains(q.as_str())
+                || l.label.to_lowercase().contains(q.as_str())
+                || l.aliases.iter().any(|a| a.contains(q.as_str()))
+        })
         .collect()
 }
 
-/// Vue name → registry name (None = not in the 31; still registered on demand
-/// so unknown fence langs degrade to plain).
+/// Fence token → registry name (None = unknown; still degrades to plain).
 pub fn registry_name(fence_lang: &str) -> Option<&'static str> {
-    let l = fence_lang.trim().to_lowercase();
-    LANGUAGES
-        .iter()
-        .find(|lang| lang.name == l)
-        .map(|l| l.registry)
+    lookup(fence_lang).map(|l| l.registry)
 }
 
 /// `true` when a grammar is available (registered or built-in).

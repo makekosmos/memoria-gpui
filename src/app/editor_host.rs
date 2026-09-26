@@ -1,5 +1,5 @@
 //! M3 editor host — lazy `MemoriaEditor` / title `InputState`, save + autosave.
-use gpui::{Context, Entity, Window};
+use gpui::{prelude::*, Context, Entity, Window};
 use gpui_component::input::{InputEvent, InputState};
 use memoria_editor_gpui::{EditorEvent, MemoriaEditor};
 use memoria_gpui::content;
@@ -51,7 +51,11 @@ impl Memoria {
                 }
                 EditorEvent::Autosave(markdown) => this.autosave(markdown, cx),
                 EditorEvent::ZenToggled => {
-                    this.zen = !this.zen;
+                    // Vue `useKeyboard`: zen only toggles while a note is
+                    // open (`eden.currentEntry` guard).
+                    if this.current.is_some() {
+                        this.zen = !this.zen;
+                    }
                     cx.notify();
                 }
                 EditorEvent::ZoomChanged(_)

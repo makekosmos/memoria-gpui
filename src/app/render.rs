@@ -34,9 +34,7 @@ impl Render for Memoria {
             Route::Diary => self.render_diary_placeholder().into_any_element(),
             Route::Collection(id) => self.render_collection(&id, cx).into_any_element(),
             Route::Entry(id) => match self.current.clone() {
-                Some(e) if e.id == id => {
-                    self.render_entry_view(&e, window, cx).into_any_element()
-                }
+                Some(e) if e.id == id => self.render_entry_view(&e, window, cx).into_any_element(),
                 Some(_) | None if self.loading_entry.as_deref() == Some(id.as_str()) => {
                     self.missing_view("Загрузка…").into_any_element()
                 }

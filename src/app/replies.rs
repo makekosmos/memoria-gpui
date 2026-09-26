@@ -2,8 +2,8 @@
 //! operation continuations (recheck/accept need a canonical remote read).
 use gpui::Context;
 
-use memoria_gpui::entry_conflicts::EntryConflictState;
 use memoria_gpui::content;
+use memoria_gpui::entry_conflicts::EntryConflictState;
 use memoria_gpui::live_refresh::RemoteEntryDecision;
 use memoria_gpui::model::Entry;
 use memoria_gpui::object_views::collection_target_type_id;
@@ -115,10 +115,18 @@ impl Memoria {
                     self.send_accept_remote(conflict_id, cx);
                     return;
                 }
-                self.dirty = false;
-                if let Some(editor) = &self.editor {
-                    editor.update(cx, |e, _| e.mark_saved());
-                }
+                // Restore dirty from the editor: edits typed after the
+                // autosave fired are still unsaved.
+                self.dirty = self
+                    .editor
+                    .as_ref()
+                    .map(|e| {
+                        e.update(cx, |e, _| {
+                            e.mark_saved();
+                            e.is_dirty()
+                        })
+                    })
+                    .unwrap_or(false);
                 self.status = Some("Сохранено".into());
                 self.send(Command::LoadList(Vec::new()), cx);
             }

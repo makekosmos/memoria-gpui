@@ -22,9 +22,8 @@ use crate::style::{self, EditorScale};
 pub const AUTOSAVE_DEBOUNCE: Duration = Duration::from_millis(300);
 /// Vue `Placeholder` text.
 pub const PLACEHOLDER: &str = "Начните писать...";
-/// Ctrl+K,Z zen-mode chord memory: once `ctrl-k` is typed the next `z`
-/// toggles zen within this window.
-pub(crate) const ZEN_CHORD_TIMEOUT: Duration = Duration::from_secs(2);
+/// Ctrl+K,Z zen chord window — Vue `CHORD_WINDOW_MS = 700`.
+pub(crate) const ZEN_CHORD_TIMEOUT: Duration = Duration::from_millis(700);
 
 /// Events the app subscribes to.
 #[derive(Debug, Clone)]
@@ -77,6 +76,10 @@ pub struct MemoriaEditor {
     // ---- save --------------------------------------------------------------
     pub(crate) save_task: Task<()>,
     pub(crate) dirty: bool,
+    /// Revision at the last `Autosave` emit — `mark_saved` only clears
+    /// `dirty` when nothing was typed since (stale `Saved` replies must
+    /// not un-dirty edits that raced an in-flight save).
+    pub(crate) autosaved_rev: u64,
     _subs: Vec<Subscription>,
 }
 
@@ -110,6 +113,7 @@ impl MemoriaEditor {
                 this.core.break_undo_group();
                 cx.notify();
             }),
+            crate::lifecycle::picker_key_interceptor(cx),
         ];
         Self {
             core: Editor::new(&src.into()),
@@ -133,6 +137,7 @@ impl MemoriaEditor {
             picker: None,
             save_task: Task::ready(()),
             dirty: false,
+            autosaved_rev: 0,
             _subs,
         }
     }
@@ -148,12 +153,20 @@ impl MemoriaEditor {
     /// decided the swap is safe (M1 `should_apply_remote_entry`); selection is
     /// clamped and the undo boundary breaks before it.
     pub fn set_markdown(&mut self, md: &str, cx: &mut Context<Self>) {
-        self.core.break_undo_group();
         let mut tx = memoria_editor_core::Tx::new();
         let head = self.core.selection().head.min(md.len());
         tx.replace(0, self.core.len(), md.to_string());
         tx.selection(Selection::caret(head));
         self.core.apply(tx, memoria_editor_core::EditKind::Command);
+        // Reset AFTER applying: the swap itself must not be undoable either —
+        // Ctrl+Z in note B would otherwise resurrect note A's text (and the
+        // autosave would persist it under B's entry).
+        self.core.reset_history();
+        // The fill defines the new baseline: drop the dirty flag, the pending
+        // debounce and the last emitted-revision marker.
+        self.dirty = false;
+        self.autosaved_rev = self.core.revision();
+        self.save_task = Task::ready(());
         self.after_edit(false, cx);
     }
 
@@ -168,9 +181,23 @@ impl MemoriaEditor {
         self.dirty
     }
 
-    /// Call after a successful save.
+    /// Call after a successful save. Only clears `dirty` when the buffer
+    /// hasn't changed since the autosave emit — a `Saved` reply that lands
+    /// after fresh typing must not wipe the dirty flag.
     pub fn mark_saved(&mut self) {
-        self.dirty = false;
+        if self.core.revision() == self.autosaved_rev {
+            self.dirty = false;
+        }
+    }
+
+    /// Save the current buffer immediately if dirty (note-switch flush).
+    pub fn flush_autosave(&mut self, cx: &mut Context<Self>) {
+        if self.dirty {
+            self.dirty = false;
+            self.autosaved_rev = self.core.revision();
+            let md: SharedString = self.markdown().into();
+            cx.emit(EditorEvent::Autosave(md));
+        }
     }
 
     // ---- projection / rows -------------------------------------------------
@@ -235,17 +262,13 @@ impl MemoriaEditor {
             }
         }
         let runs = self.runs_for_row(i, &row);
+        // NB: H5's CSS `text-transform: uppercase` is NOT reproduced —
+        // uppercasing here would desync shaped-glyph indices for
+        // case-expanding chars (ß→SS). Documented GAP in PARITY.md.
         let text = self
             .proj
             .as_ref()
-            .map(|p| {
-                let t = &p.text[row.vis.clone()];
-                if st.uppercase {
-                    gpui::SharedString::from(t.to_uppercase())
-                } else {
-                    gpui::SharedString::from(t.to_string())
-                }
-            })
+            .map(|p| gpui::SharedString::from(p.text[row.vis.clone()].to_string()))
             .unwrap_or_default();
         let ts = window.text_system();
         let line = ts

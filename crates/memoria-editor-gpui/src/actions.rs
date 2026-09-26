@@ -107,11 +107,18 @@ impl MemoriaEditor {
         }
         let mut ends: Vec<usize> = starts[1..].to_vec();
         ends.push(row.vis.len());
-        let k = starts
-            .iter()
-            .zip(ends.iter())
-            .position(|(&s, &e)| local >= s && local <= e)
-            .unwrap_or(0);
+        // At a wrap boundary `local` is both `ends[k]` and `starts[k+1]`.
+        // Home targets the line the caret visually sits on (k+1);
+        // End targets k.
+        let k = if end {
+            starts
+                .iter()
+                .zip(ends.iter())
+                .position(|(&s, &e)| local >= s && local <= e)
+                .unwrap_or(0)
+        } else {
+            starts.iter().rposition(|&s| s <= local).unwrap_or(0)
+        };
         let target_local = if end { ends[k] } else { starts[k] };
         let v = row.vis.start + target_local;
         self.set_caret(proj.to_source(v), extend, cx);
@@ -217,8 +224,14 @@ impl MemoriaEditor {
     // ---- commands ------------------------------------------------------------
 
     pub(crate) fn command(&mut self, cmd: Command, cx: &mut Context<Self>) {
+        // A command can be a pure no-op (e.g. bold with nothing in scope) —
+        // only treat it as an edit when it actually changed something.
+        let (rev, sel) = (self.core.revision(), self.core.selection());
         self.core.command(&cmd);
-        self.after_edit(true, cx);
+        self.after_edit(
+            self.core.revision() != rev || self.core.selection() != sel,
+            cx,
+        );
     }
 
     pub(crate) fn undo(&mut self, cx: &mut Context<Self>) {

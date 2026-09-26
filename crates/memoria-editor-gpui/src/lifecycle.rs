@@ -2,7 +2,7 @@
 //! timer, zoom factor changes, post-edit bookkeeping (autosave debounce),
 //! scroll clamping, and the `Focusable` impl.
 
-use gpui::{px, App, Context, FocusHandle, Focusable, SharedString, Task};
+use gpui::{px, App, Context, FocusHandle, Focusable, SharedString, Subscription, Task};
 use std::time::Duration;
 
 use crate::editor::{EditorEvent, MemoriaEditor, AUTOSAVE_DEBOUNCE};
@@ -47,14 +47,14 @@ impl MemoriaEditor {
         self.zen_armed = None;
     }
 
-    /// Vue `zoomSet` steps — the app scales the whole window; the editor
-    /// scales text metrics only (chrome is the app's job).
+    /// Vue `useKeyboard` ZOOM_STEP=0.1, range 0.5..2.0 (app-side persists
+    /// via `memoria-zoom` localStorage — out of scope for the editor crate).
     pub fn zoom_in(&mut self, cx: &mut Context<Self>) {
-        self.zoom.0 = (self.zoom.0 * 1.1).min(3.0);
+        self.zoom.0 = (self.zoom.0 + 0.1).min(2.0);
         self.zoom_changed(cx);
     }
     pub fn zoom_out(&mut self, cx: &mut Context<Self>) {
-        self.zoom.0 = (self.zoom.0 / 1.1).max(0.5);
+        self.zoom.0 = (self.zoom.0 - 0.1).max(0.5);
         self.zoom_changed(cx);
     }
     pub fn zoom_reset(&mut self, cx: &mut Context<Self>) {
@@ -95,6 +95,7 @@ impl MemoriaEditor {
             cx.background_executor().timer(AUTOSAVE_DEBOUNCE).await;
             this.update(cx, |editor, cx| {
                 if editor.dirty {
+                    editor.autosaved_rev = editor.core.revision();
                     let md: SharedString = editor.markdown().into();
                     cx.emit(EditorEvent::Autosave(md));
                     editor.dirty = false;
@@ -115,4 +116,33 @@ impl Focusable for MemoriaEditor {
     fn focus_handle(&self, _cx: &App) -> FocusHandle {
         self.focus.clone()
     }
+}
+
+/// App-level keystroke interceptor for the open language picker — gpui-kit
+/// dispatches `capture_key_down` listeners *after* action dispatch, so bound
+/// keys (Enter, arrows, Backspace) would leak into the editor before a
+/// capture listener could stop them. Interceptors run before binding
+/// resolution; `stop_propagation` inside keeps the key out of the document.
+pub(crate) fn picker_key_interceptor(cx: &mut Context<MemoriaEditor>) -> Subscription {
+    let weak = cx.entity().downgrade();
+    cx.intercept_keystrokes(move |event, window, cx| {
+        let Some(editor) = weak.upgrade() else {
+            return;
+        };
+        let handled = editor.update(cx, |e, cx| {
+            if e.picker.is_none() || !e.focus.is_focused(window) {
+                return false;
+            }
+            let k = &event.keystroke;
+            e.picker_key(
+                &k.key,
+                k.key_char.as_deref(),
+                k.modifiers.control || k.modifiers.alt || k.modifiers.platform,
+                cx,
+            )
+        });
+        if handled {
+            cx.stop_propagation();
+        }
+    })
 }

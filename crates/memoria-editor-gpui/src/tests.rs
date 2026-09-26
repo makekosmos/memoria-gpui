@@ -14,7 +14,7 @@ use memoria_editor_core::Selection;
 
 use crate::editor::{EditorEvent, MemoriaEditor, AUTOSAVE_DEBOUNCE};
 
-fn open<'a>(
+pub(crate) fn open<'a>(
     cx: &'a mut TestAppContext,
     src: &str,
 ) -> (gpui::Entity<MemoriaEditor>, &'a mut VisualTestContext) {
@@ -29,11 +29,11 @@ fn open<'a>(
     (view, vcx)
 }
 
-fn markdown(view: &gpui::Entity<MemoriaEditor>, cx: &VisualTestContext) -> String {
+pub(crate) fn markdown(view: &gpui::Entity<MemoriaEditor>, cx: &VisualTestContext) -> String {
     cx.read(|app| view.read(app).markdown())
 }
 
-fn press_ru(vcx: &mut VisualTestContext, key: &str, key_char: &str, ctrl: bool) {
+pub(crate) fn press_ru(vcx: &mut VisualTestContext, key: &str, key_char: &str, ctrl: bool) {
     let window = vcx.windows()[0];
     vcx.dispatch_keystroke(
         window,
@@ -48,7 +48,7 @@ fn press_ru(vcx: &mut VisualTestContext, key: &str, key_char: &str, ctrl: bool) 
     );
 }
 
-fn collect_events(
+pub(crate) fn collect_events(
     vcx: &mut VisualTestContext,
     view: &gpui::Entity<MemoriaEditor>,
 ) -> Rc<RefCell<Vec<EditorEvent>>> {

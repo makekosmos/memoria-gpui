@@ -89,6 +89,11 @@ pub fn paint_image_row(
                     let scale = window.scale_factor();
                     let nw = px(img.size(0).width.0 as f32 / scale);
                     let nh = px(img.size(0).height.0 as f32 / scale);
+                    if nw <= px(0.) || nh <= px(0.) {
+                        // Zero-size decode — same broken stub as an error.
+                        stub(origin, h, col_w, true, window);
+                        return;
+                    }
                     let r = (col_w / nw).min(h / nh).min(1.0);
                     let (w, hh) = (nw * r, nh * r);
                     let b = Bounds::new(origin, size(w, hh));

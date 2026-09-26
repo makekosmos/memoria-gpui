@@ -84,12 +84,16 @@ marker color; only code content is re-tinted).
 
 ## Language picker (`picker.rs`)
 
-`Ctrl+F4`-style trigger (`OpenLangPicker` action, wired in `view.rs`) opens a
-searchable 31-language list; `picker_key` handles arrows/enter/esc/input in
-`capture_key_down` before dispatch. Choosing a language calls
-`Command::SetCodeLang{lang}` → `block::set_code_block_lang` rewrites the
-opening fence info string; carets inside the info string are pinned to the
-end of the new token.
+`ctrl-shift-l` (`OpenLangPicker` action) opens the searchable
+31-language + «Plain text» list when the caret is inside a fenced block.
+Picker keys are consumed by an app-level `intercept_keystrokes` hook — in
+this gpui-kit, `capture_key_down` listeners run *after* binding dispatch, so
+bound keys (Enter/arrows/Backspace) would otherwise leak into the document.
+The picker records the block's source position at open time and Enter applies
+there, so caret movement while the list is open can't retarget the edit.
+Choosing a language → `block::set_code_block_lang` rewrites the opening
+fence info string; same-language picks are true no-ops (no history entry,
+no `Edited`). «Plain text» writes an empty info string.
 
 ## Images (`images.rs`)
 
@@ -111,16 +115,25 @@ hidden markers lands at the real source offset. click=caret, drag=selection
 All bindings match **physical** keys — `Keystroke.key` is the ASCII-equivalent
 keycap (gpui-pre-linux `guess_ascii`), so `Ctrl+Б` ≡ `Ctrl+B` on Russian
 layouts — mirroring Vue's `e.code`-based `useKeyboard.ts`. Zen is the
-`Ctrl+K, Z` chord (`CtrlK` arms a 2 s window; `capture_key_down` consumes a
-bare `z` while armed) plus the `Ctrl+Alt+Z` alternative. Zoom: `Ctrl+=` /
-`Ctrl+Numpad+`, `Ctrl+-` / `Ctrl+Numpad-`, `Ctrl+0` → `×1.1`/`÷1.1`/`1.0`.
+`Ctrl+K, Z` chord (`CtrlK` arms a 700 ms window, `CHORD_WINDOW_MS`;
+`capture_key_down` consumes a bare `z` while armed) plus the `Ctrl+Alt+Z`
+alternative; the app toggles only while a note is open (Vue
+`currentEntry` guard). Zoom: `Ctrl+=` / `Ctrl+Numpad+`, `Ctrl+-` /
+`Ctrl+Numpad-`, `Ctrl+0` → `±0.1` steps in `0.5..=2.0`, reset `1.0` —
+the `useKeyboard` constants.
 
 ## App integration (`src/app.rs`, `app/render.rs`, `app/refresh.rs`)
 
 `Entity<MemoriaEditor>` replaces the M1 `TextareaState`. `Edited` sets
 `dirty`; `Autosave(md)` (editor-internal 300 ms debounce) →
 `send_save` → `Command::SaveEntry` with `write_entry_markdown(md)`; `Saved`
-clears dirty + `mark_saved()`. `EngineEvent::Changed` → `LoadEntry` →
+→ `mark_saved()` — revision-aware: it only clears `dirty` when nothing was
+typed after the autosave emitted, so a stale reply can't un-dirty newer
+edits. `select()` flushes the pending autosave synchronously before loading
+the next note, so sub-300 ms edits save under the *old* entry id.
+`set_markdown` (note fill / live refresh) resets undo history wholesale —
+undo in note B can never resurrect note A's text. `EngineEvent::Changed` →
+`LoadEntry` →
 `refresh_decision` (`app/refresh.rs`): note-switch always applies; same note
 goes through `should_apply_remote_entry` (self-echo fingerprint skip, dirty
 skip) so remote changes never wipe in-progress input. Zen hides the sidebar;
@@ -135,4 +148,10 @@ the status bar shows `char_count()` (core `charcount`, Vue parity).
 - Language picker triggers via hotkey only — no hover toolbar yet
   (`EdenCodeBlockTools` parity is partial).
 - Image resize/drag handles are not implemented (view-only).
+- H5 does not render `text-transform: uppercase`: shaping the uppercased
+  string would desync glyph/source indices for case-expanding characters —
+  tracked as a visual GAP.
+- Zoom level is not persisted across restarts (Vue stores it via
+  `localStorage`/`window.api.zoomSet` — app settings storage is out of
+  scope for M3).
 - Zen/zoom are editor-local; app chrome (nav, titlebar) is M4+.

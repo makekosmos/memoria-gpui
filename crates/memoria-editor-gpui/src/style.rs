@@ -4,7 +4,7 @@
 //! |---|---|
 //! | `.ProseMirror` font-sans 16px / lh 1.7 | `body` 16·z, lh 1.7 |
 //! | `h1..h6` 2/1.6/1.3/1.15/1/0.92em, w700, lh1.4 | `heading` sizes, BOLD, lh 1.4 |
-//! | `h5` uppercase | uppercased at row build |
+//! | `h5` uppercase | GAP — no text-transform in gpui; shaping it would desync indices |
 //! | `h6` text-secondary | MUTED_FG |
 //! | `blockquote` italic, inherit | FontStyle::Italic on quote rows |
 //! | `code` mono 0.92em | mono family (size pinned per row — see DESIGN) |
@@ -60,7 +60,6 @@ pub struct BlockStyle {
     pub size: Pixels,
     pub line_height: Pixels,
     pub weight: FontWeight,
-    pub uppercase: bool,
 }
 
 /// Zoom factor — applied to every font size/line height (Vue `window.api.zoomSet`
@@ -101,7 +100,6 @@ pub fn block_style(tag: &memoria_editor_core::project::BlockTag, z: EditorScale)
             B::Heading(_) => FontWeight::BOLD,
             _ => FontWeight::NORMAL,
         },
-        uppercase: matches!(tag, B::Heading(5)),
     }
 }
 

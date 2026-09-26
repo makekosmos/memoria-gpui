@@ -48,6 +48,9 @@ impl EntityInputHandler for MemoriaEditor {
 
     fn unmark_text(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
         self.core.unmark_text();
+        // The preedit underline is baked into shaped runs — drop the cache
+        // so the next frame reshapes without it.
+        self.shaped.clear();
         cx.notify();
     }
 

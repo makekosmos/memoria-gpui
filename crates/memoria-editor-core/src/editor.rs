@@ -11,38 +11,10 @@ use crate::md::ast::{Doc, RangeB};
 use crate::md::parse;
 use crate::project::project;
 use crate::project::Projection;
+pub use crate::tx::Tx;
 
 /// Undo grouping pause — matches ProseMirror's default `newGroupDelay`.
 pub const UNDO_PAUSE: Duration = Duration::from_millis(500);
-
-/// A set of non-overlapping source edits + the selection after applying.
-/// Ops may be given in any order; they're applied from right to left.
-#[derive(Debug, Default)]
-pub struct Tx {
-    /// (start, end, replacement)
-    pub ops: Vec<(usize, usize, String)>,
-    pub sel: Option<Selection>,
-}
-
-impl Tx {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn replace(&mut self, start: usize, end: usize, text: impl Into<String>) -> &mut Self {
-        self.ops.push((start, end, text.into()));
-        self
-    }
-
-    pub fn insert(&mut self, pos: usize, text: impl Into<String>) -> &mut Self {
-        self.replace(pos, pos, text)
-    }
-
-    pub fn selection(&mut self, sel: Selection) -> &mut Self {
-        self.sel = Some(sel);
-        self
-    }
-}
 
 pub struct Editor {
     pub(crate) buf: Buffer,
@@ -221,8 +193,12 @@ impl Editor {
             self.buf.snap_boundary(s.head.min(len)),
         );
         let sel_after = self.sel;
-        self.history
-            .record(patches, sel_before, sel_after, kind, now);
+        // A command that produced no patches and no caret move is a true
+        // no-op — don't give undo an empty entry to "restore".
+        if !patches.is_empty() || sel_after != sel_before {
+            self.history
+                .record(patches, sel_before, sel_after, kind, now);
+        }
         self.sel
     }
 
@@ -246,6 +222,7 @@ impl Editor {
         self.doc = None;
         self.rev += 1;
         self.proj_cache = None;
+        self.marked = None;
         self.sel = e.sel_before.clamp(self.buf.len_bytes());
         self.history.push_redo(e);
         true
@@ -261,6 +238,7 @@ impl Editor {
         self.doc = None;
         self.rev += 1;
         self.proj_cache = None;
+        self.marked = None;
         self.sel = e.sel_after.clamp(self.buf.len_bytes());
         self.history.push_undo_direct(e);
         true
@@ -277,6 +255,14 @@ impl Editor {
     /// Force the next edit to start a new undo group.
     pub fn break_undo_group(&mut self) {
         self.history.break_group();
+    }
+
+    /// Drop undo/redo entirely — used when the whole document is swapped
+    /// out (note switch, live refresh), so a later `undo` can't resurrect
+    /// the previous document's text into the new one.
+    pub fn reset_history(&mut self) {
+        self.history = History::new(UNDO_PAUSE);
+        self.marked = None;
     }
 
     // ---- clock -------------------------------------------------------------

@@ -30,6 +30,8 @@ pub struct HighlightCache {
     theme: Arc<HighlightTheme>,
     /// (lang, content hash) → highlighter + styled ranges (block-local bytes).
     blocks: HashMap<(SharedStringKey, u64), BlockHigh>,
+    /// Insertion order for FIFO eviction (notes see a handful of blocks).
+    order: std::collections::VecDeque<(SharedStringKey, u64)>,
 }
 
 type SharedStringKey = gpui::SharedString;
@@ -50,6 +52,7 @@ impl HighlightCache {
         Self {
             theme: HighlightTheme::default_dark(),
             blocks: HashMap::new(),
+            order: std::collections::VecDeque::new(),
         }
     }
 
@@ -80,11 +83,15 @@ impl HighlightCache {
             hl.update(None, &rope, Some(Duration::from_millis(20)));
             let styles = hl.styles(&(0..code.len()), self.theme.as_ref());
             self.blocks.insert(key.clone(), BlockHigh { styles });
-        }
-        // Bound the cache — 64 blocks is plenty for a note.
-        if self.blocks.len() > 64 {
-            self.blocks.clear();
-            return None;
+            self.order.push_back(key.clone());
+            // Bound the cache — evict oldest instead of thrashing.
+            while self.blocks.len() > 64 {
+                if let Some(old) = self.order.pop_front() {
+                    self.blocks.remove(&old);
+                } else {
+                    break;
+                }
+            }
         }
         self.blocks.get(&key).map(|b| &b.styles)
     }

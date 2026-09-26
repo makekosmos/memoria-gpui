@@ -96,13 +96,14 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | Курсор+blink, выделение, автоскролл, виртуализация рядов | contenteditable | PASS | `element.rs`/`paint.rs` (shaping только видимых рядов) |
 | Мышь: click/drag/dbl/tri, скрытые маркеры → source offset | PM posAtCoords | PASS | `tests::click_on_hidden_marker_word_maps_source`, `mouse.rs` |
 | Горячие клавиши по физическим клавишам (RU layout) | `useKeyboard.ts` `e.code` | PASS | `tests::hotkeys_russian_layout` (key_char=«и/л/я», key=ASCII) |
-| `Ctrl+K Z` zen chord + zoom `Ctrl +/-/0` | `useKeyboard.ts` | PASS | `view.rs` bindings, `capture_key_down` chord; test выше |
+| `Ctrl+K Z` zen chord (700ms, `currentEntry` guard) + zoom `Ctrl +/-/0` (±0.1, 0.5–2.0) | `useKeyboard.ts` | PASS | `view.rs` bindings, `lifecycle.rs`; test выше. GAP: zoom не персистится между запусками |
 | Подсветка кода — 31 язык | `shikiHighlight.ts` SHIKI_LANGUAGES | PARTIAL | 25 via `gpui-component` registry + 6 direct grammars; per-grammar availability см. `languages.rs`, missing → plain (осознанный GAP) |
-| Пикер языка код-блока с поиском | `EdenCodeBlockTools` «Поиск языка...» | PARTIAL | `picker.rs` + `set_code_block_lang`; без hover-тулбара (только хоткей) |
+| Пикер языка код-блока с поиском | `EdenCodeBlockTools` «Поиск языка...» | PARTIAL | `picker.rs` + `set_code_block_lang`; alias-нормализация + «Plain text» (`tests_regressions::picker_*`); без hover-тулбара (только `ctrl-shift-l`) |
 | Картинки: local path, lazy decode, placeholder/broken | `localImages.ts`/`objectImages.ts` | PASS | `images.rs`, `images::tests::decodes_local_image_scheme` |
 | Плейсхолдер «Начните писать...», char counter | `Placeholder`, `charCount.ts` | PASS | `paint.rs` placeholder; статус-бар `char_count()` |
-| Autosave 300ms debounce → SaveEntry | `edenStoreSaveActions.ts` | PASS | `tests::autosave_debounce_emits_single_event` + `undo_after_autosave` |
-| Live refresh без затирания ввода | `liveRefresh.ts` | PASS | `app::refresh::tests` (4 кейса) + `set_markdown_is_the_live_refresh_path` |
+| Autosave 300ms debounce → SaveEntry | `edenStoreSaveActions.ts` | PASS | `tests::autosave_debounce_emits_single_event` + `undo_after_autosave`; stale-save race → `tests_regressions::stale_save_reply_keeps_dirty`; flush при переключении → `flush_before_switch_emits_once` |
+| Live refresh без затирания ввода | `liveRefresh.ts` | PASS | `app::refresh::tests` (5 кейсов) + `set_markdown_is_the_live_refresh_path` |
+| Undo-изоляция между заметками | PM history per-editor | PASS | `tests_regressions::note_switch_resets_undo_history` (`set_markdown` → `reset_history`) |
 | Perf: 10k строк, frame time | — | NOT_RUN default | `tests::perf_ten_thousand_lines` (`--ignored`) |
 
 ## Screens for reference (`reference/screens/`)
