@@ -273,7 +273,6 @@ test("KOS-147 memoria reference screenshots", async () => {
     await page.reload().catch(() => {});
     await page.waitForTimeout(2500);
     await shot(page, "engine-down-dark");
-
     fs.writeFileSync(path.join(SHOTS, "seed-failures.json"), JSON.stringify(failedSeeds, null, 2));
   } finally {
     const cleanupErrors: unknown[] = [];
