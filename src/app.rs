@@ -1,6 +1,7 @@
-//! Memoria M4 shell: `DesktopChrome`-style window with an imago sidebar,
-//! routed screens, navigation history, search overlay, settings + trash,
-//! conflict banner and toasts. The editor surface is read-only until M3.
+//! Memoria M4 shell + M3 live-preview editor: `DesktopChrome`-style window
+//! with an imago sidebar, routed screens, navigation history, search overlay,
+//! settings + trash, conflict banner and toasts. Note routes embed the M3
+//! `MemoriaEditor` (input, IME, code & images) with autosave + live refresh.
 mod backend;
 mod chrome;
 mod confirm;
@@ -8,12 +9,14 @@ mod conflict;
 mod conflict_banner;
 mod conflict_ops;
 mod demo;
+mod editor_host;
 mod everything;
 mod highlight;
 mod image;
 mod menus;
 mod note;
 mod objects;
+mod refresh;
 mod render;
 mod search;
 mod settings;
@@ -28,6 +31,7 @@ use std::path::PathBuf;
 
 use gpui::{Context, Entity, FocusHandle, Subscription};
 use gpui_component::input::InputState;
+use memoria_editor_gpui::MemoriaEditor;
 
 use memoria_gpui::conflict_store::ConflictRepository;
 use memoria_gpui::local_state::{load_local_state, LocalState};
@@ -76,6 +80,16 @@ pub struct Memoria {
     pub(crate) ctx_menu: Option<CtxMenu>,
     pub(crate) root_focus: FocusHandle,
     pub(crate) focused_once: bool,
+    /// Unsaved edits in the note surface — remote refreshes must not clobber.
+    pub(crate) dirty: bool,
+    pub(crate) status: Option<String>,
+    pub(crate) title_input: Option<Entity<InputState>>,
+    pub(crate) editor: Option<Entity<MemoriaEditor>>,
+    /// Zen mode (Vue `Ctrl+K Z`): hides the sidebar.
+    pub(crate) zen: bool,
+    /// (title, markdown) queued for the inputs — `set_value` needs a `Window`,
+    /// so replies stash values here and `render` applies them.
+    pub(crate) pending_fill: Option<(String, String)>,
     pub(crate) _subs: Vec<Subscription>,
     pub(crate) _poll: Option<gpui::Task<()>>,
 }
@@ -133,6 +147,12 @@ impl Memoria {
             ctx_menu: None,
             root_focus: cx.focus_handle(),
             focused_once: false,
+            dirty: false,
+            status: None,
+            title_input: None,
+            editor: None,
+            zen: false,
+            pending_fill: None,
             _subs: Vec::new(),
             _poll: None,
         };

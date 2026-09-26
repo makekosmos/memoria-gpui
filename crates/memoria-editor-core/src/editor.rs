@@ -48,6 +48,12 @@ pub struct Editor {
     pub(crate) buf: Buffer,
     pub(crate) sel: Selection,
     doc: Option<Doc>,
+    /// Content revision — bumps on every buffer change (edit/undo/redo).
+    /// Renderers cache per-revision.
+    rev: u64,
+    /// Projection cache keyed by (revision, selection): the renderer calls
+    /// this every frame; unchanged inputs return the stored projection.
+    proj_cache: Option<(u64, Selection, crate::Projection)>,
     history: History,
     /// `Some` = manual clock (tests); `None` = wall clock.
     manual: Option<Instant>,
@@ -61,6 +67,8 @@ impl Editor {
             buf: Buffer::from_text(src),
             sel: Selection::caret(src.len()),
             doc: None,
+            rev: 0,
+            proj_cache: None,
             history: History::new(UNDO_PAUSE),
             manual: None,
             marked: None,
@@ -116,8 +124,57 @@ impl Editor {
     /// Live-preview projection under the current selection.
     pub fn project(&mut self) -> Projection {
         let src = self.buf.text();
-        let doc = parse(&src);
-        project(&doc, &src, self.sel)
+        let sel = self.sel;
+        let doc = self.doc();
+        project(doc, &src, sel)
+    }
+
+    /// Cached projection for the render loop — reparses/reprojects only when
+    /// the buffer revision or the selection changed since the last call.
+    /// Callers may hold the `&Projection` only as long as the borrow allows;
+    /// copy out what a frame needs.
+    pub fn project_cached(&mut self) -> &Projection {
+        let hit = self
+            .proj_cache
+            .as_ref()
+            .is_some_and(|(rev, sel, _)| *rev == self.rev && *sel == self.sel);
+        if !hit {
+            let src = self.buf.text();
+            let sel = self.sel;
+            let proj = {
+                let doc = self.doc();
+                project(doc, &src, sel)
+            };
+            self.proj_cache = Some((self.rev, sel, proj));
+        }
+        &self.proj_cache.as_ref().unwrap().2
+    }
+
+    /// Buffer revision — increments on every content mutation. Renderers key
+    /// shaped-line/highlighter caches on this.
+    pub fn revision(&self) -> u64 {
+        self.rev
+    }
+
+    /// Cached projection + the cached parse in one borrow — the renderer's
+    /// per-frame entry point.
+    pub fn project_and_doc(&mut self) -> (&Projection, &Doc) {
+        let hit = self
+            .proj_cache
+            .as_ref()
+            .is_some_and(|(rev, sel, _)| *rev == self.rev && *sel == self.sel);
+        if !hit {
+            if self.doc.is_none() {
+                self.doc = Some(parse(&self.buf.text()));
+            }
+            let src = self.buf.text();
+            let proj = project(self.doc.as_ref().unwrap(), &src, self.sel);
+            self.proj_cache = Some((self.rev, self.sel, proj));
+        }
+        (
+            &self.proj_cache.as_ref().unwrap().2,
+            self.doc.as_ref().unwrap(),
+        )
     }
 
     /// Same, for an arbitrary selection — renderer/caret helpers.
@@ -152,6 +209,8 @@ impl Editor {
             });
         }
         self.doc = None;
+        self.rev += 1;
+        self.proj_cache = None;
         if kind != EditKind::Ime {
             self.marked = None;
         }
@@ -185,6 +244,8 @@ impl Editor {
             self.buf.replace(p.start, p.start + p.ins.len(), &p.del);
         }
         self.doc = None;
+        self.rev += 1;
+        self.proj_cache = None;
         self.sel = e.sel_before.clamp(self.buf.len_bytes());
         self.history.push_redo(e);
         true
@@ -198,6 +259,8 @@ impl Editor {
             self.buf.replace(p.start, p.start + p.del.len(), &p.ins);
         }
         self.doc = None;
+        self.rev += 1;
+        self.proj_cache = None;
         self.sel = e.sel_after.clamp(self.buf.len_bytes());
         self.history.push_undo_direct(e);
         true

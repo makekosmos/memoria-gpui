@@ -31,7 +31,7 @@ screenshots to compare — unit/golden tests are the parity evidence).
 
 | Feature | Vue source @7ccbb9f | M | Status |
 |---|---|---|---|
-| Tiptap editor surface (all marks/blocks, tasks, code w/ shiki, images) | `src/editor-tiptap/TiptapEditor.vue`, `src/editor-tiptap/shikiHighlight.ts` | M1 | TODO |
+| Tiptap editor surface (all marks/blocks, tasks, code w/ shiki, images) | `src/editor-tiptap/TiptapEditor.vue`, `src/editor-tiptap/shikiHighlight.ts` | M1/M3 | PASS (M2 core commands/keys/paste; M3 GPUI render + tree-sitter, см. «Редактор — M3 GPUI») |
 | `content_json` codecs (tiptap/markdown/legacy, byte-compat) | `src/editor-content/content.ts` | M1 | DONE (M1) |
 | Block selection (classes, pointer, composable) | `src/lib/blockSelectionClasses.ts`, `src/lib/blockSelectionPointer.ts`, `src/composables/useBlockSelection.ts` | M1 | TODO |
 | Char counter | `src/lib/charCount.ts`, `src/composables/useCharCounter.ts` | M1 | DONE (M1) |
@@ -63,7 +63,7 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | FPS monitor (dev overlay) | `src/composables/useFpsMonitor.ts` | M8 | TODO |
 | Obsidian vault import/export (+ images, frontmatter, journal transaction) | `src/lib/obsidianVault{,Export,ExportAssets,ExportAssetPaths,ImportFrontmatter,ImportImages,ImportTransaction}.ts`, `src/lib/markdownFrontmatter.ts` | M9 | PARTIAL (M1: `markdownFrontmatter` ported; import/export TODO) |
 | Eden legacy migration (read-only: storage keys, userData, command prefixes) | `src/lib/memoria-migration.ts`, `manifest.json` `legacy_*` fields | M9 | PARTIAL (M1: storage/userData/command-prefix ports + tests; `manifest.json` contract is Vue-only) |
-| Local image resolution | `src/lib/localImages.ts` | M1 | TODO |
+| Local image resolution | `src/lib/localImages.ts` | M1 | PASS (M3: `kosmos-local-image://` → path, lazy decode, broken-stub — `images.rs`) |
 | App bootstrap / env types | `src/main.ts`, `src/vite-env.d.ts` | M2 | n/a — replaced by Rust app shell |
 | Sidebar leftovers | `src/components/sidebar/types.ts` | — | не нужен: sidebar was removed; only a dead `types.ts` (3 lines) remains |
 
@@ -84,7 +84,26 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | Paste: plain/markdown-as-is, HTML→markdown | Tiptap paste | PASS (минимальный HTML; GAP: Word mso-list) |
 | IME contract (EntityInputHandler-shaped, UTF-16) | браузерный IME | PASS |
 | Char count 1:1 `charCount.ts` | `src/lib/charCount.ts` | PASS |
-| Отрисовка GPUI, syntax highlighting, пиксели изображений | — | GAP — осознанно вне M2 (M3) |
+| Отрисовка GPUI, syntax highlighting, пиксели изображений | — | DONE (M3 — см. таблицу ниже) |
+
+### «Редактор» — M3 GPUI слой (`crates/memoria-editor-gpui`)
+
+| Фича | Vue-эталон | Status | Evidence |
+|---|---|---|---|
+| Ввод текста + EntityInputHandler | Tiptap contenteditable | PASS | `tests::typing_updates_markdown_and_marks_dirty` |
+| IME marked text (UTF-16 ranges, candidate bounds) | браузерный IME | PASS | `tests::ime_mark_then_commit`, `ime_replaces_selection_utf16` |
+| Live Preview рендер (заголовки, цитаты, код, hr, ссылки) | Tiptap WYSIWYG | PASS | `rows.rs`/`runs.rs`/`style.rs`, токен↔CSS карта в `DESIGN.md` |
+| Курсор+blink, выделение, автоскролл, виртуализация рядов | contenteditable | PASS | `element.rs`/`paint.rs` (shaping только видимых рядов) |
+| Мышь: click/drag/dbl/tri, скрытые маркеры → source offset | PM posAtCoords | PASS | `tests::click_on_hidden_marker_word_maps_source`, `mouse.rs` |
+| Горячие клавиши по физическим клавишам (RU layout) | `useKeyboard.ts` `e.code` | PASS | `tests::hotkeys_russian_layout` (key_char=«и/л/я», key=ASCII) |
+| `Ctrl+K Z` zen chord + zoom `Ctrl +/-/0` | `useKeyboard.ts` | PASS | `view.rs` bindings, `capture_key_down` chord; test выше |
+| Подсветка кода — 31 язык | `shikiHighlight.ts` SHIKI_LANGUAGES | PARTIAL | 25 via `gpui-component` registry + 6 direct grammars; per-grammar availability см. `languages.rs`, missing → plain (осознанный GAP) |
+| Пикер языка код-блока с поиском | `EdenCodeBlockTools` «Поиск языка...» | PARTIAL | `picker.rs` + `set_code_block_lang`; без hover-тулбара (только хоткей) |
+| Картинки: local path, lazy decode, placeholder/broken | `localImages.ts`/`objectImages.ts` | PASS | `images.rs`, `images::tests::decodes_local_image_scheme` |
+| Плейсхолдер «Начните писать...», char counter | `Placeholder`, `charCount.ts` | PASS | `paint.rs` placeholder; статус-бар `char_count()` |
+| Autosave 300ms debounce → SaveEntry | `edenStoreSaveActions.ts` | PASS | `tests::autosave_debounce_emits_single_event` + `undo_after_autosave` |
+| Live refresh без затирания ввода | `liveRefresh.ts` | PASS | `app::refresh::tests` (4 кейса) + `set_markdown_is_the_live_refresh_path` |
+| Perf: 10k строк, frame time | — | NOT_RUN default | `tests::perf_ten_thousand_lines` (`--ignored`) |
 
 ## Screens for reference (`reference/screens/`)
 
@@ -226,7 +245,7 @@ see "не нужен" row above — everything else must be empty.)
 | `src/lib/kepler-task-sync.ts` | M3 | TODO |  |
 | `src/lib/kepler-trash-storage.ts` | M3 | DONE (M1) |  |
 | `src/lib/kepler-ui-runtime.ts` | M3 | TODO |  |
-| `src/lib/localImages.ts` | M1 | TODO |  |
+| `src/lib/localImages.ts` | M1 | DONE (M3) | `crates/memoria-editor-gpui/src/images.rs` |
 | `src/lib/markdownFrontmatter.ts` | M9 | DONE (M1) |  |
 | `src/lib/memoria-migration.ts` | M9 | DONE (M1) |  |
 | `src/lib/objectFieldFormatting.ts` | M4 | TODO |  |

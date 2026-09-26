@@ -1,6 +1,7 @@
 //! Navigation — route application, `navigateTo` port, history replay.
 use gpui::Context;
 
+use memoria_gpui::content;
 use memoria_gpui::entry_conflicts::conflict_for_entry;
 use memoria_gpui::object_views::collection_target_type_id;
 use memoria_gpui::routes::Route;
@@ -45,6 +46,7 @@ impl Memoria {
     /// `eden.navigateTo` — conflict guard, collection redirect, then load.
     pub(crate) fn open_entry(&mut self, id: String, cx: &mut Context<Self>) {
         if let Some(conflict) = conflict_for_entry(&self.conflicts.conflicts, &id) {
+            self.queue_editor_fill(&conflict.local);
             self.current = Some(conflict.local.clone());
             self.loading_entry = None;
             self.route = Route::Entry(id);
@@ -60,6 +62,7 @@ impl Memoria {
                 return;
             }
             if preview.content_loaded == Some(true) {
+                self.queue_editor_fill(preview);
                 self.current = Some(preview.clone());
                 self.loading_entry = None;
                 self.send(
@@ -109,5 +112,12 @@ impl Memoria {
     /// `eden.deleteEntry` — soft delete; if it was open, return to «Всё».
     pub(crate) fn delete_entry(&mut self, id: String, cx: &mut Context<Self>) {
         self.send(Command::DeleteEntry(id), cx);
+    }
+    /// Stash title+markdown for the M3 editor — applied in `Render` with a Window.
+    fn queue_editor_fill(&mut self, entry: &memoria_gpui::model::Entry) {
+        let raw = serde_json::from_str(&entry.content_json).unwrap_or(serde_json::Value::Null);
+        let markdown = content::read_entry_markdown(&raw);
+        self.pending_fill = Some((entry.title.clone(), markdown));
+        self.dirty = false;
     }
 }

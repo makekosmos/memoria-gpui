@@ -3,14 +3,14 @@
 use gpui::Context;
 
 use memoria_gpui::entry_conflicts::EntryConflictState;
-use memoria_gpui::live_refresh::{
-    should_apply_remote_entry, RemoteEntryDecision, RemoteEntryParams,
-};
+use memoria_gpui::content;
+use memoria_gpui::live_refresh::RemoteEntryDecision;
 use memoria_gpui::model::Entry;
 use memoria_gpui::object_views::collection_target_type_id;
 use memoria_gpui::routes::Route;
 use memoria_gpui::store::{Command, EngineEvent, Reply};
 
+use super::refresh;
 use super::types::ENGINE_OFFLINE;
 use super::Memoria;
 
@@ -115,6 +115,11 @@ impl Memoria {
                     self.send_accept_remote(conflict_id, cx);
                     return;
                 }
+                self.dirty = false;
+                if let Some(editor) = &self.editor {
+                    editor.update(cx, |e, _| e.mark_saved());
+                }
+                self.status = Some("Сохранено".into());
                 self.send(Command::LoadList(Vec::new()), cx);
             }
             Ok(saved) => {
@@ -172,31 +177,35 @@ impl Memoria {
                 if matches!(self.route, Route::Settings(_)) {
                     self.send(Command::LoadTrash, cx);
                 }
-                if let Some(id) = self.current.as_ref().map(|e| e.id.clone()) {
-                    self.send(
-                        Command::LoadEntry {
-                            id,
-                            content_only: false,
-                        },
-                        cx,
-                    );
+                // Skip remote entry reload while the user is typing — autosave
+                // will persist, and live-refresh guards protect the buffer.
+                if !self.dirty {
+                    if let Some(id) = self.current.as_ref().map(|e| e.id.clone()) {
+                        self.send(
+                            Command::LoadEntry {
+                                id,
+                                content_only: false,
+                            },
+                            cx,
+                        );
+                    }
                 }
             }
         }
     }
 
-    /// `set_current` — remote-change guard + conflict upsert, then replace.
-    pub(crate) fn set_current(&mut self, entry: Entry, _cx: &mut Context<Self>) {
-        let decision = should_apply_remote_entry(&RemoteEntryParams {
-            fresh: &entry,
-            current_content_json: self
-                .current
-                .as_ref()
-                .map(|e| e.content_json.as_str())
-                .unwrap_or(""),
-            current_entry: self.current.as_ref(),
-            is_editor_dirty: false,
-        });
+    /// `set_current` — remote-change guard + conflict upsert, then fill the
+    /// M3 editor (via `pending_fill`) when the swap is safe.
+    pub(crate) fn set_current(&mut self, entry: Entry, cx: &mut Context<Self>) {
+        let raw = serde_json::from_str(&entry.content_json).unwrap_or(serde_json::Value::Null);
+        let markdown = content::read_entry_markdown(&raw);
+        let current_md = self
+            .editor
+            .as_ref()
+            .map(|e| e.read(cx).markdown().to_string())
+            .unwrap_or_default();
+        let decision =
+            refresh::refresh_decision(&entry, self.current.as_ref(), &current_md, self.dirty);
         match decision {
             RemoteEntryDecision::Apply => {
                 // A remote revision differing from the open baseline while the
@@ -210,13 +219,20 @@ impl Memoria {
                         );
                     }
                 }
+                self.pending_fill = Some((entry.title.clone(), markdown));
+                self.current = Some(entry);
+                self.dirty = false;
+            }
+            // Content differs but the editor is dirty: refresh metadata only.
+            RemoteEntryDecision::SkipDirty => {
                 self.current = Some(entry);
             }
-            RemoteEntryDecision::SkipSameContent | RemoteEntryDecision::SkipDirty => {
-                if self.current.is_none() {
-                    self.current = Some(entry);
-                }
+            // Identical content — self-echo or no-op refresh.
+            RemoteEntryDecision::SkipSameContent => {
+                self.current = Some(entry);
             }
         }
+        self.status = None;
+        cx.notify();
     }
 }

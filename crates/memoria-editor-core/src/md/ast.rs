@@ -126,3 +126,30 @@ pub struct Doc {
     pub range: RangeB,
     pub children: Vec<Node>,
 }
+
+/// The fenced code block containing `pos`, if any.
+pub fn fenced_block_containing(doc: &Doc, pos: usize) -> Option<RangeB> {
+    fn walk(ns: &[Node], pos: usize) -> Option<crate::md::ast::RangeB> {
+        for n in ns {
+            if let Node::Block {
+                kind,
+                range,
+                children,
+            } = n
+            {
+                if let BlockKind::CodeBlock { fenced: true, .. } = kind {
+                    if range.start <= pos && pos <= range.end {
+                        return Some(range.clone());
+                    }
+                }
+                if range.start <= pos && pos <= range.end {
+                    if let Some(r) = walk(children, pos) {
+                        return Some(r);
+                    }
+                }
+            }
+        }
+        None
+    }
+    walk(&doc.children, pos)
+}

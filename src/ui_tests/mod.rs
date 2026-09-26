@@ -129,7 +129,7 @@ fn launch_shows_everything(cx: &mut TestAppContext) {
     assert!(cx.debug_bounds("sb-nav-everything").is_some());
 }
 
-/// Card click opens the read-only note view; back/forward walk history.
+/// Card click opens the M3 note editor; back/forward walk history.
 #[gpui::test]
 fn card_opens_note_and_history_works(cx: &mut TestAppContext) {
     let (app, cx) = launch(cx);
@@ -139,7 +139,7 @@ fn card_opens_note_and_history_works(cx: &mut TestAppContext) {
     assert_eq!(route_of(cx, &app), Route::Entry("n-1".into()));
     redraw(cx);
     assert!(cx.debug_bounds("note-view").is_some());
-    assert!(cx.debug_bounds("note-readonly-badge").is_some());
+    assert!(cx.debug_bounds("note-editor").is_some());
 
     click(cx, "nav-back");
     assert_eq!(route_of(cx, &app), Route::Everything);

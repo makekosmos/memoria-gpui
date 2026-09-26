@@ -1,11 +1,11 @@
 //! Key behavior — Enter / Backspace / Tab / Shift+Tab matching TipTap
 //! semantics in lists, quotes, headings and code blocks.
 
-use crate::cmd::block::fenced_block_containing;
 use crate::cmd::util::{heading_marker, line_range, list_marker, quote_marker};
 use crate::cursor::Selection;
 use crate::editor::{Editor, Tx};
 use crate::history::EditKind;
+use crate::md::ast::fenced_block_containing;
 
 /// Code-block Tab width — `enableTabIndentation: true, tabSize: 2` in the
 /// Vue editor (`CODE_BLOCK_TAB_SIZE`).
@@ -145,6 +145,26 @@ impl Editor {
         let prev = self.buf.prev_grapheme(s);
         tx.replace(prev, s, "");
         tx.selection(Selection::caret(prev));
+        self.apply(tx, EditKind::Delete);
+    }
+
+    /// Forward delete (Del key): removes the selection or the next grapheme
+    /// cluster. No marker semantics — Del never lifts.
+    pub fn key_delete(&mut self) {
+        let sel = self.selection();
+        let (s, e) = (sel.start(), sel.end());
+        let end = if s != e {
+            e
+        } else {
+            let next = self.buf.next_grapheme(s);
+            if next == s {
+                return;
+            }
+            next
+        };
+        let mut tx = Tx::new();
+        tx.replace(s, end, "");
+        tx.selection(Selection::caret(s));
         self.apply(tx, EditKind::Delete);
     }
 

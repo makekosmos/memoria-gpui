@@ -10,7 +10,8 @@ use crate::editor::{Editor, Tx};
 use crate::history::EditKind;
 
 pub use block::{
-    toggle_code_block, toggle_heading, toggle_list, toggle_quote, toggle_task_checked,
+    set_code_block_lang, toggle_code_block, toggle_heading, toggle_list, toggle_quote,
+    toggle_task_checked,
 };
 pub use inline::{toggle_inline, Inline};
 pub use insert::{
@@ -29,6 +30,10 @@ pub enum Command {
     TaskToggle,
     Quote,
     CodeBlock(String),
+    /// Language picker: rewrite the fence info string of the block at caret.
+    SetCodeLang {
+        lang: String,
+    },
     Rule,
     Link {
         dest: String,
@@ -57,6 +62,7 @@ pub fn tx_for(doc: &crate::md::ast::Doc, src: &str, sel: Selection, cmd: &Comman
         Command::TaskToggle => toggle_task_checked(src, sel),
         Command::Quote => toggle_quote(src, sel),
         Command::CodeBlock(lang) => toggle_code_block(doc, src, sel, lang),
+        Command::SetCodeLang { lang } => block::set_code_block_lang(doc, src, sel.start(), lang),
         Command::Rule => block::insert_rule(src, sel),
         Command::Link { dest, title } => insert_link(src, sel, dest, title.as_deref()),
         Command::Image { src: s, alt, title } => insert_image(src, sel, s, alt, title.as_deref()),
