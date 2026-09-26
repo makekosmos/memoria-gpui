@@ -1,5 +1,5 @@
 //! Note object view — M3 `MemoriaEditor` live-preview surface embedded in
-//! the M4 shell (title input + editor + object chrome).
+//! the M4 shell (title input + editor + object chrome) with M5 typed header.
 use gpui::{div, prelude::*, px, Context, SharedString, Window};
 use gpui_component::input::Input;
 use memoria_gpui::dates::format_russian_date_ms;
@@ -11,11 +11,11 @@ use crate::a11y::A11y;
 use crate::theme::*;
 
 impl Memoria {
-    /// Note body — editable title + live-preview editor + updated date.
+    /// Note body — typed header (M5) + editable title + live-preview editor.
     pub(crate) fn render_note(
         &mut self,
         entry: &Entry,
-        _window: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let note_type = entry
@@ -23,6 +23,15 @@ impl Memoria {
             .as_deref()
             .and_then(|t| self.note_types.iter().find(|nt| nt.id == t))
             .cloned();
+        // Vue: book/person render their title inside the typed header
+        // (editable for books); other types keep the titlebar title.
+        let header_owns_title = note_type
+            .as_ref()
+            .map(|nt| {
+                nt.id == memoria_gpui::system_types_data::SYSTEM_TYPE_BOOK_ID
+                    || nt.id == memoria_gpui::system_types_data::SYSTEM_TYPE_PERSON_ID
+            })
+            .unwrap_or(false);
         let title_state = self
             .title_input
             .clone()
@@ -33,33 +42,30 @@ impl Memoria {
             .expect("editor_state prepared in Render::render");
         let char_count = editor.update(cx, |e, _| e.char_count());
 
-        let mut header = div()
+        let mut title_col = div().flex_1().min_w_0().flex().flex_col().gap_1();
+        if !header_owns_title {
+            title_col = title_col.child(
+                Input::new(&title_state)
+                    .text_size(px(22.))
+                    .text_color(c(FG()))
+                    .appearance(false)
+                    .bordered(false)
+                    .p_0(),
+            );
+        }
+        title_col = title_col.child(
+            div()
+                .text_size(px(11.))
+                .text_color(c(MUTED_FG()))
+                .child(format_russian_date_ms(entry.updated_at)),
+        );
+
+        let header = div()
             .id("entry-titlebar")
             .flex()
             .items_start()
             .gap_2()
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .flex()
-                    .flex_col()
-                    .gap_1()
-                    .child(
-                        Input::new(&title_state)
-                            .text_size(px(22.))
-                            .text_color(c(FG()))
-                            .appearance(false)
-                            .bordered(false)
-                            .p_0(),
-                    )
-                    .child(
-                        div()
-                            .text_size(px(11.))
-                            .text_color(c(MUTED_FG()))
-                            .child(format_russian_date_ms(entry.updated_at)),
-                    ),
-            )
+            .child(title_col)
             .child({
                 let eid = entry.id.clone();
                 let weak = cx.weak_entity();
@@ -88,19 +94,10 @@ impl Memoria {
                     .child(icon(IconId::EllipsisVertical, 15., rgba(FG(), 0.7)))
             });
 
-        if let Some(nt) = note_type {
-            header = header.child(
-                div()
-                    .id("entry-type-badge")
-                    .px_2()
-                    .py_1()
-                    .rounded_md()
-                    .bg(rgba(ACCENT(), 0.12))
-                    .text_size(px(11.))
-                    .text_color(c(ACCENT()))
-                    .child(nt.name.clone()),
-            );
-        }
+        let typed_header = note_type.as_ref().map(|nt| {
+            self.render_typed_header(entry, nt, window, cx)
+                .into_any_element()
+        });
 
         div()
             .id("note-view")
@@ -111,6 +108,7 @@ impl Memoria {
             .flex_col()
             .gap_4()
             .child(header)
+            .children(typed_header)
             .child(
                 div()
                     .id("note-editor")

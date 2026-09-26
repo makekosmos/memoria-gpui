@@ -2,6 +2,8 @@
 //! `Command`s with the same observable semantics as `EntryApi`/`TrashApi`:
 //! entries sort `updated_at` desc, trash sorts `deleted_at` desc, search
 //! matches title/body case-insensitively.
+use serde_json::Value;
+
 use memoria_gpui::model::{DeleteEntryResult, Entry, NoteType, SaveEntryResult, SearchResult};
 use memoria_gpui::store::{Command, Reply};
 use memoria_gpui::system_types_data::{
@@ -221,6 +223,62 @@ impl DemoStore {
                     result: Ok(results),
                 }
             }
+            // Engine-owned app network ops — deterministic demo doubles. The
+            // demo "engine" answers like the real ops: null on miss, stored
+            // path on cover drop, `{finalUrl, html}` for page fetch.
+            Command::LookupIsbn(isbn) => {
+                let normalized =
+                    memoria_gpui::book_metadata::normalize_isbn(&Value::from(isbn));
+                let metadata = match normalized.as_str() {
+                    "9780306406157" => Some(memoria_gpui::book_metadata::BookMetadata {
+                        title: Some("Солярис".into()),
+                        author: Some("Станислав Лем".into()),
+                        isbn: Some(normalized.clone()),
+                        page_count: Some(224),
+                        language: Some("Польский".into()),
+                        publisher: Some("Wydawnictwo Literackie".into()),
+                        published_date: Some("1961".into()),
+                        ..Default::default()
+                    }),
+                    "" => None,
+                    _ => Some(memoria_gpui::book_metadata::BookMetadata {
+                        title: Some("Фантастический мистер Фокс".into()),
+                        isbn: Some(normalized.clone()),
+                        publisher: Some("Puffin".into()),
+                        ..Default::default()
+                    }),
+                };
+                Reply::BookMetadata(Ok(metadata))
+            }
+            Command::FetchBookPage(url) => Reply::BookMetadataPage(Ok(Some(
+                memoria_gpui::book_metadata::BookMetadataPage {
+                    final_url: url.clone(),
+                    html: concat!(
+                        r#"<!doctype html><html><head>"#,
+                        r#"<script type="application/ld+json">{"@type":"Book","name":"Солярис","author":{"name":"Станислав Лем"},"isbn":"9780306406157","numberOfPages":224,"inLanguage":"pl","publisher":"Wydawnictwo Literackie","datePublished":"1961"}</script>"#,
+                        r#"</head><body><h1>Солярис</h1></body></html>"#
+                    )
+                    .to_string(),
+                },
+            ))),
+            Command::DominantColor(source) => Reply::DominantColor {
+                source,
+                result: Ok(Some("rgb(136 86 41)".into())),
+            },
+            Command::StoreCover {
+                source_path: _,
+                entry_id,
+            } => Reply::CoverStored {
+                result: Ok(format!("/demo/book-covers/{entry_id}-stored.png")),
+                entry_id,
+            },
+            Command::FetchImage(url) => Reply::ImageFetched {
+                result: Ok((
+                    format!("/demo/remote-images/{}.jpg", url.len()),
+                    Some("rgb(136 86 41)".into()),
+                )),
+                url,
+            },
             command => self.dispatch_bubble(command),
         };
         vec![reply]

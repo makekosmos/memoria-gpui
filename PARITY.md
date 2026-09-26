@@ -52,18 +52,18 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | Trash storage over ARK soft-delete | `src/lib/kepler-trash-storage.ts` | M3 | DONE (M1) |
 | Search | `src/composables/useSearch.ts`, `src/components/SearchOverlay.vue` | M3/M8 | DONE (M4: `src/search_model.rs` + `src/app/search.rs` — Engine `search_objects`, 300ms debounce, highlight ranges, ↑↓/Enter/Esc; `ui_tests::search_*`) |
 | Note types & system types | `src/lib/typedNotes.ts`, `src/lib/typedNoteSchemas.ts`, `src/lib/systemTypes.ts`, `systemType{,Game,Visual}Definitions.ts`, `src/lib/kepler-note-type-api.ts` | M4 | DONE (M1) |
-| Typed note header & property editors | `src/components/typed-notes/{TypedHeader,ObjectPropertyField,ObjectPropertyPicker}.vue`, `src/lib/typedNoteHeaderProps.ts`, `src/lib/objectFieldFormatting.ts` | M4 | PARTIAL (M1: `typedNoteHeaderProps` ported; UI TODO) |
+| Typed note header & property editors | `src/components/typed-notes/{TypedHeader,ObjectPropertyField,ObjectPropertyPicker}.vue`, `src/lib/typedNoteHeaderProps.ts`, `src/lib/objectFieldFormatting.ts` | M4 | DONE (M5: `src/app/{typed_header,prop_field,prop_edit,prop_picker}.rs` — hero/avatar/cover, featured+secondary table, all field kinds incl. select/multi-select/relation pickers, read-only fields, edits persist via `SaveEntry`→`upsert_object`; `ui_tests::typed::*`) |
 | Type object lists / image objects | `src/components/objects/{TypeObjectsView,ImageObjectView}.vue`, `src/lib/objectImages.ts`, `src/lib/iconResolver.ts` | M4 | DONE (M4: `src/app/objects.rs`, `src/app/image.rs`, `src/object_views.rs`, `src/image_src.rs` — summary columns, gallery, person names) |
 | Entry titles | `src/lib/entryTitles.ts` | M4 | DONE (M1) |
-| Books: cover, dropzone, metadata import | `src/components/books/{BookCover,BookCoverFileDropzone,BookMetadataImportModal}.vue`, `src/lib/bookMetadata.ts`, `src/lib/bookLanguages.ts` | M5 | TODO |
-| Diary bubbles view + timeline + calendar | `src/components/bubbles/{BubbleDiaryView,BubbleTimelineItem,BubbleTiptapRenderer,BubbleDiaryCalendarSidebar}.vue`, `bubbleDiaryModel.ts`, `src/lib/kepler-bubble-api.ts` | M6 | DONE (M6: `src/diary/*` model + `src/store/bubble_api.rs` + `src/app/diary{,_item,_forms,_blocks,_calendar}.rs` — см. «Дневник — M6 GPUI»; ARK writes still blocked by Engine ingress, see Byte-compat) |
-| Stickers (floating note windows) | `src/views/StickerNoteView.vue`, `src/lib/sticker.ts`, `src/composables/useDockedWidget.ts` | M7 | DONE (`src/sticker_route.rs`, `src/app/doc.rs`, `src/app/sticker.rs` — см. «Стикеры» ниже. GAP: `useDockedWidget`/host docking и runtime always-on-top — нет API в GPUI) |
+| Books: cover, dropzone, metadata import | `src/components/books/{BookCover,BookCoverFileDropzone,BookMetadataImportModal}.vue`, `src/lib/bookMetadata.ts`, `src/lib/bookLanguages.ts` | M5 | DONE (M5: `src/app/{book,cover_modal,metadata_modal,metadata_apply}.rs`, `src/book_metadata{,_extract}.rs` — cover+spine via Engine `images.*`, URL & OS-file-drop covers via `images.storeCover`, ISBN/URL metadata lookup via `bookMetadata.*`, preview→apply; `ui_tests::typed_book::*`) |
+| Diary bubbles view + timeline + calendar | `src/components/bubbles/{BubbleDiaryView,BubbleTimelineItem,BubbleTiptapRenderer,BubbleDiaryCalendarSidebar}.vue`, `bubbleDiaryModel.ts`, `src/lib/kepler-bubble-api.ts` | M6 | TODO |
+| Stickers (floating note windows) | `src/views/StickerNoteView.vue`, `src/lib/sticker.ts`, `src/composables/useDockedWidget.ts` | M7 | PARTIAL (M4: `src/sticker_route.rs` + `src/app/sticker.rs` — `/sticker/<id>` routes, host-safe keys, floating GPUI window; GAP: `useDockedWidget`/host `kepler.window.open` docking needs the kosmos host, unavailable in GPUI shell) |
 | Settings page + sections | `src/components/settings/{SettingsPage,GeneralSettings,ExportSettings,TrashSettings}.vue(+css)`, `src/views/EdenSettingsView.vue`, `src/composables/usePreferences.ts` | M8 | PARTIAL (M4: `src/app/settings.rs` — General prefs persist via `local_state.rs` (`memoria-settings.json` + legacy `eden-settings.json`), Trash works, Export is UI-only stub pending M8) |
 | Conflict banner | `src/components/EntryConflictBanner.vue` | M8 | DONE (M4: `src/app/conflict*.rs` — recheck/accept-remote/keep-copy/copy-local/cancel; `ui_tests::extra::conflict_banner_accept_remote`) |
 | FPS monitor (dev overlay) | `src/composables/useFpsMonitor.ts` | M8 | TODO |
 | Obsidian vault import/export (+ images, frontmatter, journal transaction) | `src/lib/obsidianVault{,Export,ExportAssets,ExportAssetPaths,ImportFrontmatter,ImportImages,ImportTransaction}.ts`, `src/lib/markdownFrontmatter.ts` | M9 | DONE (M8 logic: `src/obsidian/*` + `src/vault_ops.rs` — import/export, images, journaled transaction + recovery over Engine `filesystem.vault.*` ops; ported Vue test suites + golden `vault-plan.json` byte-equal vs Vue `importObsidianVault`; UI wiring via `memoria-gpui --export` CLI, screens → M8 shell) |
 | Eden legacy migration (read-only: storage keys, userData, command prefixes) | `src/lib/memoria-migration.ts`, `manifest.json` `legacy_*` fields | M9 | PARTIAL (M1: storage/userData/command-prefix ports + tests; `manifest.json` contract is Vue-only) |
-| Local image resolution | `src/lib/localImages.ts` | M1 | PASS (M3: `kosmos-local-image://` → path, lazy decode, broken-stub — `images.rs`) |
+| Local image resolution | `src/lib/localImages.ts` | M1 | DONE (M5: `src/object_images.rs` — `kosmos-local-image` protocol, `file:`→local path, `encodeURIComponent`-identical encoding) |
 | App bootstrap / env types | `src/main.ts`, `src/vite-env.d.ts` | M2 | n/a — replaced by Rust app shell |
 | Sidebar leftovers | `src/components/sidebar/types.ts` | — | не нужен: sidebar was removed; only a dead `types.ts` (3 lines) remains |
 
@@ -238,19 +238,27 @@ see "не нужен" row above — everything else must be empty.)
 | `src/components/bubbles/BubbleTimelineItem.vue` | M6 | DONE (M6) | `src/app/diary_item.rs` + `src/app/diary_forms.rs` |
 | `src/components/bubbles/BubbleTiptapRenderer.vue` | M6 | DONE (M6) | `src/diary/render_model.rs` + `src/app/diary_blocks.rs` |
 | `src/components/bubbles/bubbleDiaryModel.ts` | M6 | DONE (M6) | `src/diary/{text,timeline,calendar,journal,storage}.rs` |
+| `src/components/books/BookCover.vue` | M5 | DONE (M5) | `src/app/book.rs` — cover art + spine color via Engine `images.dominantColor` |
+| `src/components/books/BookCoverFileDropzone.vue` | M5 | DONE (M5) | `src/app/cover_modal.rs` — URL input + `ExternalPaths` drop → `images.storeCover` |
+| `src/components/books/BookMetadataImportModal.vue` | M5 | DONE (M5) | `src/app/metadata_modal.rs` + `metadata_apply.rs` — ISBN/URL → Engine `bookMetadata.*` → preview → apply |
+| `src/components/bubbles/BubbleDiaryCalendarSidebar.vue` | M6 | TODO |  |
+| `src/components/bubbles/BubbleDiaryView.vue` | M6 | TODO |  |
+| `src/components/bubbles/BubbleTimelineItem.vue` | M6 | TODO |  |
+| `src/components/bubbles/BubbleTiptapRenderer.vue` | M6 | TODO |  |
+| `src/components/bubbles/bubbleDiaryModel.ts` | M6 | TODO |  |
 | `src/components/everything/EverythingItemCard.vue` | M2 | TODO |  |
 | `src/components/everything/EverythingView.vue` | M2 | TODO |  |
-| `src/components/objects/ImageObjectView.vue` | M4 | TODO |  |
-| `src/components/objects/TypeObjectsView.vue` | M4 | TODO |  |
+| `src/components/objects/ImageObjectView.vue` | M4 | DONE (M4) | `src/app/image.rs` |
+| `src/components/objects/TypeObjectsView.vue` | M4 | DONE (M4) | `src/app/objects.rs` |
 | `src/components/settings/ExportSettings.vue` | M8 | TODO |  |
 | `src/components/settings/GeneralSettings.vue` | M8 | TODO |  |
 | `src/components/settings/SettingsPage.css` | M8 | TODO |  |
 | `src/components/settings/SettingsPage.vue` | M8 | TODO |  |
 | `src/components/settings/TrashSettings.vue` | M8 | TODO |  |
 | `src/components/sidebar/types.ts` | — | skip | не нужен — dead leftover after sidebar removal; no runtime user |
-| `src/components/typed-notes/ObjectPropertyField.vue` | M4 | TODO |  |
-| `src/components/typed-notes/ObjectPropertyPicker.vue` | M4 | TODO |  |
-| `src/components/typed-notes/TypedHeader.vue` | M4 | TODO |  |
+| `src/components/typed-notes/ObjectPropertyField.vue` | M4 | DONE (M5) | `src/app/prop_field.rs` + `prop_edit.rs` — text/long_text/number/date/url/boolean/select/multi_select/relation/image |
+| `src/components/typed-notes/ObjectPropertyPicker.vue` | M4 | DONE (M5) | `src/app/prop_picker.rs` — anchored, viewport-clamped, single/multi + entry options |
+| `src/components/typed-notes/TypedHeader.vue` | M4 | DONE (M5) | `src/app/typed_header.rs` — inline/column layouts, hero, featured+secondary table |
 | `src/composables/useBlockSelection.ts` | M1 | TODO |  |
 | `src/composables/useCharCounter.ts` | M1 | TODO |  |
 | `src/composables/useDockedWidget.ts` | M7 | TODO |  |
@@ -267,8 +275,8 @@ see "не нужен" row above — everything else must be empty.)
 | `src/index.css` | M2 | TODO | same — theme tokens only |
 | `src/lib/blockSelectionClasses.ts` | M1 | TODO |  |
 | `src/lib/blockSelectionPointer.ts` | M1 | TODO |  |
-| `src/lib/bookLanguages.ts` | M5 | TODO |  |
-| `src/lib/bookMetadata.ts` | M5 | TODO |  |
+| `src/lib/bookLanguages.ts` | M5 | DONE (M1) | `src/book_languages.rs` |
+| `src/lib/bookMetadata.ts` | M5 | DONE (M5) | `src/book_metadata.rs` + `src/book_metadata_extract.rs`; network side lives in cortex `runtime/src/app_network/*` |
 | `src/lib/charCount.ts` | M1 | DONE (M1) |  |
 | `src/lib/edenApi.ts` | M3 | TODO |  |
 | `src/lib/entryTitles.ts` | M4 | DONE (M1) |  |
@@ -287,8 +295,8 @@ see "не нужен" row above — everything else must be empty.)
 | `src/lib/localImages.ts` | M1 | DONE (M3) | `crates/memoria-editor-gpui/src/images.rs` |
 | `src/lib/markdownFrontmatter.ts` | M9 | DONE (M1) |  |
 | `src/lib/memoria-migration.ts` | M9 | DONE (M1) |  |
-| `src/lib/objectFieldFormatting.ts` | M4 | TODO |  |
-| `src/lib/objectImages.ts` | M4 | TODO |  |
+| `src/lib/objectFieldFormatting.ts` | M4 | DONE (M5) | `src/object_fields.rs` — per-kind formatters + unit tests |
+| `src/lib/objectImages.ts` | M4 | DONE (M5) | `src/object_images.rs` |
 | `src/lib/obsidianVault.ts` | M9 | TODO |  |
 | `src/lib/obsidianVaultExport.ts` | M9 | TODO |  |
 | `src/lib/obsidianVaultExportAssetPaths.ts` | M9 | TODO |  |
@@ -299,8 +307,8 @@ see "не нужен" row above — everything else must be empty.)
 | `src/lib/saveResult.ts` | M3 | DONE (M1) |  |
 | `src/lib/sticker.ts` | M7 | TODO |  |
 | `src/lib/systemTypeDefinitions.ts` | M4 | DONE (M1) |  |
-| `src/lib/systemTypeGameDefinitions.ts` | M4 | TODO |  |
-| `src/lib/systemTypeVisualDefinitions.ts` | M4 | TODO |  |
+| `src/lib/systemTypeGameDefinitions.ts` | M4 | DONE (M1) | `src/system_types_data.rs` (game schema + upgrade checks) |
+| `src/lib/systemTypeVisualDefinitions.ts` | M4 | DONE (M1) | `src/system_types_data.rs` (image/person system schemas) |
 | `src/lib/systemTypes.ts` | M4 | DONE (M1) |  |
 | `src/lib/taskStatus.ts` | M3 | TODO |  |
 | `src/lib/typedNoteHeaderProps.ts` | M4 | DONE (M1) |  |

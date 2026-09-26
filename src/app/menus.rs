@@ -88,10 +88,21 @@ impl Memoria {
     }
 
     /// Context menu overlay: «Закрепить/Открепить», «Открыть стикером»,
-    /// «Удалить». Backdrop click dismisses.
-    pub(crate) fn render_ctx_menu(&self, cx: &mut Context<Self>) -> Option<impl IntoElement> {
+    /// «Удалить». Backdrop click dismisses. The panel is clamped inside the
+    /// viewport — hitboxes painted past the window edge are not clickable.
+    pub(crate) fn render_ctx_menu(
+        &self,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) -> Option<impl IntoElement> {
         let menu = self.ctx_menu.clone()?;
         let entry_id = menu.entry_id.clone();
+        let viewport = window.viewport_size();
+        // Panel ≈ min_w(180) + borders/padding wide, 3 rows × 30 + padding tall.
+        let menu_w = 190.0_f32.min(f32::from(viewport.width) - 16.);
+        let menu_h = 110.0_f32.min(f32::from(viewport.height) - 16.);
+        let menu_x = menu.x.min(f32::from(viewport.width) - menu_w - 8.).max(8.);
+        let menu_y = menu.y.min(f32::from(viewport.height) - menu_h - 8.).max(8.);
 
         let item = |id: &'static str,
                     label: &'static str,
@@ -143,8 +154,8 @@ impl Memoria {
                         .debug_selector(|| "ctx-menu".into())
                         .absolute()
                         .occlude()
-                        .left(px(menu.x))
-                        .top(px(menu.y))
+                        .left(px(menu_x))
+                        .top(px(menu_y))
                         .min_w(px(180.))
                         .bg(c(SIDEBAR_BG()))
                         .border_1()

@@ -2,6 +2,8 @@
 //! pure logic ported from Vue Memoria (`src/store`, `src/lib`, `editor-content`).
 
 pub mod book_languages;
+pub mod book_metadata;
+pub mod book_metadata_extract;
 pub mod char_count;
 pub mod command_bus;
 pub mod conflict_store;
@@ -27,10 +29,11 @@ pub mod note_type_fields;
 pub mod note_type_schemas;
 pub mod note_types;
 pub mod object_fields;
+pub mod object_images;
 pub mod object_views;
+pub mod obsidian;
 pub mod preview;
 pub mod routes;
-pub mod obsidian;
 pub mod save_actions;
 pub mod save_result;
 pub mod search_model;
