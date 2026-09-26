@@ -104,7 +104,7 @@ impl<B: ArkBridge> NoteTypeApi<B> {
         }
         match self.bridge.get_object_type(note_type_id) {
             Ok(raw) if !raw.is_null() => match serde_json::from_value::<ArkObjectType>(raw) {
-                Ok(record) => Ok(Some(map_ark_object_type_to_note_type(&record))),
+                Ok(record) => Ok(map_ark_object_type_to_note_type(&record).ok()),
                 Err(_) => Ok(None),
             },
             _ => Ok(None),
@@ -130,7 +130,7 @@ impl<B: ArkBridge> NoteTypeApi<B> {
             .iter()
             .filter_map(|v| serde_json::from_value::<ArkObjectType>(v.clone()).ok())
             .filter(|t| !t.system_locked)
-            .map(|t| map_ark_object_type_to_note_type(&t))
+            .filter_map(|t| map_ark_object_type_to_note_type(&t).ok())
             .collect();
         custom.extend(legacy);
 

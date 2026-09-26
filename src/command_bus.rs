@@ -19,6 +19,13 @@ pub fn eden_channel(channel: &str) -> String {
 
 type Handler = Box<dyn FnMut(&Value) + Send>;
 
+/// Vue wraps each listener call in try/catch — one bad handler never
+/// aborts the rest of the dispatch.
+fn call_handler(handler: &mut Handler, params: &Value) {
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| handler(params)))
+        .map_err(|_| eprintln!("memoria-gpui: command handler panicked"));
+}
+
 /// `commandListeners` + `pendingDispatches` as an owned instance (the Vue
 /// module uses process globals; tests isolate per-instance instead).
 #[derive(Default)]
@@ -53,7 +60,7 @@ impl CommandBus {
         for id in handlers {
             if let Some(set) = self.listeners.get_mut(&normalized) {
                 if let Some((_, handler)) = set.iter_mut().find(|(hid, _)| *hid == id) {
-                    handler(&params);
+                    call_handler(handler, &params);
                 }
             }
         }
@@ -72,7 +79,7 @@ impl CommandBus {
         let mut handler: Handler = Box::new(handler);
         if let Some(pending) = self.pending.remove(&normalized) {
             for params in pending {
-                handler(&params);
+                call_handler(&mut handler, &params);
             }
         }
         self.listeners

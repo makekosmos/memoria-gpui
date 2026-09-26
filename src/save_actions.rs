@@ -94,16 +94,26 @@ impl<B: SaveBridge> SaveActions<B> {
 
         let mut current = first.clone();
         let mut last_queued_at: Option<i64> = None;
+        // The caller that started this request must observe its own result —
+        // returning the queued result would swallow a stale_entry from the
+        // first write and falsely report success to that caller. Queued
+        // drafts' results are dropped: re-entrant callers already received
+        // `Ok(None)` (`!window.api`-style "accepted") and there are no
+        // waiters to resolve in the sync port.
+        let mut own_result: Option<Option<SaveEntryResult>> = None;
         let result = loop {
             match self.persist_entry(&current) {
                 Ok(result) => {
+                    if own_result.is_none() {
+                        own_result = Some(result);
+                    }
                     let queued = self
                         .state
                         .save_coordinators
                         .get_mut(&entry_id)
                         .and_then(|c| c.queued.take());
                     match queued {
-                        None => break Ok(result),
+                        None => break Ok(()),
                         Some(next) => {
                             last_queued_at = Some(next.updated_at);
                             current = next;
@@ -111,16 +121,18 @@ impl<B: SaveBridge> SaveActions<B> {
                     }
                 }
                 Err(error) => {
+                    // Vue's `catch` drops the queued draft before `finally`.
                     if let Some(c) = self.state.save_coordinators.get_mut(&entry_id) {
                         c.queued = None;
                         c.in_flight = false;
                     }
-                    return Err(error);
+                    break Err(error);
                 }
             }
         };
 
-        // `finally`: tear down the coordinator only when nothing is queued.
+        // `finally`: tear down the coordinator only when nothing is queued —
+        // runs after errors too (Vue's `finally` is unconditional).
         let has_queued = self
             .state
             .save_coordinators
@@ -138,7 +150,7 @@ impl<B: SaveBridge> SaveActions<B> {
                 }
             }
         }
-        result
+        result.map(|_| own_result.unwrap_or_default())
     }
 
     /// `persistEntry` — stamp, write, then apply the result to state.

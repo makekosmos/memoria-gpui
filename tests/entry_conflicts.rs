@@ -189,3 +189,53 @@ fn malformed_local_checkpoint_keeps_valid_bridge_snapshot() {
         memoria_gpui::conflict_store::merge_entry_conflict_snapshots(bridge, local.clone());
     assert_eq!(merged[0].detected_at, 99);
 }
+
+#[test]
+fn resolve_can_mark_a_conflict_merged() {
+    let mut repository = ConflictRepository::new(Some(MemStore::default()));
+    let conflict = repository
+        .record(
+            &entry("n1", "draft", 10),
+            None,
+            EntryConflictState::StaleSave,
+        )
+        .unwrap();
+    repository.resolve_with_state(
+        &conflict.id,
+        Some("merged-into-remote"),
+        EntryConflictState::Merged,
+    );
+    assert_eq!(repository.conflicts[0].state, EntryConflictState::Merged);
+    assert_eq!(
+        repository.conflicts[0].resolution.as_deref(),
+        Some("merged-into-remote")
+    );
+}
+
+#[test]
+fn snapshot_load_accepts_integral_float_numbers() {
+    // JS `typeof === "number"` — `version: 1.0`, `localRevision: 10.0` are
+    // numbers; only non-integral values and non-numbers are rejected.
+    let store = MemStore::default();
+    let local = entry("n1", "draft", 10);
+    store.0.borrow_mut().insert(
+        ENTRY_CONFLICTS_FILE.into(),
+        serde_json::json!({
+            "version": 1.0,
+            "conflicts": [{
+                "id": "c1",
+                "entryId": "n1",
+                "state": "stale-save",
+                "local": serde_json::to_value(&local).unwrap(),
+                "remote": null,
+                "localRevision": 10.0,
+                "remoteRevision": null,
+                "detectedAt": 30.0,
+            }],
+        }),
+    );
+    let loaded = load_entry_conflicts(&store);
+    assert_eq!(loaded.len(), 1);
+    assert_eq!(loaded[0].local_revision, 10);
+    assert_eq!(loaded[0].detected_at, 30);
+}

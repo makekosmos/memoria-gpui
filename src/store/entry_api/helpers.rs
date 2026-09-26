@@ -28,12 +28,21 @@ pub fn is_legacy_dated_journal_object(type_id: &str, title: &str) -> bool {
             .all(|(i, b)| matches!(i, 4 | 7) || b.is_ascii_digit())
 }
 
+/// `new Map(items.map(o => [o.id, o])).values()` — first occurrence wins the
+/// position, a later duplicate overwrites the value.
 pub fn dedupe_by_id<T: HasId>(items: Vec<T>) -> Vec<T> {
-    let mut seen = std::collections::HashSet::new();
-    items
-        .into_iter()
-        .filter(|o| seen.insert(o.id().to_string()))
-        .collect()
+    let mut index_of: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut out: Vec<T> = Vec::with_capacity(items.len());
+    for item in items {
+        match index_of.get(item.id()) {
+            Some(&idx) => out[idx] = item,
+            None => {
+                index_of.insert(item.id().to_string(), out.len());
+                out.push(item);
+            }
+        }
+    }
+    out
 }
 pub trait HasId {
     fn id(&self) -> &str;

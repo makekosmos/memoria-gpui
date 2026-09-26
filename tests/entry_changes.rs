@@ -35,7 +35,7 @@ fn null_header_layout_vs_resolved_is_not_a_change() {
     let base = make_note_entry();
     let mut draft = make_note_entry();
     draft.header_layout = Some("inline".into());
-    assert!(!has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(!has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn null_header_layout_vs_person_column_is_not_a_change() {
     base.type_id = Some("person_obj".into());
     let mut draft = base.clone();
     draft.header_layout = Some("column".into());
-    assert!(!has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(!has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 }
 
 #[test]
@@ -58,11 +58,11 @@ fn null_header_props_vs_schema_defaults_is_not_a_change() {
         }))
         .unwrap(),
     );
-    assert!(!has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(!has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 
     let mut base = make_note_entry();
     base.header_props_json = Some("{}".into());
-    assert!(!has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(!has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn person_default_empty_fields_are_not_a_change() {
         }))
         .unwrap(),
     );
-    assert!(!has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(!has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 }
 
 #[test]
@@ -89,7 +89,7 @@ fn title_change_is_a_change() {
     base.title = "Старое".into();
     let mut draft = base.clone();
     draft.title = "Новое".into();
-    assert!(has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn body_change_is_a_change() {
     base.content_json = markdown_entry("старый");
     let mut draft = base.clone();
     draft.content_json = markdown_entry("новый");
-    assert!(has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 }
 
 #[test]
@@ -114,7 +114,7 @@ fn tiptap_structural_change_with_same_markdown_is_a_change() {
         ],
     })))
     .unwrap();
-    assert!(has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 }
 
 #[test]
@@ -122,7 +122,7 @@ fn type_id_and_real_header_changes_are_changes() {
     let base = make_note_entry();
     let mut draft = base.clone();
     draft.type_id = Some("person_obj".into());
-    assert!(has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 
     let mut base = make_note_entry();
     base.type_id = Some("person_obj".into());
@@ -139,7 +139,7 @@ fn type_id_and_real_header_changes_are_changes() {
         }))
         .unwrap(),
     );
-    assert!(has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 }
 
 #[test]
@@ -148,15 +148,11 @@ fn user_header_layout_change_is_a_change() {
     base.header_layout = Some("inline".into());
     let mut draft = base.clone();
     draft.header_layout = Some("column".into());
-    assert!(has_user_visible_entry_changes(&draft, &base, note_types()));
+    assert!(has_user_visible_entry_changes(&draft, &base, note_types()).unwrap());
 }
 
 #[test]
 fn identical_entries_are_not_a_change() {
     let entry = make_note_entry();
-    assert!(!has_user_visible_entry_changes(
-        &entry,
-        &entry,
-        note_types()
-    ));
+    assert!(!has_user_visible_entry_changes(&entry, &entry, note_types()).unwrap());
 }

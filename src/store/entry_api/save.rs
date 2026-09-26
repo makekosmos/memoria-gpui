@@ -19,15 +19,22 @@ impl<B: ArkBridge> EntryApi<B> {
                 "Тип заметки больше не существует",
             )));
         };
-        let parsed: Value =
-            match serde_json::from_str(entry.header_props_json.as_deref().unwrap_or("{}")) {
-                Ok(v) => v,
-                Err(_) => {
-                    return Ok(Some(SaveFail::invalid_type(
-                        "Верхушка заметки сохранена в неверном формате",
-                    )))
-                }
-            };
+        let parsed: Value = match serde_json::from_str(
+            entry
+                .header_props_json
+                .as_deref()
+                .filter(|s| !s.is_empty())
+                .unwrap_or("{}"),
+        ) {
+            Ok(v) => v,
+            Err(_) => {
+                return Ok(Some(SaveFail::invalid_type(
+                    "Верхушка заметки сохранена в неверном формате",
+                )))
+            }
+        };
+        crate::note_type_schemas::parse_note_type_definition(&note_type.schema_json)
+            .map_err(|_| EngineError::Malformed)?;
         if validate_header_props(Some(&note_type), &parsed).is_err() {
             return Ok(Some(SaveFail::invalid_type(
                 "Структура верхушки заметки больше не соответствует типу",
@@ -196,7 +203,7 @@ impl<B: ArkBridge> EntryApi<B> {
             && serde_json::from_value::<ArkObjectRecord>(existing.clone())
                 .ok()
                 .and_then(|o| o.deleted_at)
-                .map(|v| !v.is_null())
+                .map(|v| js_truthy(&v))
                 .unwrap_or(false);
         if existing.is_null() || deleted {
             return Ok(DeleteEntryResult {

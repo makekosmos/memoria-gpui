@@ -83,9 +83,8 @@ pub fn normalize_slug(input: &str) -> String {
         out.push(ch);
         last_dash = false;
     }
-    while out.ends_with('-') {
-        out.pop();
-    }
+    // `/^-+|-+$/g` — leading and trailing dash runs both go.
+    let out = out.trim_matches('-').to_string();
     if out.is_empty() {
         "note-type".into()
     } else {
@@ -173,4 +172,18 @@ pub fn normalize_note_type_value(value: &Value) -> Result<NoteType, String> {
 pub fn normalize_note_type(note_type: &NoteType) -> Result<NoteType, String> {
     let value = serde_json::to_value(note_type).map_err(|e| e.to_string())?;
     normalize_note_type_value(&value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_slug;
+
+    #[test]
+    fn slug_strips_leading_and_trailing_dash_runs() {
+        // Vue `/^-+|-+$/g` — both ends, not just the tail.
+        assert_eq!(normalize_slug("-a"), "a");
+        assert_eq!(normalize_slug("--x--"), "x");
+        assert_eq!(normalize_slug("-"), "note-type");
+        assert_eq!(normalize_slug("a-b"), "a-b");
+    }
 }

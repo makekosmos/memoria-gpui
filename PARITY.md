@@ -248,3 +248,39 @@ see "не нужен" row above — everything else must be empty.)
 | `src/views/StickerNoteView.vue` | M7 | TODO |  |
 | `src/vite-env.d.ts` | M2 | TODO | vite ambient types — n/a for Rust |
 
+
+## Known deliberate divergences (post-commit M1 parity review)
+
+Reviewed against Vue `7ccbb9f`. Intentional, documented tolerances — revisit
+when the corresponding flows get wired in M2+:
+
+- **Malformed Engine data degrades instead of throwing.** Vue propagates
+  `JSON.parse`/schema/zod throws out of API calls (whole op rejects); the
+  Rust port drops malformed records per-item or applies documented defaults
+  at tolerant sites (`listEntries` summaries, `related_notes` arrays,
+  `SearchResult` decode, `getVaultStorageInfo` titles, `entry_header_layout`
+  fallback). Wired-path throw sites that DO match Vue: save-path header-prop
+  schema parse → `EngineError::Malformed`; malformed legacy note types →
+  dropped/`None` (no phantom `NoteType`).
+- **`Date.parse` residual edges.** Numbers/numeric strings now match JS
+  (`NaN` → fallback); day/hour/minute/second/offset ranges and trailing junk
+  are enforced. Zone-less date-times are rejected (JS treats them as *local*
+  time — the port has no TZ source); `YYYY-MM` shorthand is not accepted.
+- **Case handling.** `to_lowercase()` ≈ `toLocaleLowerCase("ru")` for
+  Cyrillic; `ẞ`/`İ`-class edge cases diverge. `char::is_whitespace` ≠ JS
+  `trim` for `\uFEFF`.
+- **Command bus.** Per-handler panics are caught like Vue's per-handler
+  try/catch; queue flush is synchronous inside `subscribe` (Vue uses
+  `queueMicrotask`); the bus is an owned instance, not a process global.
+- **Conflict persistence.** Only the `ConflictStore` bridge surface exists —
+  Vue additionally mirrors into `localStorage["memoria.entry-conflicts.v1"]`
+  as a crash-recovery checkpoint (`merge_entry_conflict_snapshots` is
+  available for a future second surface). `resolve_with_state` covers the
+  `merged` close.
+- **Conflict snapshot numbers.** Integral floats (`1.0`) accepted for
+  `version`/revisions/`detectedAt`/entry timestamps; non-integral floats are
+  still rejected (JS would keep them — nonsense data either way).
+- **Non-integral revision/timestamp fields** in `Entry` (`i64`) — JS would
+  carry `1.5`; the port drops them at parse.
+- **No-async shapes.** `Promise.all` call groups are sequential RPCs —
+  semantics identical, latency differs.

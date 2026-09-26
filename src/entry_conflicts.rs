@@ -2,8 +2,6 @@
 //! bridge-backed snapshot (the localStorage fallback is a Vue host detail;
 //! here `ConflictStore` bridges are the only persistence surface).
 
-use serde_json::{Map, Value};
-
 use crate::model::Entry;
 use crate::time::now_millis;
 
@@ -19,7 +17,7 @@ pub enum EntryConflictState {
 }
 
 impl EntryConflictState {
-    fn from_str(s: &str) -> Option<Self> {
+    pub(crate) fn from_str(s: &str) -> Option<Self> {
         Some(match s {
             "remote-updated" => Self::RemoteUpdated,
             "remote-deleted" => Self::RemoteDeleted,
@@ -38,7 +36,7 @@ impl EntryConflictState {
             Self::Resolved => "resolved",
         }
     }
-    fn is_closed(&self) -> bool {
+    pub fn is_closed(&self) -> bool {
         matches!(self, Self::Merged | Self::Resolved)
     }
 }
@@ -55,113 +53,6 @@ pub struct EntryConflict {
     pub detected_at: i64,
     pub resolved_at: Option<i64>,
     pub resolution: Option<String>,
-}
-
-/// `isEntry` — minimal shape check used by snapshot parsing.
-fn is_entry(value: &Value) -> bool {
-    value.get("id").map(Value::is_string) == Some(true)
-        && value.get("title").map(Value::is_string) == Some(true)
-        && value.get("content_json").map(Value::is_string) == Some(true)
-        && value.get("updated_at").map(Value::is_number) == Some(true)
-}
-
-fn de_entry(value: &Value) -> Option<Entry> {
-    serde_json::from_value(value.clone()).ok()
-}
-
-/// `parseSnapshot` — `{version:1, conflicts:[…]}` with per-item validation.
-pub fn parse_snapshot(value: &Value) -> Vec<EntryConflict> {
-    let Some(map) = value.as_object() else {
-        return Vec::new();
-    };
-    if map.get("version") != Some(&Value::from(1)) {
-        return Vec::new();
-    }
-    let Some(Value::Array(items)) = map.get("conflicts") else {
-        return Vec::new();
-    };
-    items
-        .iter()
-        .filter_map(|item| {
-            let obj = item.as_object()?;
-            let id = obj.get("id")?.as_str()?.to_string();
-            let entry_id = obj.get("entryId")?.as_str()?.to_string();
-            let state = EntryConflictState::from_str(obj.get("state")?.as_str()?)?;
-            let local_v = obj.get("local")?;
-            if !is_entry(local_v) {
-                return None;
-            }
-            let remote_v = obj.get("remote");
-            let remote = match remote_v {
-                None | Some(Value::Null) => None,
-                Some(v) if is_entry(v) => de_entry(v),
-                Some(_) => return None,
-            };
-            let local = de_entry(local_v)?;
-            let local_revision = obj.get("localRevision")?.as_i64()?;
-            let remote_revision = match obj.get("remoteRevision") {
-                None | Some(Value::Null) => None,
-                Some(v) => Some(v.as_i64()?),
-            };
-            let detected_at = obj.get("detectedAt")?.as_i64()?;
-            Some(EntryConflict {
-                id,
-                entry_id,
-                state,
-                local,
-                remote,
-                local_revision,
-                remote_revision,
-                detected_at,
-                resolved_at: obj.get("resolvedAt").and_then(Value::as_i64),
-                resolution: obj
-                    .get("resolution")
-                    .and_then(Value::as_str)
-                    .map(str::to_string),
-            })
-        })
-        .collect()
-}
-
-/// Serialize to the `{version:1, conflicts:[…]}` snapshot shape.
-pub fn serialize_snapshot(conflicts: &[EntryConflict]) -> Value {
-    let items: Vec<Value> = conflicts
-        .iter()
-        .map(|c| {
-            let mut map = Map::new();
-            map.insert("id".into(), Value::from(c.id.clone()));
-            map.insert("entryId".into(), Value::from(c.entry_id.clone()));
-            map.insert("state".into(), Value::from(c.state.as_str()));
-            map.insert(
-                "local".into(),
-                serde_json::to_value(&c.local).unwrap_or(Value::Null),
-            );
-            map.insert(
-                "remote".into(),
-                c.remote
-                    .as_ref()
-                    .and_then(|r| serde_json::to_value(r).ok())
-                    .unwrap_or(Value::Null),
-            );
-            map.insert("localRevision".into(), Value::from(c.local_revision));
-            map.insert(
-                "remoteRevision".into(),
-                c.remote_revision.map(Value::from).unwrap_or(Value::Null),
-            );
-            map.insert("detectedAt".into(), Value::from(c.detected_at));
-            if let Some(v) = c.resolved_at {
-                map.insert("resolvedAt".into(), Value::from(v));
-            }
-            if let Some(v) = &c.resolution {
-                map.insert("resolution".into(), Value::from(v.clone()));
-            }
-            Value::Object(map)
-        })
-        .collect();
-    let mut snapshot = Map::new();
-    snapshot.insert("version".into(), Value::from(1));
-    snapshot.insert("conflicts".into(), Value::Array(items));
-    Value::Object(snapshot)
 }
 
 /// `conflictFreshness` — (revision, time) tuple.

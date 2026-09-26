@@ -65,7 +65,8 @@ fn build_frontmatter(
             note_type
                 .map(|nt| nt.slug.clone())
                 .filter(|s| !s.is_empty())
-                .or_else(|| entry.type_id.clone())
+                // `entry.type_id || "note_obj"` — "" is falsy in JS.
+                .or_else(|| entry.type_id.clone().filter(|s| !s.is_empty()))
                 .unwrap_or_else(|| "note_obj".into()),
         ),
     );

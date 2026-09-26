@@ -99,16 +99,23 @@ impl<B: ArkBridge> TrashStorageApi<B> {
         }
         let object: ArkObjectRecord =
             serde_json::from_value(existing).map_err(|_| EngineError::Malformed)?;
-        self.bridge.upsert_object(serde_json::json!({
-            "id": object.id,
-            "typeId": object.type_id,
-            "title": object.title,
-            "contentJson": object.content_json,
-            "propsJson": object.props_json,
-            "createdAt": object.created_at,
-            "updatedAt": millis_to_ark_timestamp(None),
-            "deletedAt": null,
-        }))?;
+        // `JSON.stringify` drops `undefined` values — emit the props/content
+        // keys only when the record actually carries them.
+        let mut object_param = serde_json::Map::new();
+        object_param.insert("id".into(), object.id.into());
+        object_param.insert("typeId".into(), object.type_id.into());
+        object_param.insert("title".into(), object.title.into());
+        if !object.content_json.is_null() {
+            object_param.insert("contentJson".into(), object.content_json);
+        }
+        if !object.props_json.is_null() {
+            object_param.insert("propsJson".into(), object.props_json);
+        }
+        object_param.insert("createdAt".into(), object.created_at);
+        object_param.insert("updatedAt".into(), millis_to_ark_timestamp(None).into());
+        object_param.insert("deletedAt".into(), serde_json::Value::Null);
+        self.bridge
+            .upsert_object(serde_json::Value::Object(object_param))?;
         Ok(DeleteEntryResult {
             ok: true,
             entry_id: Some(entry_id.into()),
@@ -171,10 +178,19 @@ impl<B: ArkBridge> TrashStorageApi<B> {
     }
 }
 
+/// `new Map(objects.map(o => [o.id, o])).values()` — first occurrence wins
+/// the position, a later duplicate overwrites the value.
 fn dedupe(objects: Vec<ArkObjectRecord>) -> Vec<ArkObjectRecord> {
-    let mut seen = std::collections::HashSet::new();
-    objects
-        .into_iter()
-        .filter(|o| seen.insert(o.id.clone()))
-        .collect()
+    let mut index_of: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut out: Vec<ArkObjectRecord> = Vec::with_capacity(objects.len());
+    for o in objects {
+        match index_of.get(&o.id) {
+            Some(&idx) => out[idx] = o,
+            None => {
+                index_of.insert(o.id.clone(), out.len());
+                out.push(o);
+            }
+        }
+    }
+    out
 }

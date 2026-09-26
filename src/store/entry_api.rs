@@ -241,10 +241,11 @@ impl<B: ArkBridge> EntryApi<B> {
     /// `listAllEntries` — full objects + related links.
     pub fn list_all_entries(&mut self) -> Result<Vec<Entry>, EngineError> {
         let objects = self.list_all_objects();
+        // Vue: `Promise.all([listAllObjects(), listObjectLinks()])` — a
+        // links failure rejects `listAllEntries`.
         let links: Vec<ArkObjectLink> = self
             .bridge
-            .list_object_links()
-            .unwrap_or_default()
+            .list_object_links()?
             .iter()
             .filter_map(de)
             .collect();

@@ -10,20 +10,24 @@ use crate::note_type_schemas::parse_note_type_definition;
 static NUMBER_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"^$|^-?\d+(\.\d+)?$").expect("num re"));
 
-fn fields_of(note_type: Option<&NoteType>) -> Vec<NoteTypeField> {
+/// `parseNoteTypeDefinition` throws in Vue — every public function here
+/// propagates that instead of silently treating the type as field-less.
+fn fields_of(note_type: Option<&NoteType>) -> Result<Vec<NoteTypeField>, String> {
     note_type
-        .and_then(|nt| parse_note_type_definition(&nt.schema_json).ok())
-        .map(|d| d.fields)
-        .unwrap_or_default()
+        .map(|nt| parse_note_type_definition(&nt.schema_json).map(|d| d.fields))
+        .transpose()
+        .map(|d| d.unwrap_or_default())
 }
 
 /// `createDefaultHeaderProps` — per-kind empty values.
-pub fn create_default_header_props(note_type: Option<&NoteType>) -> Map<String, Value> {
+pub fn create_default_header_props(
+    note_type: Option<&NoteType>,
+) -> Result<Map<String, Value>, String> {
     let mut out = Map::new();
     let Some(note_type) = note_type else {
-        return out;
+        return Ok(out);
     };
-    for field in fields_of(Some(note_type)) {
+    for field in fields_of(Some(note_type))? {
         let value = match field.kind.as_str() {
             "boolean" => Value::Bool(false),
             "multi_select" => Value::Array(vec![]),
@@ -33,7 +37,7 @@ pub fn create_default_header_props(note_type: Option<&NoteType>) -> Map<String, 
         };
         out.insert(field.id.clone(), value);
     }
-    out
+    Ok(out)
 }
 
 fn is_person_like(note_type: Option<&NoteType>) -> bool {
@@ -64,16 +68,16 @@ fn split_person_title(title: &str) -> (String, String, String) {
 pub fn create_header_props_for_type_change(
     note_type: Option<&NoteType>,
     source_title: &str,
-) -> Map<String, Value> {
-    let mut props = create_default_header_props(note_type);
+) -> Result<Map<String, Value>, String> {
+    let mut props = create_default_header_props(note_type)?;
     if !is_person_like(note_type) {
-        return props;
+        return Ok(props);
     }
     let (first, last, patronymic) = split_person_title(source_title);
     props.insert("first_name".into(), Value::from(first));
     props.insert("last_name".into(), Value::from(last));
     props.insert("patronymic".into(), Value::from(patronymic));
-    props
+    Ok(props)
 }
 
 fn string_list(value: &Value) -> Vec<String> {
@@ -164,26 +168,29 @@ fn coerce_field_value(field: &NoteTypeField, value: Option<&Value>) -> Value {
 }
 
 /// `normalizeHeaderProps` — defaults + coerced known fields + passthrough.
-pub fn normalize_header_props(note_type: Option<&NoteType>, raw: &Value) -> Map<String, Value> {
+pub fn normalize_header_props(
+    note_type: Option<&NoteType>,
+    raw: &Value,
+) -> Result<Map<String, Value>, String> {
     let valid = matches!(raw, Value::Object(_));
-    let mut out = create_default_header_props(note_type);
+    let mut out = create_default_header_props(note_type)?;
     if !valid {
-        return out;
+        return Ok(out);
     }
     let Some(note_type) = note_type else {
-        return raw.as_object().cloned().unwrap_or_default();
+        return Ok(raw.as_object().cloned().unwrap_or_default());
     };
     let raw_map = raw.as_object().cloned().unwrap_or_default();
     for (key, value) in &raw_map {
         out.insert(key.clone(), value.clone());
     }
-    for field in fields_of(Some(note_type)) {
+    for field in fields_of(Some(note_type))? {
         out.insert(
             field.id.clone(),
             coerce_field_value(&field, raw_map.get(&field.id)),
         );
     }
-    out
+    Ok(out)
 }
 
 /// `validateHeaderProps` — zod shape check post-normalization.
@@ -191,11 +198,11 @@ pub fn validate_header_props(
     note_type: Option<&NoteType>,
     raw: &Value,
 ) -> Result<Map<String, Value>, String> {
-    let normalized = normalize_header_props(note_type, raw);
+    let normalized = normalize_header_props(note_type, raw)?;
     let Some(note_type) = note_type else {
         return Ok(normalized);
     };
-    for field in fields_of(Some(note_type)) {
+    for field in fields_of(Some(note_type))? {
         let present = normalized.get(&field.id);
         if field.required && present.is_none() {
             return Err(format!("missing required field {}", field.id));
@@ -224,14 +231,18 @@ pub fn validate_header_props(
     Ok(normalized)
 }
 
-/// `safeParseHeaderProps` — JSON string in, defaults on any failure.
+/// `safeParseHeaderProps` — JSON string in, defaults on any failure; a
+/// malformed type schema still propagates (Vue's `createDefaultHeaderProps`
+/// fallback re-parses the schema and re-throws).
 pub fn safe_parse_header_props(
     note_type: Option<&NoteType>,
     raw_json: Option<&str>,
-) -> Map<String, Value> {
+) -> Result<Map<String, Value>, String> {
     let parsed: Value = raw_json
         .and_then(|s| serde_json::from_str(s).ok())
         .unwrap_or(Value::Object(Map::new()));
-    validate_header_props(note_type, &parsed)
-        .unwrap_or_else(|_| create_default_header_props(note_type))
+    match validate_header_props(note_type, &parsed) {
+        Ok(map) => Ok(map),
+        Err(_) => create_default_header_props(note_type),
+    }
 }

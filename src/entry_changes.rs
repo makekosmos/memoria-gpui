@@ -27,7 +27,7 @@ fn resolve_entry_header_layout(entry: &Entry, note_types: &[NoteType]) -> String
 
 /// `resolveEntryHeaderProps` — `JSON.stringify(normalizeHeaderProps(...))`
 /// with `{}` on unparseable stored props.
-fn resolve_entry_header_props(entry: &Entry, note_types: &[NoteType]) -> String {
+fn resolve_entry_header_props(entry: &Entry, note_types: &[NoteType]) -> Result<String, String> {
     let note_type = note_types
         .iter()
         .find(|nt| nt.id == normalized_entry_type_id(entry));
@@ -36,7 +36,11 @@ fn resolve_entry_header_props(entry: &Entry, note_types: &[NoteType]) -> String 
         .as_deref()
         .and_then(|s| serde_json::from_str(s).ok())
         .unwrap_or(Value::Object(Default::default()));
-    serde_json::to_string(&normalize_header_props(note_type, &raw)).unwrap_or_else(|_| "{}".into())
+    // Vue's `normalizeHeaderProps` throws on a malformed type schema.
+    Ok(
+        serde_json::to_string(&normalize_header_props(note_type, &raw)?)
+            .unwrap_or_else(|_| "{}".into()),
+    )
 }
 
 /// `entryBodyChanged` — tiptap compare for tiptap content, markdown otherwise.
@@ -56,22 +60,22 @@ pub fn has_user_visible_entry_changes(
     next: &Entry,
     previous: &Entry,
     note_types: &[NoteType],
-) -> bool {
+) -> Result<bool, String> {
     if next.title != previous.title {
-        return true;
+        return Ok(true);
     }
     if normalized_entry_type_id(next) != normalized_entry_type_id(previous) {
-        return true;
+        return Ok(true);
     }
     if resolve_entry_header_layout(next, note_types)
         != resolve_entry_header_layout(previous, note_types)
     {
-        return true;
+        return Ok(true);
     }
-    if resolve_entry_header_props(next, note_types)
-        != resolve_entry_header_props(previous, note_types)
+    if resolve_entry_header_props(next, note_types)?
+        != resolve_entry_header_props(previous, note_types)?
     {
-        return true;
+        return Ok(true);
     }
-    entry_body_changed(next, previous)
+    Ok(entry_body_changed(next, previous))
 }

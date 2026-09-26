@@ -54,7 +54,9 @@ fn color_for_object_type_id(object_type_id: &str) -> String {
 }
 
 /// `mapArkObjectTypeToNoteType` — task types get schema/UI-schema repair.
-pub fn map_ark_object_type_to_note_type(object_type: &ArkObjectType) -> NoteType {
+/// `Err` where Vue throws (`parseNoteTypeUiSchema`/`normalizeNoteType`):
+/// callers drop or `null` the type just like `kepler-note-type-api.ts`.
+pub fn map_ark_object_type_to_note_type(object_type: &ArkObjectType) -> Result<NoteType, String> {
     let is_task = object_type.id == EDEN_TASK_OBJECT_TYPE_ID || object_type.id == "task_obj";
     let schema_json = if is_task {
         normalize_task_object_type_schema_json(&object_type.schema_json)
@@ -68,7 +70,7 @@ pub fn map_ark_object_type_to_note_type(object_type: &ArkObjectType) -> NoteType
     };
     let created_at = ark_timestamp_to_millis(&object_type.created_at, 0);
     let updated_at = ark_timestamp_to_millis(&object_type.updated_at, created_at);
-    let ui = parse_note_type_ui_schema(Some(&ui_schema_json)).unwrap_or_default();
+    let ui = parse_note_type_ui_schema(Some(&ui_schema_json))?;
     let mut header_template = Map::new();
     header_template.insert(
         "kind".into(),
@@ -99,8 +101,8 @@ pub fn map_ark_object_type_to_note_type(object_type: &ArkObjectType) -> NoteType
         ),
     );
     header_template.insert("imageFieldId".into(), Value::Null);
-    normalize_system_note_type(
-        &normalize_note_type(&NoteType {
+    Ok(normalize_system_note_type(&normalize_note_type(
+        &NoteType {
             id: object_type.id.clone(),
             name: object_type.name.clone(),
             slug: normalize_slug(&object_type.id),
@@ -113,21 +115,8 @@ pub fn map_ark_object_type_to_note_type(object_type: &ArkObjectType) -> NoteType
             created_at,
             updated_at,
             extra: Map::new(),
-        })
-        .unwrap_or_else(|_| NoteType {
-            id: object_type.id.clone(),
-            name: object_type.name.clone(),
-            slug: normalize_slug(&object_type.id),
-            icon: Some(icon_for_object_type_id(&object_type.id)),
-            color: Some(color_for_object_type_id(&object_type.id)),
-            schema_json: object_type.schema_json.clone(),
-            header_template_json: "{}".into(),
-            ui_schema_json: Some(object_type.ui_schema_json.clone()),
-            created_at,
-            updated_at,
-            extra: Map::new(),
-        }),
-    )
+        },
+    )?))
 }
 
 /// `collectionObjectIdForType`.
