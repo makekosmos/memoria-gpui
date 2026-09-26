@@ -1,276 +1,146 @@
-//! M1 debug shell: notes list + a plain-markdown editor surface so the whole
-//! Engine path (list → load → edit → save) is exercised end to end. The real
-//! editor lands in M2 — this page exists to prove the data layer.
-use std::sync::mpsc::TryRecvError;
-
-use gpui::{div, prelude::*, px, Context, Entity, MouseButton, SharedString, Subscription, Window};
-use gpui_component::input::{Input, InputEvent, InputState, Textarea, TextareaState};
-
-use memoria_gpui::content;
-use memoria_gpui::entry_titles::get_entry_display_title;
-use memoria_gpui::model::Entry;
-use memoria_gpui::store::{Command, EngineEvent, Reply, Worker};
-
-use crate::theme::*;
-
+//! Memoria M4 shell: `DesktopChrome`-style window with an imago sidebar,
+//! routed screens, navigation history, search overlay, settings + trash,
+//! conflict banner and toasts. The editor surface is read-only until M3.
+mod backend;
+mod chrome;
+mod confirm;
+mod conflict;
+mod conflict_banner;
+mod conflict_ops;
+mod demo;
+mod everything;
+mod highlight;
+mod image;
+mod menus;
+mod note;
+mod objects;
 mod render;
+mod search;
+mod settings;
+mod settings_widgets;
+mod sidebar;
+mod sticker;
+mod toasts;
+mod trash;
+mod types;
 
-const ENGINE_OFFLINE: &str =
-    "Engine не запущен. Запустите Kosmos — список обновится автоматически.";
+use std::path::PathBuf;
+
+use gpui::{Context, Entity, FocusHandle, Subscription};
+use gpui_component::input::InputState;
+
+use memoria_gpui::conflict_store::ConflictRepository;
+use memoria_gpui::local_state::{load_local_state, LocalState};
+use memoria_gpui::model::{Entry, NoteType};
+use memoria_gpui::nav_history::NavHistory;
+use memoria_gpui::routes::Route;
+use memoria_gpui::store::{Command, Engine, Worker};
+
+use types::{Confirm, ConflictOp, CtxMenu, DataDirStore, Toast};
+
+mod dispatch;
+mod nav;
+mod replies;
+
+pub(crate) use backend::Backend;
+pub(crate) use demo::DemoStore;
+pub(crate) use toasts::{icon, icon_name};
 
 pub struct Memoria {
-    worker: Option<Worker>,
-    busy: bool,
-    online: bool,
-    banner: Option<String>,
-    list: Vec<Entry>,
-    selected_id: Option<String>,
-    current: Option<Entry>,
-    /// Unsaved edits in the inputs — remote refreshes must not clobber them.
-    dirty: bool,
-    status: Option<String>,
-    title_input: Option<Entity<InputState>>,
-    body_input: Option<Entity<TextareaState>>,
-    /// (title, markdown) queued for the inputs — `set_value` needs a `Window`,
-    /// so replies stash values here and `render` applies them.
-    pending_fill: Option<(String, String)>,
-    _subs: Vec<Subscription>,
-    _poll: Option<gpui::Task<()>>,
+    pub(crate) backend: Backend,
+    pub(crate) online: bool,
+    pub(crate) banner: Option<String>,
+    pub(crate) busy: bool,
+    pub(crate) list: Vec<Entry>,
+    pub(crate) trash: Vec<Entry>,
+    pub(crate) trash_loaded: bool,
+    pub(crate) note_types: Vec<NoteType>,
+    pub(crate) current: Option<Entry>,
+    pub(crate) loading_entry: Option<String>,
+    pub(crate) route: Route,
+    pub(crate) history: NavHistory,
+    pub(crate) prefs: LocalState,
+    pub(crate) state_dir: Option<PathBuf>,
+    pub(crate) search_open: bool,
+    pub(crate) search_input: Option<Entity<InputState>>,
+    pub(crate) search_query_cache: String,
+    pub(crate) search_results: Vec<memoria_gpui::model::SearchResult>,
+    pub(crate) search_selected: usize,
+    pub(crate) search_gen: u64,
+    pub(crate) toasts: Vec<Toast>,
+    pub(crate) toast_seq: u64,
+    pub(crate) conflicts: ConflictRepository<DataDirStore>,
+    pub(crate) conflict_op: Option<(String, ConflictOp)>,
+    pub(crate) pending_copy_save: Option<String>,
+    pub(crate) confirm: Option<Confirm>,
+    pub(crate) ctx_menu: Option<CtxMenu>,
+    pub(crate) root_focus: FocusHandle,
+    pub(crate) focused_once: bool,
+    pub(crate) _subs: Vec<Subscription>,
+    pub(crate) _poll: Option<gpui::Task<()>>,
 }
 
 impl Memoria {
     pub fn new(cx: &mut Context<Self>) -> Self {
+        if std::env::var("MEMORIA_DEMO").as_deref() == Ok("1") || cfg!(test) {
+            return Self::with_backend(Backend::Demo(DemoStore::seeded()), cx, None);
+        }
         let worker = Worker::start();
-        let _ = worker.commands.send(Command::LoadNoteTypes);
-        let _ = worker.commands.send(Command::LoadList(Vec::new()));
+        let engine = Engine::default();
+        Self::with_backend(Backend::Engine(worker), cx, engine.resolved_data_dir())
+    }
+
+    pub(crate) fn with_backend(
+        backend: Backend,
+        cx: &mut Context<Self>,
+        state_dir: Option<PathBuf>,
+    ) -> Self {
+        let prefs = state_dir
+            .as_ref()
+            .map(|d| load_local_state(d))
+            .unwrap_or_default();
+        let mut conflicts = ConflictRepository::new(state_dir.clone().map(DataDirStore));
+        if let Some(store) = conflicts.store.as_ref() {
+            conflicts.conflicts = memoria_gpui::conflict_store::load_entry_conflicts(store);
+        }
         let mut this = Self {
-            worker: Some(worker),
-            busy: true,
+            backend,
             online: true,
             banner: None,
+            busy: true,
             list: Vec::new(),
-            selected_id: None,
+            trash: Vec::new(),
+            trash_loaded: false,
+            note_types: Vec::new(),
             current: None,
-            dirty: false,
-            status: None,
-            title_input: None,
-            body_input: None,
-            pending_fill: None,
+            loading_entry: None,
+            route: Route::Everything,
+            history: NavHistory::new(),
+            prefs,
+            state_dir,
+            search_open: false,
+            search_input: None,
+            search_query_cache: String::new(),
+            search_results: Vec::new(),
+            search_selected: 0,
+            search_gen: 0,
+            toasts: Vec::new(),
+            toast_seq: 0,
+            conflicts,
+            conflict_op: None,
+            pending_copy_save: None,
+            confirm: None,
+            ctx_menu: None,
+            root_focus: cx.focus_handle(),
+            focused_once: false,
             _subs: Vec::new(),
             _poll: None,
         };
+        this.history.record(Route::Everything);
+        this.send(Command::LoadNoteTypes, cx);
+        this.send(Command::EnsureCollections, cx);
+        this.send(Command::LoadList(Vec::new()), cx);
         this.start_poll(cx);
         this
-    }
-
-    fn start_poll(&mut self, cx: &mut Context<Self>) {
-        self._poll = Some(cx.spawn(async move |this, cx| loop {
-            cx.background_executor()
-                .timer(std::time::Duration::from_millis(100))
-                .await;
-            let alive = this
-                .update(cx, |this, cx| this.drain_replies(cx))
-                .unwrap_or(false);
-            if !alive {
-                break;
-            }
-        }));
-    }
-
-    fn drain_replies(&mut self, cx: &mut Context<Self>) -> bool {
-        loop {
-            let reply = match self.worker.as_ref().map(|w| w.replies.try_recv()) {
-                Some(Ok(reply)) => reply,
-                Some(Err(TryRecvError::Disconnected)) => {
-                    self.worker = None;
-                    self.busy = false;
-                    self.banner = Some(ENGINE_OFFLINE.into());
-                    cx.notify();
-                    return true;
-                }
-                _ => return true,
-            };
-            self.on_reply(reply, cx);
-        }
-    }
-
-    fn on_reply(&mut self, reply: Reply, cx: &mut Context<Self>) {
-        self.busy = false;
-        match reply {
-            Reply::List(Ok(list)) => {
-                self.list = list;
-                if self.online {
-                    self.banner = None;
-                }
-            }
-            Reply::List(Err(error)) | Reply::NoteTypes(Err(error)) => {
-                self.online = false;
-                self.banner = Some(error);
-            }
-            Reply::Entry { result, .. } => match result {
-                Ok(Some(entry)) => self.set_current(entry, cx),
-                Ok(None) => self.status = Some("Заметка не найдена".into()),
-                Err(error) => self.status = Some(error),
-            },
-            Reply::Saved(result) => match result {
-                Ok(saved) if saved.ok => {
-                    self.dirty = false;
-                    self.status = Some("Сохранено".into());
-                    self.send(Command::LoadList(Vec::new()));
-                }
-                Ok(saved) => {
-                    self.status = Some(
-                        saved
-                            .message
-                            .unwrap_or_else(|| "Не удалось сохранить".into()),
-                    );
-                }
-                Err(error) => self.status = Some(error),
-            },
-            Reply::Deleted { result, .. } => match result {
-                Ok(done) if done.ok => {
-                    self.current = None;
-                    self.selected_id = None;
-                    self.send(Command::LoadList(Vec::new()));
-                }
-                Ok(done) => {
-                    self.status = done.message;
-                }
-                Err(error) => self.status = Some(error),
-            },
-            Reply::NoteTypes(Ok(_)) | Reply::Collections(_) => {}
-            Reply::Search { .. } => {}
-            Reply::Event(event) => match event {
-                EngineEvent::Online => {
-                    self.online = true;
-                    self.banner = None;
-                    self.send(Command::LoadList(Vec::new()));
-                }
-                EngineEvent::Offline => {
-                    self.online = false;
-                    self.banner = Some(ENGINE_OFFLINE.into());
-                }
-                EngineEvent::Changed(_) => {
-                    self.send(Command::LoadList(Vec::new()));
-                    if !self.dirty {
-                        if let Some(id) = self.selected_id.clone() {
-                            self.send(Command::LoadEntry {
-                                id,
-                                content_only: false,
-                            });
-                        }
-                    }
-                }
-            },
-        }
-        cx.notify();
-    }
-
-    fn send(&mut self, command: Command) {
-        if self
-            .worker
-            .as_ref()
-            .is_some_and(|w| w.commands.send(command).is_ok())
-        {
-            self.busy = true;
-        } else {
-            self.banner = Some(ENGINE_OFFLINE.into());
-        }
-    }
-
-    fn set_current(&mut self, entry: Entry, cx: &mut Context<Self>) {
-        // Vue: `readEntryMarkdown(JSON.parse(entry.content_json))`.
-        let raw = serde_json::from_str(&entry.content_json).unwrap_or(serde_json::Value::Null);
-        let markdown = content::read_entry_markdown(&raw);
-        self.pending_fill = Some((entry.title.clone(), markdown));
-        self.current = Some(entry);
-        self.dirty = false;
-        self.status = None;
-        cx.notify();
-    }
-
-    fn select(&mut self, id: &str, _cx: &mut Context<Self>) {
-        self.selected_id = Some(id.to_string());
-        self.send(Command::LoadEntry {
-            id: id.to_string(),
-            content_only: false,
-        });
-    }
-
-    fn save(&mut self, cx: &mut Context<Self>) {
-        let Some(entry) = self.current.clone() else {
-            return;
-        };
-        let title = self
-            .title_input
-            .as_ref()
-            .map(|s| s.read(cx).value().to_string())
-            .unwrap_or_else(|| entry.title.clone());
-        let markdown = self
-            .body_input
-            .as_ref()
-            .map(|s| s.read(cx).value().to_string())
-            .unwrap_or_default();
-        let mut next = entry.clone();
-        next.title = title;
-        next.content_json = content::write_entry_markdown(&markdown).to_string();
-        next.content_loaded = Some(true);
-        self.send(Command::SaveEntry(Box::new(next)));
-    }
-
-    fn title_state(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Entity<InputState> {
-        if let Some(state) = &self.title_input {
-            return state.clone();
-        }
-        let state = cx.new(|cx| InputState::new(window, cx).placeholder("Название"));
-        self._subs
-            .push(cx.subscribe(&state, |this, _, ev: &InputEvent, cx| {
-                if matches!(ev, InputEvent::Change) {
-                    this.dirty = true;
-                    cx.notify();
-                }
-            }));
-        self.title_input = Some(state.clone());
-        state
-    }
-
-    fn body_state(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Entity<TextareaState> {
-        if let Some(state) = &self.body_input {
-            return state.clone();
-        }
-        let state = cx.new(|cx| TextareaState::new(window, cx).placeholder("Markdown…"));
-        self._subs
-            .push(cx.subscribe(&state, |this, _, ev: &InputEvent, cx| {
-                if matches!(ev, InputEvent::Change) {
-                    this.dirty = true;
-                    cx.notify();
-                }
-            }));
-        self.body_input = Some(state.clone());
-        state
-    }
-
-    fn list_row(&mut self, entry: &Entry, cx: &mut Context<Self>) -> impl IntoElement {
-        let id = entry.id.clone();
-        let selected = self.selected_id.as_deref() == Some(entry.id.as_str());
-        let source = entry
-            .header_props_json
-            .as_deref()
-            .map(serde_json::Value::from);
-        let title = get_entry_display_title(Some(entry.title.as_str()), source.as_ref());
-        div()
-            .id(SharedString::from(id.clone()))
-            .px_3()
-            .py_2()
-            .rounded(px(6.))
-            .cursor_pointer()
-            .when(selected, |d| d.bg(c(ACCENT_DIM())))
-            .on_mouse_down(
-                MouseButton::Left,
-                cx.listener(move |this, _, _, cx| {
-                    this.select(&id, cx);
-                }),
-            )
-            .child(div().text_size(px(13.)).text_color(c(FG())).child(title))
     }
 }

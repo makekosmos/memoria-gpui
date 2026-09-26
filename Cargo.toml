@@ -31,6 +31,10 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 [dev-dependencies]
 proptest = "1.5"
 tempfile = "3.14"
+# a11y-tree + UI autotests: #[gpui::test] + TestAppContext/VisualTestContext
+# live behind gpui's test-support feature (deterministic executors, test
+# platform, debug_bounds). It merges only into test builds.
+gpui = { package = "gpui-kit", version = "=0.6.2", features = ["test-support"] }
 
 # Dev builds: keep debug info but optimize — unoptimized taffy/cosmic-text/
 # gpui (and our own render path) make even modest UIs run at ~20fps.
@@ -41,3 +45,4 @@ opt-level = 3
 opt-level = 3
 debug-assertions = false
 overflow-checks = false
+
