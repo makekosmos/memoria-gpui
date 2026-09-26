@@ -1,0 +1,20 @@
+[package]
+name = "memoria-editor-core-fuzz"
+version = "0.1.0"
+publish = false
+edition = "2021"
+
+[workspace]
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+memoria-editor-core = { path = ".." }
+
+[[bin]]
+name = "parse_project"
+path = "fuzz_targets/parse_project.rs"
+test = false
+doc = false

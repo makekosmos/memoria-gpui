@@ -67,6 +67,25 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | App bootstrap / env types | `src/main.ts`, `src/vite-env.d.ts` | M2 | n/a — replaced by Rust app shell |
 | Sidebar leftovers | `src/components/sidebar/types.ts` | — | не нужен: sidebar was removed; only a dead `types.ts` (3 lines) remains |
 
+### «Редактор» — M2 core (`crates/memoria-editor-core`, чистый Rust, без GPUI)
+
+Статус ядра по сравнению с `TiptapEditor.vue` (StarterKit + TaskList + EdenImage):
+
+| Фича | Vue-эталон | Status |
+|---|---|---|
+| Буфер: rope + UTF-8/grapheme позиции, один курсор | ProseMirror doc+selection | PASS |
+| Markdown как source of truth, parse с byte-офсетами | `markdownToTiptapDoc` (line parser) | PASS (pulldown-cmark + offsets) |
+| Live Preview: скрытие маркеров вне курсора (Obsidian-правило) | нет в Vue (WYSIWYG Tiptap) | PASS |
+| Таблицы (GFM), таск-листы, strikethrough, autolinks | tiptap tables нет; strikethrough есть | PASS (таблицы — моноширинная сетка `│`; GAP: выделение ячеек) |
+| Команды: bold/italic/strike/code, H1–H3, списки, quote, code+lang, hr, link, image | StarterKit + TaskList | PASS |
+| Checkbox toggle | TaskItem | PASS |
+| Enter/Backspace/Tab/Shift+Tab в списках/цитатах/заголовках/code | PM keymap + Eden обработчики | PASS |
+| Undo/redo: группировка по паузе и типу, восстановление выделения | prosemirror-history | PASS |
+| Paste: plain/markdown-as-is, HTML→markdown | Tiptap paste | PASS (минимальный HTML; GAP: Word mso-list) |
+| IME contract (EntityInputHandler-shaped, UTF-16) | браузерный IME | PASS |
+| Char count 1:1 `charCount.ts` | `src/lib/charCount.ts` | PASS |
+| Отрисовка GPUI, syntax highlighting, пиксели изображений | — | GAP — осознанно вне M2 (M3) |
+
 ## Screens for reference (`reference/screens/`)
 
 Captured on the real Electron Host + Engine (cortex `host/e2e` harness,

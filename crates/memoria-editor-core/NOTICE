@@ -1,0 +1,15 @@
+memoria-editor-core
+===================
+
+Original implementation for KOS-149. No code was copied from third-party
+live-preview markdown editors.
+
+Design informed (behavioral reference only, no code reuse) by:
+
+- Obsidian's Live Preview hide-marker rule (markers visible under cursor)
+- SuperMD / Typora live-preview conventions
+- ProseMirror history grouping semantics (newGroupDelay)
+- Memoria (Vue/Tiptap) command + serialization behavior — the parity target
+
+Third-party crates: ropey (MIT), unicode-segmentation (MIT/Apache-2.0),
+pulldown-cmark (MIT), proptest / criterion / libfuzzer-sys (dev only).

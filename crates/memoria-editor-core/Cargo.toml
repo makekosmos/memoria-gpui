@@ -1,0 +1,19 @@
+[package]
+name = "memoria-editor-core"
+version = "0.1.0"
+publish = false
+edition = "2021"
+description = "Markdown live-preview editor core (buffer, parse, projection, commands) — no GPUI"
+
+[dependencies]
+ropey = "1.6.1"
+unicode-segmentation = "1.13"
+pulldown-cmark = { version = "0.13.4", default-features = false, features = ["simd"] }
+
+[dev-dependencies]
+proptest = "1.11"
+criterion = "0.8"
+
+[[bench]]
+name = "projection"
+harness = false
