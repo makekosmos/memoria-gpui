@@ -6,6 +6,9 @@ edition = "2021"
 description = "GPUI clone of the Memoria notes/diary UI (experimental, KOS-146)"
 default-run = "memoria-gpui"
 
+[workspace]
+members = ["crates/*"]
+
 [dependencies]
 # gpui-kit pins the matching gpui-pre snapshot and puts GPUI at its root, so
 # `use gpui::...` keeps working through this alias.

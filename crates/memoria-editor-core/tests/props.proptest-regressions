@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 1b62cb259355ba9486f7cf9df1dde503389a8e4b403592f98dcf4f7da44df168 # shrinks to seed_idx = 4, ops = [Insert(0, ""), Insert(0, ""), Insert(0, ""), Insert(0, ""), Insert(0, ""), Insert(3056691938694876, "ё"), Command(Italic)]
+cc 277c087a087138aac93e4ad16b234bd148908367cb67a595a301227d58c81ff5 # shrinks to seed_idx = 3, ops = [Enter(9860937693774394880), Insert(7040893853123751016, "****"), Backspace(13319406592725145447), Command(Bold), Insert(0, ""), Enter(0), Backspace(14619400109589922289), Enter(4352169384319739114), Enter(12958750576986006100), Select(7590175685154432543, 10041961820826779679), Command(Italic)]
