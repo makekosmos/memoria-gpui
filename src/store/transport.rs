@@ -132,6 +132,13 @@ fn data_dir() -> Result<PathBuf, EngineError> {
 }
 
 impl Engine {
+    /// The resolved Engine data dir (lock file lives here). App-local state
+    /// (`memoria-settings.json`, `memoria-local-state.json`) sits beside it —
+    /// the GPUI equivalent of the Vue host `userData` bridge.
+    pub fn resolved_data_dir(&self) -> Option<PathBuf> {
+        self.data_dir.clone().or_else(|| data_dir().ok())
+    }
+
     /// Read + validate `engine.lock.json` (fresh each call — Engine may have
     /// restarted under a new token/port).
     pub fn lock(&self) -> Result<EngineLock, EngineError> {

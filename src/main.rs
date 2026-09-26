@@ -1,8 +1,12 @@
 // Memoria GPUI — note data is owned by Kosmos Engine.
 #![windows_subsystem = "windows"]
+mod a11y;
 mod app;
 mod pages;
 mod theme;
+
+#[cfg(test)]
+mod ui_tests;
 
 use gpui::{px, size, App, AppContext, Bounds, WindowBounds, WindowOptions};
 

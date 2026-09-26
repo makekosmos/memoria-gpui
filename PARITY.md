@@ -35,13 +35,13 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | `content_json` codecs (tiptap/markdown/legacy, byte-compat) | `src/editor-content/content.ts` | M1 | DONE (M1) |
 | Block selection (classes, pointer, composable) | `src/lib/blockSelectionClasses.ts`, `src/lib/blockSelectionPointer.ts`, `src/composables/useBlockSelection.ts` | M1 | TODO |
 | Char counter | `src/lib/charCount.ts`, `src/composables/useCharCounter.ts` | M1 | DONE (M1) |
-| Window chrome / titlebar | `src/App.vue`, `src/Titlebar.vue`, `src/Titlebar.css` | M2 | TODO |
-| Top navigation («Всё»/«Дневник») + screen state | `src/App.vue` (`eden-top-navigation`), `src/store/eden.ts` (`activeScreen`) | M2 | TODO |
-| «Всё» grid + item cards | `src/components/everything/EverythingView.vue`, `src/components/everything/EverythingItemCard.vue` | M2 | TODO |
-| Navigation history (back/forward) | `src/composables/useNavigationHistory.ts`, `src/lib/kepler-navigation.ts` | M2 | TODO |
-| Zen mode / layout state | `src/store/layout.ts` | M2 | TODO |
-| Keyboard shortcuts (physical keys) | `src/composables/useKeyboard.ts` | M2 | TODO |
-| Theme (light/dark) | `src/composables/useTheme.ts`, `src/index.css`, `src/App.css` | M2 | TODO |
+| Window chrome / titlebar | `src/App.vue`, `src/Titlebar.vue`, `src/Titlebar.css` | M2 | DONE (M4: `src/app/chrome.rs` — drag area, back/forward, search button, entry menu, platform controls; imago tokens) |
+| Top navigation («Всё»/«Дневник») + screen state | `src/App.vue` (`eden-top-navigation`), `src/store/eden.ts` (`activeScreen`) | M2 | PARTIAL (M4: sidebar nav «Всё»/«Дневник» per milestone spec — Vue removed its sidebar and uses titlebar-center nav; sliding-indicator animation is a GAP) |
+| «Всё» grid + item cards | `src/components/everything/EverythingView.vue`, `src/components/everything/EverythingItemCard.vue` | M2 | DONE (M4: `src/app/everything.rs` — icon + title + preview + pin marker, context menu) |
+| Navigation history (back/forward) | `src/composables/useNavigationHistory.ts`, `src/lib/kepler-navigation.ts` | M2 | DONE (M4: `src/nav_history.rs`, `src/app/nav.rs` — 30-cap, seed, suppression, deleted-entry fallback; `ui_tests::card_opens_note_and_history_works`) |
+| Zen mode / layout state | `src/store/layout.ts` | M2 | TODO (M4: sidebar collapse via Ctrl+B only) |
+| Keyboard shortcuts (physical keys) | `src/composables/useKeyboard.ts` | M2 | PARTIAL (M4: Ctrl+K, Ctrl+B, Alt+←/→, Esc — layout-independent `keystroke.key`; editor shortcuts arrive with M3) |
+| Theme (light/dark) | `src/composables/useTheme.ts`, `src/index.css`, `src/App.css` | M2 | PARTIAL (M4: imago-gpui tokens throughout; no runtime light/dark toggle yet) |
 | Platform detection | `src/composables/usePlatform.ts` | M2 | TODO |
 | Engine store (Pinia `eden` store + actions) | `src/store/eden.ts`, `edenStore{Data,Draft,Save,NoteType,SystemType}Actions.ts`, `edenStoreHelpers.ts`, `edenEntryFactory.ts` | M3 | PARTIAL (M1: `edenStoreSaveActions` coordinator + worker `Command`/`Reply` ported; draft/data/system-type actions TODO) |
 | Kepler/Engine API surface (`window.api` shim → `ark.request`) | `src/lib/kepler-api-shim.ts`, `src/lib/edenApi.ts`, `src/lib/kepler-ui-runtime.ts`, `src/lib/kepler-command-bus.ts`, `src/lib/kepler-folder-stubs.ts` | M3 | PARTIAL (M1: `ark.request` transport + command bus ported + fake-Engine tests; `edenApi`/`kepler-ui-runtime`/`kepler-folder-stubs` TODO) |
@@ -50,16 +50,16 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | Entry conflicts & change tracking | `src/store/entryConflicts.ts`, `src/store/entryChanges.ts`, `src/lib/saveResult.ts` | M3 | DONE (M1) |
 | Kepler task sync (`com.kosmos.task`) | `src/lib/kepler-task-sync.ts`, `src/lib/taskStatus.ts` | M3 | TODO |
 | Trash storage over ARK soft-delete | `src/lib/kepler-trash-storage.ts` | M3 | DONE (M1) |
-| Search | `src/composables/useSearch.ts`, `src/components/SearchOverlay.vue` | M3/M8 | TODO |
+| Search | `src/composables/useSearch.ts`, `src/components/SearchOverlay.vue` | M3/M8 | DONE (M4: `src/search_model.rs` + `src/app/search.rs` — Engine `search_objects`, 300ms debounce, highlight ranges, ↑↓/Enter/Esc; `ui_tests::search_*`) |
 | Note types & system types | `src/lib/typedNotes.ts`, `src/lib/typedNoteSchemas.ts`, `src/lib/systemTypes.ts`, `systemType{,Game,Visual}Definitions.ts`, `src/lib/kepler-note-type-api.ts` | M4 | DONE (M1) |
 | Typed note header & property editors | `src/components/typed-notes/{TypedHeader,ObjectPropertyField,ObjectPropertyPicker}.vue`, `src/lib/typedNoteHeaderProps.ts`, `src/lib/objectFieldFormatting.ts` | M4 | PARTIAL (M1: `typedNoteHeaderProps` ported; UI TODO) |
-| Type object lists / image objects | `src/components/objects/{TypeObjectsView,ImageObjectView}.vue`, `src/lib/objectImages.ts`, `src/lib/iconResolver.ts` | M4 | PARTIAL (M1: `iconResolver` ported; UI TODO) |
+| Type object lists / image objects | `src/components/objects/{TypeObjectsView,ImageObjectView}.vue`, `src/lib/objectImages.ts`, `src/lib/iconResolver.ts` | M4 | DONE (M4: `src/app/objects.rs`, `src/app/image.rs`, `src/object_views.rs`, `src/image_src.rs` — summary columns, gallery, person names) |
 | Entry titles | `src/lib/entryTitles.ts` | M4 | DONE (M1) |
 | Books: cover, dropzone, metadata import | `src/components/books/{BookCover,BookCoverFileDropzone,BookMetadataImportModal}.vue`, `src/lib/bookMetadata.ts`, `src/lib/bookLanguages.ts` | M5 | TODO |
 | Diary bubbles view + timeline + calendar | `src/components/bubbles/{BubbleDiaryView,BubbleTimelineItem,BubbleTiptapRenderer,BubbleDiaryCalendarSidebar}.vue`, `bubbleDiaryModel.ts`, `src/lib/kepler-bubble-api.ts` | M6 | TODO |
-| Stickers (floating note windows) | `src/views/StickerNoteView.vue`, `src/lib/sticker.ts`, `src/composables/useDockedWidget.ts` | M7 | TODO |
-| Settings page + sections | `src/components/settings/{SettingsPage,GeneralSettings,ExportSettings,TrashSettings}.vue(+css)`, `src/views/EdenSettingsView.vue`, `src/composables/usePreferences.ts` | M8 | TODO |
-| Conflict banner | `src/components/EntryConflictBanner.vue` | M8 | TODO |
+| Stickers (floating note windows) | `src/views/StickerNoteView.vue`, `src/lib/sticker.ts`, `src/composables/useDockedWidget.ts` | M7 | PARTIAL (M4: `src/sticker_route.rs` + `src/app/sticker.rs` — `/sticker/<id>` routes, host-safe keys, floating GPUI window; GAP: `useDockedWidget`/host `kepler.window.open` docking needs the kosmos host, unavailable in GPUI shell) |
+| Settings page + sections | `src/components/settings/{SettingsPage,GeneralSettings,ExportSettings,TrashSettings}.vue(+css)`, `src/views/EdenSettingsView.vue`, `src/composables/usePreferences.ts` | M8 | PARTIAL (M4: `src/app/settings.rs` — General prefs persist via `local_state.rs` (`memoria-settings.json` + legacy `eden-settings.json`), Trash works, Export is UI-only stub pending M8) |
+| Conflict banner | `src/components/EntryConflictBanner.vue` | M8 | DONE (M4: `src/app/conflict*.rs` — recheck/accept-remote/keep-copy/copy-local/cancel; `ui_tests::extra::conflict_banner_accept_remote`) |
 | FPS monitor (dev overlay) | `src/composables/useFpsMonitor.ts` | M8 | TODO |
 | Obsidian vault import/export (+ images, frontmatter, journal transaction) | `src/lib/obsidianVault{,Export,ExportAssets,ExportAssetPaths,ImportFrontmatter,ImportImages,ImportTransaction}.ts`, `src/lib/markdownFrontmatter.ts` | M9 | PARTIAL (M1: `markdownFrontmatter` ported; import/export TODO) |
 | Eden legacy migration (read-only: storage keys, userData, command prefixes) | `src/lib/memoria-migration.ts`, `manifest.json` `legacy_*` fields | M9 | PARTIAL (M1: storage/userData/command-prefix ports + tests; `manifest.json` contract is Vue-only) |

@@ -36,6 +36,12 @@ pub enum Command {
     EnsureCollections,
     /// `searchEntries` — full-text search; empty query clears.
     Search(String),
+    /// `listTrashEntries` — soft-deleted objects, newest deleted first.
+    LoadTrash,
+    /// `restoreEntry` — clears `deletedAt` and bumps `updatedAt`.
+    RestoreEntry(String),
+    /// `permanentDeleteEntry` — hard delete (trash only).
+    DeleteForever(String),
 }
 
 pub enum Reply {
@@ -54,6 +60,11 @@ pub enum Reply {
     Search {
         query: String,
         result: Result<Vec<SearchResult>, String>,
+    },
+    Trash(Result<Vec<Entry>, String>),
+    Restored {
+        id: String,
+        result: Result<DeleteEntryResult, String>,
     },
     /// Engine push — `Online`/`Offline`/`Changed(payload)`.
     Event(EngineEvent),
@@ -90,7 +101,8 @@ impl Worker {
                     }
                 });
             }
-            let mut api = EntryApi::<Engine>::new(engine);
+            let mut api = EntryApi::<Engine>::new(engine.clone());
+            let mut trash = TrashStorageApi::<Engine>::new(engine);
             for request in requests {
                 let reply = match request {
                     Command::LoadList(type_ids) => {
@@ -121,6 +133,17 @@ impl Worker {
                     Command::Search(query) => {
                         let result = api.search_entries(&query).map_err(err_string);
                         Reply::Search { query, result }
+                    }
+                    Command::LoadTrash => {
+                        Reply::Trash(trash.list_trash_entries().map_err(err_string))
+                    }
+                    Command::RestoreEntry(id) => {
+                        let result = trash.restore_entry(&id).map_err(err_string);
+                        Reply::Restored { id, result }
+                    }
+                    Command::DeleteForever(id) => {
+                        let result = trash.permanent_delete_entry(&id).map_err(err_string);
+                        Reply::Deleted { id, result }
                     }
                 };
                 if results.send(reply).is_err() {
