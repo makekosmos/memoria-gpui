@@ -50,7 +50,7 @@ pub struct MemoriaEditor {
     pub core: Editor,
     pub focus: FocusHandle,
     pub(crate) cursor_visible: bool,
-    blink: Task<()>,
+    pub(crate) blink: Task<()>,
     /// True while `ctrl-k` waits for the zen `z`.
     pub(crate) zen_armed: Option<Task<()>>,
     // ---- caches ------------------------------------------------------------
@@ -90,7 +90,7 @@ pub struct MemoriaEditor {
     pub compact: bool,
     /// Empty-doc placeholder text (`Placeholder.configure` per surface).
     pub placeholder: SharedString,
-    _subs: Vec<Subscription>,
+    pub(crate) _subs: Vec<Subscription>,
 }
 
 impl MemoriaEditor {

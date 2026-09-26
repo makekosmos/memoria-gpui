@@ -2,7 +2,7 @@
 //! timer, zoom factor changes, post-edit bookkeeping (autosave debounce),
 //! scroll clamping, and the `Focusable` impl.
 
-use gpui::{px, App, Context, FocusHandle, Focusable, SharedString, Subscription, Task};
+use gpui::{px, App, Context, FocusHandle, Focusable, SharedString, Subscription, Task, Window};
 use std::time::Duration;
 
 use crate::editor::{EditorEvent, MemoriaEditor, AUTOSAVE_DEBOUNCE};
@@ -28,6 +28,34 @@ pub fn blink_task(cx: &mut Context<MemoriaEditor>) -> Task<()> {
 }
 
 impl MemoriaEditor {
+    /// Register this window's focus/blur subscriptions — one set is bound to
+    /// the creating window in `new`; every additional window (stickers)
+    /// hosting the shared editor must call this once so the caret blinks and
+    /// undo groups break on focus loss there too.
+    pub fn attach_window(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let focus = self.focus.clone();
+        self._subs.extend([
+            cx.on_focus(&focus, window, |this, _w, cx| {
+                this.cursor_visible = true;
+                this.blink = blink_task(cx);
+                cx.notify();
+            }),
+            cx.on_blur(&focus, window, |this, _w, cx| {
+                this.cursor_visible = false;
+                this.blink = Task::ready(());
+                this.core.break_undo_group();
+                cx.notify();
+            }),
+        ]);
+    }
+
+    /// A save for the current buffer is about to be sent — mirror the
+    /// `Autosave` emit's revision stamp so `mark_saved` only clears `dirty`
+    /// when nothing was typed in between.
+    pub fn mark_pending_save(&mut self) {
+        self.autosaved_rev = self.core.revision();
+    }
+
     /// `Ctrl+K` prefix armed → next `z` toggles zen within the timeout.
     pub(crate) fn arm_zen_chord(&mut self, cx: &mut Context<Self>) {
         self.zen_armed = Some(cx.spawn(async move |this, cx| {

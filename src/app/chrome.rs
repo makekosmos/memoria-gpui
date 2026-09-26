@@ -141,6 +141,29 @@ impl Memoria {
                                 .child(icon(IconId::Calendar, 15., rgba(FG(), 0.82))),
                         )
                     })
+                    // Vue `titlebar-open-sticker` — visible only for open
+                    // stickerable notes outside zen/diary.
+                    .when(
+                        !self.zen
+                            && matches!(self.route, Route::Entry(_))
+                            && memoria_gpui::sticker_route::can_open_in_sticker(
+                                self.current.as_ref().and_then(|e| e.type_id.as_deref()),
+                            ),
+                        |d| {
+                            d.child(titlebar_button(
+                                "titlebar-open-sticker",
+                                IconId::Pin,
+                                "Открыть в окне-стикере",
+                                true,
+                                cx,
+                                |this, window, cx| {
+                                    if let Some(e) = this.current.as_ref().map(|e| e.id.clone()) {
+                                        this.open_sticker(e, window, cx);
+                                    }
+                                },
+                            ))
+                        },
+                    )
                     .child(titlebar_button(
                         "titlebar-search",
                         IconId::Search,
@@ -243,12 +266,6 @@ impl Memoria {
             return;
         }
         let k = &ev.keystroke;
-        // Vue `Dropdown` Esc-dismiss for the kind menu.
-        if k.key == "escape" && self.kind_menu_for.is_some() {
-            self.kind_menu_for = None;
-            cx.notify();
-            return;
-        }
         let ctrl = k.modifiers.control || k.modifiers.platform;
         if ctrl && k.key == "k" {
             if self.search_open {

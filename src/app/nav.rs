@@ -1,7 +1,6 @@
 //! Navigation — route application, `navigateTo` port, history replay.
 use gpui::Context;
 
-use memoria_gpui::content;
 use memoria_gpui::entry_conflicts::conflict_for_entry;
 use memoria_gpui::object_views::collection_target_type_id;
 use memoria_gpui::routes::Route;
@@ -58,7 +57,14 @@ impl Memoria {
     pub(crate) fn open_entry(&mut self, id: String, cx: &mut Context<Self>) {
         // Flush pending edits so the note-switch can't lose the last
         // <300ms of typing or misattribute them to the next entry.
-        if let Some(editor) = self.editor.clone() {
+        if let Some(doc) = self
+            .current
+            .as_ref()
+            .and_then(|e| self.docs.get(&e.id))
+            .cloned()
+        {
+            doc.update(cx, |d, cx| d.flush(cx));
+        } else if let Some(editor) = self.editor.clone() {
             editor.update(cx, |e, cx| e.flush_autosave(cx));
         }
         if let Some(conflict) = conflict_for_entry(&self.conflicts.conflicts, &id) {
@@ -130,11 +136,10 @@ impl Memoria {
     pub(crate) fn delete_entry(&mut self, id: String, cx: &mut Context<Self>) {
         self.send(Command::DeleteEntry(id), cx);
     }
-    /// Stash title+markdown for the M3 editor — applied in `Render` with a Window.
+    /// Stash the entry for the shared doc — `InputState::set_value` needs a
+    /// `Window`, so `Render` applies it via `NoteDoc::apply_fill`.
     fn queue_editor_fill(&mut self, entry: &memoria_gpui::model::Entry) {
-        let raw = serde_json::from_str(&entry.content_json).unwrap_or(serde_json::Value::Null);
-        let markdown = content::read_entry_markdown(&raw);
-        self.pending_fill = Some((entry.title.clone(), markdown));
+        self.pending_fill = Some(entry.clone());
         self.dirty = false;
     }
 }

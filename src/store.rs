@@ -81,7 +81,12 @@ pub enum Reply {
         id: String,
         result: Result<Option<Entry>, String>,
     },
-    Saved(Result<SaveEntryResult, String>),
+    Saved {
+        /// Entry id — multiple documents (note + sticker windows) share one
+        /// worker, so saves route back to the owning document.
+        id: String,
+        result: Result<SaveEntryResult, String>,
+    },
     Deleted {
         id: String,
         result: Result<DeleteEntryResult, String>,
@@ -164,7 +169,11 @@ impl Worker {
                         Reply::Entry { id, result }
                     }
                     Command::SaveEntry(entry) => {
-                        Reply::Saved(api.save_entry(entry.as_ref()).map_err(err_string))
+                        let result = api.save_entry(entry.as_ref()).map_err(err_string);
+                        Reply::Saved {
+                            id: entry.id.clone(),
+                            result,
+                        }
                     }
                     Command::DeleteEntry(id) => {
                         let result = api.delete_entry(&id).map_err(err_string);
