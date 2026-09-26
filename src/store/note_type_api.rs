@@ -27,7 +27,7 @@ fn empty_note_content() -> Value {
 }
 
 /// `noteTypeRecord` — the ARK object persisted for a note type.
-fn note_type_record(note_type: &NoteType) -> Value {
+pub(crate) fn note_type_record(note_type: &NoteType) -> Value {
     let updated = millis_to_ark_timestamp(Some(note_type.updated_at).filter(|v| *v != 0));
     let mut extensions = Map::new();
     extensions.insert(

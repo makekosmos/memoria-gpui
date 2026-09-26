@@ -23,7 +23,63 @@ fn window_bounds(cx: &mut App) -> Bounds<gpui::Pixels> {
     }
 }
 
+/// `memoria-gpui --export <dir>` (M8) — headless Obsidian export for
+/// verification while the M4 export UI isn't on this branch. All file IO runs
+/// through Engine `filesystem.vault.*` grants; the app writes nothing itself.
+fn run_export(dir: &str) -> ! {
+    let engine = memoria_gpui::store::Engine::default();
+    let mut entries = memoria_gpui::store::EntryApi::new(engine.clone());
+    let notes = memoria_gpui::store::NoteTypeApi::new(engine.clone());
+    let result = (|| -> Result<u64, String> {
+        let entries = entries.list_all_entries().map_err(|e| format!("{e:?}"))?;
+        let note_types = notes.list_note_types().map_err(|e| format!("{e:?}"))?;
+        let body_markdown_lookup = entries
+            .iter()
+            .map(|e| {
+                let value =
+                    serde_json::from_str(&e.content_json).unwrap_or(serde_json::Value::Null);
+                (
+                    e.id.clone(),
+                    memoria_gpui::content::read_entry_markdown(&value),
+                )
+            })
+            .collect();
+        let title_lookup = entries
+            .iter()
+            .map(|e| (e.id.clone(), e.title.clone()))
+            .collect();
+        memoria_gpui::obsidian::export_obsidian_vault_dir(
+            &engine,
+            entries,
+            &note_types,
+            &body_markdown_lookup,
+            &title_lookup,
+            dir,
+        )
+    })();
+    match result {
+        Ok(count) => {
+            println!("exported {count} file(s) into {dir}");
+            std::process::exit(0);
+        }
+        Err(error) => {
+            eprintln!("export failed: {error}");
+            std::process::exit(1);
+        }
+    }
+}
+
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(pos) = args.iter().position(|a| a == "--export") {
+        match args.get(pos + 1) {
+            Some(dir) => run_export(dir),
+            None => {
+                eprintln!("usage: memoria-gpui --export <dir>");
+                std::process::exit(2);
+            }
+        }
+    }
     gpui::application().run(|cx: &mut App| {
         gpui_component::init(cx);
         imago_gpui::theme::apply(cx);

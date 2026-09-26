@@ -1,0 +1,40 @@
+{
+  "files": [
+    {
+      "path": "vault/Atlas.md",
+      "relativePath": "Atlas.md",
+      "name": "Atlas.md",
+      "content": "---\ntitle: Atlas\ntags: [map, index]\naliases: [Карта]\n---\n\n# Atlas\n\nКорневая заметка vault'а. Ссылки: [[Проекты]], [[daily/2026-09-24|вчерашний день]].\n\n![[attachments/kosmos-mark.png]]\n"
+    },
+    {
+      "path": "vault/daily/2026-09-24.md",
+      "relativePath": "daily/2026-09-24.md",
+      "name": "2026-09-24.md",
+      "content": "---\ntype: daily\n---\n\n- список дел #tag1\n- заметка без заголовков\n"
+    },
+    {
+      "path": "vault/daily/2026-09-25.md",
+      "relativePath": "daily/2026-09-25.md",
+      "name": "2026-09-25.md",
+      "content": "---\ntype: daily\nmood: ok\n---\n\nТекст с **жирным** и `кодом`.\n\n> [!NOTE] Callout\n> тело callout\n"
+    },
+    {
+      "path": "vault/notes/Projects.md",
+      "relativePath": "notes/Projects.md",
+      "name": "Projects.md",
+      "content": "---\ncreated: 2026-09-01\nstatus: active\n---\n\n# Проекты\n\n- [[Atlas]]\n- внешняя ссылка: https://example.invalid\n\n```rust\nfn main() {}\n```\n"
+    }
+  ],
+  "images": [
+    {
+      "path": "vault/attachments/kosmos-mark.png",
+      "relativePath": "attachments/kosmos-mark.png",
+      "name": "kosmos-mark.png",
+      "fileUrl": "file:///vault/attachments/kosmos-mark.png",
+      "mimeType": "image/png",
+      "sizeBytes": 273,
+      "width": 64,
+      "height": 64
+    }
+  ]
+}
