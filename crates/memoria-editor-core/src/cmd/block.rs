@@ -1,10 +1,12 @@
 //! Block commands: headings, bullet/ordered/task lists, checkbox toggle,
 //! blockquote, fenced code block, horizontal rule.
 
-use crate::cmd::util::{heading_marker, line_range, lines_of, list_marker, quote_marker, ListKind};
+use crate::cmd::util::{
+    fence_line, heading_marker, line_range, lines_of, list_marker, quote_marker, ListKind,
+};
 use crate::cursor::Selection;
 use crate::editor::Tx;
-use crate::md::ast::{BlockKind, Doc, Node};
+use crate::md::ast::Doc;
 
 /// `set_heading(level)` — TipTap `toggleHeading`: all touched lines get the
 /// level; if every touched line already has it, strip to paragraph.
@@ -167,7 +169,7 @@ pub fn toggle_code_block(doc: &Doc, src: &str, sel: Selection, lang: &str) -> Tx
         crate::cmd::util::snap_up(src, sel.end()),
     );
     let mut tx = Tx::new();
-    if let Some(r) = fenced_block_containing(doc, sel.start()) {
+    if let Some(r) = crate::md::ast::fenced_block_containing(doc, sel.start()) {
         // Drop the fence lines; keep the content.
         let lines = lines_of(src, r.start, r.end);
         if let (Some(first), Some(last)) = (lines.first(), lines.last()) {
@@ -197,6 +199,41 @@ pub fn toggle_code_block(doc: &Doc, src: &str, sel: Selection, lang: &str) -> Tx
     tx.insert(last.end, close);
     tx.insert(first.start, open);
     tx.selection(Selection::caret(first.start + open_len));
+    tx
+}
+
+/// `set_code_block_lang` — rewrite the info string of the fenced block
+/// containing `pos` (language-picker wiring). No-op when the caret isn't in
+/// a fenced block.
+pub fn set_code_block_lang(doc: &Doc, src: &str, pos: usize, lang: &str) -> Tx {
+    let mut tx = Tx::new();
+    let Some(r) = crate::md::ast::fenced_block_containing(doc, pos) else {
+        return tx;
+    };
+    let first_end = src[r.start..r.end.min(src.len())]
+        .find('\n')
+        .map(|o| r.start + o)
+        .unwrap_or(r.end);
+    let Some((_, fence_end, old)) = fence_line(src, r.start, first_end) else {
+        return tx;
+    };
+    if old == lang {
+        // Info string already matches — leave a true no-op.
+        return tx;
+    }
+    tx.replace(
+        fence_end,
+        first_end,
+        if lang.is_empty() { "" } else { lang },
+    );
+    // Caret inside the rewritten info string would land mid-token — pin it
+    // to the end of the new lang; elsewhere it stays put.
+    let sel_pos = if (fence_end..first_end).contains(&pos) || pos == fence_end {
+        fence_end + lang.len()
+    } else {
+        pos
+    };
+    tx.selection(Selection::caret(sel_pos));
     tx
 }
 
@@ -241,31 +278,4 @@ fn newline_len(src: &str, pos: usize) -> usize {
         Some(b'\n') => 1,
         _ => 0,
     }
-}
-
-/// The fenced code block containing `pos`, if any.
-pub fn fenced_block_containing(doc: &Doc, pos: usize) -> Option<crate::md::ast::RangeB> {
-    fn walk(ns: &[Node], pos: usize) -> Option<crate::md::ast::RangeB> {
-        for n in ns {
-            if let Node::Block {
-                kind,
-                range,
-                children,
-            } = n
-            {
-                if let BlockKind::CodeBlock { fenced: true, .. } = kind {
-                    if range.start <= pos && pos <= range.end {
-                        return Some(range.clone());
-                    }
-                }
-                if range.start <= pos && pos <= range.end {
-                    if let Some(r) = walk(children, pos) {
-                        return Some(r);
-                    }
-                }
-            }
-        }
-        None
-    }
-    walk(&doc.children, pos)
 }

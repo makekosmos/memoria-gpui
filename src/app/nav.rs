@@ -1,6 +1,7 @@
 //! Navigation — route application, `navigateTo` port, history replay.
 use gpui::Context;
 
+use memoria_gpui::content;
 use memoria_gpui::entry_conflicts::conflict_for_entry;
 use memoria_gpui::object_views::collection_target_type_id;
 use memoria_gpui::routes::Route;
@@ -44,23 +45,31 @@ impl Memoria {
 
     /// `eden.navigateTo` — conflict guard, collection redirect, then load.
     pub(crate) fn open_entry(&mut self, id: String, cx: &mut Context<Self>) {
+        // Flush pending edits so the note-switch can't lose the last
+        // <300ms of typing or misattribute them to the next entry.
+        if let Some(editor) = self.editor.clone() {
+            editor.update(cx, |e, cx| e.flush_autosave(cx));
+        }
         if let Some(conflict) = conflict_for_entry(&self.conflicts.conflicts, &id) {
-            self.current = Some(conflict.local.clone());
+            let local = conflict.local.clone();
+            self.queue_editor_fill(&local);
+            self.current = Some(local);
             self.loading_entry = None;
             self.route = Route::Entry(id);
             self.start_conflict_recheck(cx);
             return;
         }
-        if let Some(preview) = self.list.iter().find(|e| e.id == id) {
-            if let Some(target) = collection_target_type_id(Some(preview)) {
+        if let Some(preview) = self.list.iter().find(|e| e.id == id).cloned() {
+            if let Some(target) = collection_target_type_id(Some(&preview)) {
                 self.route = Route::Collection(target.clone());
                 // Route was already recorded as Entry — rewrite the snapshot.
                 self.history.record(Route::Collection(target));
-                self.current = Some(preview.clone());
+                self.current = Some(preview);
                 return;
             }
             if preview.content_loaded == Some(true) {
-                self.current = Some(preview.clone());
+                self.queue_editor_fill(&preview);
+                self.current = Some(preview);
                 self.loading_entry = None;
                 self.send(
                     Command::LoadEntry {
@@ -109,5 +118,12 @@ impl Memoria {
     /// `eden.deleteEntry` — soft delete; if it was open, return to «Всё».
     pub(crate) fn delete_entry(&mut self, id: String, cx: &mut Context<Self>) {
         self.send(Command::DeleteEntry(id), cx);
+    }
+    /// Stash title+markdown for the M3 editor — applied in `Render` with a Window.
+    fn queue_editor_fill(&mut self, entry: &memoria_gpui::model::Entry) {
+        let raw = serde_json::from_str(&entry.content_json).unwrap_or(serde_json::Value::Null);
+        let markdown = content::read_entry_markdown(&raw);
+        self.pending_fill = Some((entry.title.clone(), markdown));
+        self.dirty = false;
     }
 }

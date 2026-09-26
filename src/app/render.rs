@@ -1,7 +1,8 @@
 //! Root render — `DesktopChrome`-equivalent layout: sidebar + content column
 //! (titlebar + routed view), then overlays (conflict banner, search, context
-//! menu, confirm dialog, toasts). Vue `<Transition>` wrappers are a GAP —
-//! GPUI has no element transition primitives (see PARITY.md).
+//! menu, confirm dialog, toasts). Note routes host the M3 `MemoriaEditor`.
+//! Vue `<Transition>` wrappers are a GAP — GPUI has no element transition
+//! primitives (see PARITY.md).
 use gpui::{div, prelude::*, px, Context, IntoElement, ParentElement, Render, Styled, Window};
 
 use memoria_gpui::routes::Route;
@@ -15,12 +16,25 @@ impl Render for Memoria {
             self.focused_once = true;
             self.root_focus.focus(window, cx);
         }
+
+        // Ensure editor/title entities exist and apply any pending fill from
+        // Engine replies (`set_value` / `set_markdown` need a `Window`).
+        let title_state = self.title_state(window, cx);
+        let editor = self.editor_state(window, cx);
+        if let Some((title, markdown)) = self.pending_fill.take() {
+            title_state.update(cx, |s, cx| s.set_value(title, window, cx));
+            // `set_markdown` emits no `Edited` event and does not mark the
+            // editor dirty — a programmatic fill isn't a user edit.
+            editor.update(cx, |e, cx| e.set_markdown(&markdown, cx));
+            self.dirty = false;
+        }
+
         let body: gpui::AnyElement = match self.route.clone() {
             Route::Everything => self.render_everything(cx).into_any_element(),
             Route::Diary => self.render_diary_placeholder().into_any_element(),
             Route::Collection(id) => self.render_collection(&id, cx).into_any_element(),
             Route::Entry(id) => match self.current.clone() {
-                Some(e) if e.id == id => self.render_entry_view(&e, cx).into_any_element(),
+                Some(e) if e.id == id => self.render_entry_view(&e, window, cx).into_any_element(),
                 Some(_) | None if self.loading_entry.as_deref() == Some(id.as_str()) => {
                     self.missing_view("Загрузка…").into_any_element()
                 }
@@ -50,7 +64,7 @@ impl Render for Memoria {
             .font_family("Manrope")
             .track_focus(&self.root_focus)
             .on_key_down(cx.listener(Self::on_key))
-            .child(self.render_sidebar(cx))
+            .when(!self.zen, |d| d.child(self.render_sidebar(cx)))
             .child(content)
             .children(self.render_search_overlay(window, cx))
             .children(self.render_ctx_menu(cx))

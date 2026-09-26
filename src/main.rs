@@ -27,6 +27,7 @@ fn main() {
     gpui::application().run(|cx: &mut App| {
         gpui_component::init(cx);
         imago_gpui::theme::apply(cx);
+        cx.bind_keys(memoria_editor_gpui::key_bindings());
 
         let bounds = window_bounds(cx);
         cx.open_window(

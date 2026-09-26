@@ -1,7 +1,7 @@
 //! `TypeObjectsView` (typed collection table) + `ImageObjectView` ports.
 //! Typed fields/books are M5; this view renders label + formatted field
 //! values for display (read-only grid).
-use gpui::{div, prelude::*, px, Context, SharedString};
+use gpui::{div, prelude::*, px, Context, SharedString, Window};
 use gpui_component::scroll::ScrollableElement;
 use serde_json::Value;
 
@@ -201,10 +201,11 @@ impl Memoria {
     }
 
     /// Full note route dispatch — image object → ImageObjectView, else
-    /// read-only note editor (M3 pending).
+    /// M3 live-preview note editor.
     pub(crate) fn render_entry_view(
         &mut self,
         entry: &Entry,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let is_image = entry.type_id.as_deref() == Some(SYSTEM_TYPE_IMAGE_ID);
@@ -216,6 +217,6 @@ impl Memoria {
                 .child(self.render_image_object(entry, cx))
                 .into_any_element();
         }
-        self.render_note(entry, cx).into_any_element()
+        self.render_note(entry, window, cx).into_any_element()
     }
 }

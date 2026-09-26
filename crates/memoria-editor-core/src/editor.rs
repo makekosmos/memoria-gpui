@@ -11,43 +11,21 @@ use crate::md::ast::{Doc, RangeB};
 use crate::md::parse;
 use crate::project::project;
 use crate::project::Projection;
+pub use crate::tx::Tx;
 
 /// Undo grouping pause — matches ProseMirror's default `newGroupDelay`.
 pub const UNDO_PAUSE: Duration = Duration::from_millis(500);
-
-/// A set of non-overlapping source edits + the selection after applying.
-/// Ops may be given in any order; they're applied from right to left.
-#[derive(Debug, Default)]
-pub struct Tx {
-    /// (start, end, replacement)
-    pub ops: Vec<(usize, usize, String)>,
-    pub sel: Option<Selection>,
-}
-
-impl Tx {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn replace(&mut self, start: usize, end: usize, text: impl Into<String>) -> &mut Self {
-        self.ops.push((start, end, text.into()));
-        self
-    }
-
-    pub fn insert(&mut self, pos: usize, text: impl Into<String>) -> &mut Self {
-        self.replace(pos, pos, text)
-    }
-
-    pub fn selection(&mut self, sel: Selection) -> &mut Self {
-        self.sel = Some(sel);
-        self
-    }
-}
 
 pub struct Editor {
     pub(crate) buf: Buffer,
     pub(crate) sel: Selection,
     doc: Option<Doc>,
+    /// Content revision — bumps on every buffer change (edit/undo/redo).
+    /// Renderers cache per-revision.
+    rev: u64,
+    /// Projection cache keyed by (revision, selection): the renderer calls
+    /// this every frame; unchanged inputs return the stored projection.
+    proj_cache: Option<(u64, Selection, crate::Projection)>,
     history: History,
     /// `Some` = manual clock (tests); `None` = wall clock.
     manual: Option<Instant>,
@@ -61,6 +39,8 @@ impl Editor {
             buf: Buffer::from_text(src),
             sel: Selection::caret(src.len()),
             doc: None,
+            rev: 0,
+            proj_cache: None,
             history: History::new(UNDO_PAUSE),
             manual: None,
             marked: None,
@@ -116,8 +96,57 @@ impl Editor {
     /// Live-preview projection under the current selection.
     pub fn project(&mut self) -> Projection {
         let src = self.buf.text();
-        let doc = parse(&src);
-        project(&doc, &src, self.sel)
+        let sel = self.sel;
+        let doc = self.doc();
+        project(doc, &src, sel)
+    }
+
+    /// Cached projection for the render loop — reparses/reprojects only when
+    /// the buffer revision or the selection changed since the last call.
+    /// Callers may hold the `&Projection` only as long as the borrow allows;
+    /// copy out what a frame needs.
+    pub fn project_cached(&mut self) -> &Projection {
+        let hit = self
+            .proj_cache
+            .as_ref()
+            .is_some_and(|(rev, sel, _)| *rev == self.rev && *sel == self.sel);
+        if !hit {
+            let src = self.buf.text();
+            let sel = self.sel;
+            let proj = {
+                let doc = self.doc();
+                project(doc, &src, sel)
+            };
+            self.proj_cache = Some((self.rev, sel, proj));
+        }
+        &self.proj_cache.as_ref().unwrap().2
+    }
+
+    /// Buffer revision — increments on every content mutation. Renderers key
+    /// shaped-line/highlighter caches on this.
+    pub fn revision(&self) -> u64 {
+        self.rev
+    }
+
+    /// Cached projection + the cached parse in one borrow — the renderer's
+    /// per-frame entry point.
+    pub fn project_and_doc(&mut self) -> (&Projection, &Doc) {
+        let hit = self
+            .proj_cache
+            .as_ref()
+            .is_some_and(|(rev, sel, _)| *rev == self.rev && *sel == self.sel);
+        if !hit {
+            if self.doc.is_none() {
+                self.doc = Some(parse(&self.buf.text()));
+            }
+            let src = self.buf.text();
+            let proj = project(self.doc.as_ref().unwrap(), &src, self.sel);
+            self.proj_cache = Some((self.rev, self.sel, proj));
+        }
+        (
+            &self.proj_cache.as_ref().unwrap().2,
+            self.doc.as_ref().unwrap(),
+        )
     }
 
     /// Same, for an arbitrary selection — renderer/caret helpers.
@@ -152,6 +181,8 @@ impl Editor {
             });
         }
         self.doc = None;
+        self.rev += 1;
+        self.proj_cache = None;
         if kind != EditKind::Ime {
             self.marked = None;
         }
@@ -162,8 +193,12 @@ impl Editor {
             self.buf.snap_boundary(s.head.min(len)),
         );
         let sel_after = self.sel;
-        self.history
-            .record(patches, sel_before, sel_after, kind, now);
+        // A command that produced no patches and no caret move is a true
+        // no-op — don't give undo an empty entry to "restore".
+        if !patches.is_empty() || sel_after != sel_before {
+            self.history
+                .record(patches, sel_before, sel_after, kind, now);
+        }
         self.sel
     }
 
@@ -185,6 +220,9 @@ impl Editor {
             self.buf.replace(p.start, p.start + p.ins.len(), &p.del);
         }
         self.doc = None;
+        self.rev += 1;
+        self.proj_cache = None;
+        self.marked = None;
         self.sel = e.sel_before.clamp(self.buf.len_bytes());
         self.history.push_redo(e);
         true
@@ -198,6 +236,9 @@ impl Editor {
             self.buf.replace(p.start, p.start + p.del.len(), &p.ins);
         }
         self.doc = None;
+        self.rev += 1;
+        self.proj_cache = None;
+        self.marked = None;
         self.sel = e.sel_after.clamp(self.buf.len_bytes());
         self.history.push_undo_direct(e);
         true
@@ -214,6 +255,14 @@ impl Editor {
     /// Force the next edit to start a new undo group.
     pub fn break_undo_group(&mut self) {
         self.history.break_group();
+    }
+
+    /// Drop undo/redo entirely — used when the whole document is swapped
+    /// out (note switch, live refresh), so a later `undo` can't resurrect
+    /// the previous document's text into the new one.
+    pub fn reset_history(&mut self) {
+        self.history = History::new(UNDO_PAUSE);
+        self.marked = None;
     }
 
     // ---- clock -------------------------------------------------------------
