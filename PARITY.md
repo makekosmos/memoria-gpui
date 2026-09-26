@@ -23,16 +23,18 @@ migration read-only); if the epic's exact M-numbering differs, adjust the
 | M9 | Obsidian vault import/export + Eden legacy migration (read-only consumption) |
 
 Status values: `TODO` — not started; `DONE` — parity verified against reference
-screenshots in `reference/screens/`.
+screenshots in `reference/screens/`; `PARTIAL` — data layer ported, scope
+noted in the status cell; `DONE (M1)` — ported + Rust tests green (M1 has no
+screenshots to compare — unit/golden tests are the parity evidence).
 
 ## Feature matrix
 
 | Feature | Vue source @7ccbb9f | M | Status |
 |---|---|---|---|
 | Tiptap editor surface (all marks/blocks, tasks, code w/ shiki, images) | `src/editor-tiptap/TiptapEditor.vue`, `src/editor-tiptap/shikiHighlight.ts` | M1 | TODO |
-| `content_json` codecs (tiptap/markdown/legacy, byte-compat) | `src/editor-content/content.ts` | M1 | TODO |
+| `content_json` codecs (tiptap/markdown/legacy, byte-compat) | `src/editor-content/content.ts` | M1 | DONE (M1) |
 | Block selection (classes, pointer, composable) | `src/lib/blockSelectionClasses.ts`, `src/lib/blockSelectionPointer.ts`, `src/composables/useBlockSelection.ts` | M1 | TODO |
-| Char counter | `src/lib/charCount.ts`, `src/composables/useCharCounter.ts` | M1 | TODO |
+| Char counter | `src/lib/charCount.ts`, `src/composables/useCharCounter.ts` | M1 | DONE (M1) |
 | Window chrome / titlebar | `src/App.vue`, `src/Titlebar.vue`, `src/Titlebar.css` | M2 | TODO |
 | Top navigation («Всё»/«Дневник») + screen state | `src/App.vue` (`eden-top-navigation`), `src/store/eden.ts` (`activeScreen`) | M2 | TODO |
 | «Всё» grid + item cards | `src/components/everything/EverythingView.vue`, `src/components/everything/EverythingItemCard.vue` | M2 | TODO |
@@ -41,26 +43,26 @@ screenshots in `reference/screens/`.
 | Keyboard shortcuts (physical keys) | `src/composables/useKeyboard.ts` | M2 | TODO |
 | Theme (light/dark) | `src/composables/useTheme.ts`, `src/index.css`, `src/App.css` | M2 | TODO |
 | Platform detection | `src/composables/usePlatform.ts` | M2 | TODO |
-| Engine store (Pinia `eden` store + actions) | `src/store/eden.ts`, `edenStore{Data,Draft,Save,NoteType,SystemType}Actions.ts`, `edenStoreHelpers.ts`, `edenEntryFactory.ts` | M3 | TODO |
-| Kepler/Engine API surface (`window.api` shim → `ark.request`) | `src/lib/kepler-api-shim.ts`, `src/lib/edenApi.ts`, `src/lib/kepler-ui-runtime.ts`, `src/lib/kepler-command-bus.ts`, `src/lib/kepler-folder-stubs.ts` | M3 | TODO |
-| Entry ↔ ARK object mapping | `src/lib/kepler-entry-api.ts`, `src/lib/kepler-entry-mappers.ts` | M3 | TODO |
-| Live refresh / subscriptions / list filter | `src/store/liveRefresh.ts`, `src/store/edenLiveRefreshSubscription.ts`, `src/store/liveListFilter.ts` | M3 | TODO |
-| Entry conflicts & change tracking | `src/store/entryConflicts.ts`, `src/store/entryChanges.ts`, `src/lib/saveResult.ts` | M3 | TODO |
+| Engine store (Pinia `eden` store + actions) | `src/store/eden.ts`, `edenStore{Data,Draft,Save,NoteType,SystemType}Actions.ts`, `edenStoreHelpers.ts`, `edenEntryFactory.ts` | M3 | PARTIAL (M1: `edenStoreSaveActions` coordinator + worker `Command`/`Reply` ported; draft/data/system-type actions TODO) |
+| Kepler/Engine API surface (`window.api` shim → `ark.request`) | `src/lib/kepler-api-shim.ts`, `src/lib/edenApi.ts`, `src/lib/kepler-ui-runtime.ts`, `src/lib/kepler-command-bus.ts`, `src/lib/kepler-folder-stubs.ts` | M3 | PARTIAL (M1: `ark.request` transport + command bus ported + fake-Engine tests; `edenApi`/`kepler-ui-runtime`/`kepler-folder-stubs` TODO) |
+| Entry ↔ ARK object mapping | `src/lib/kepler-entry-api.ts`, `src/lib/kepler-entry-mappers.ts` | M3 | DONE (M1) |
+| Live refresh / subscriptions / list filter | `src/store/liveRefresh.ts`, `src/store/edenLiveRefreshSubscription.ts`, `src/store/liveListFilter.ts` | M3 | PARTIAL (M1: pure fns + WS subscription ported; per-entry live-merge wiring TODO) |
+| Entry conflicts & change tracking | `src/store/entryConflicts.ts`, `src/store/entryChanges.ts`, `src/lib/saveResult.ts` | M3 | DONE (M1) |
 | Kepler task sync (`com.kosmos.task`) | `src/lib/kepler-task-sync.ts`, `src/lib/taskStatus.ts` | M3 | TODO |
-| Trash storage over ARK soft-delete | `src/lib/kepler-trash-storage.ts` | M3 | TODO |
+| Trash storage over ARK soft-delete | `src/lib/kepler-trash-storage.ts` | M3 | DONE (M1) |
 | Search | `src/composables/useSearch.ts`, `src/components/SearchOverlay.vue` | M3/M8 | TODO |
-| Note types & system types | `src/lib/typedNotes.ts`, `src/lib/typedNoteSchemas.ts`, `src/lib/systemTypes.ts`, `systemType{,Game,Visual}Definitions.ts`, `src/lib/kepler-note-type-api.ts` | M4 | TODO |
-| Typed note header & property editors | `src/components/typed-notes/{TypedHeader,ObjectPropertyField,ObjectPropertyPicker}.vue`, `src/lib/typedNoteHeaderProps.ts`, `src/lib/objectFieldFormatting.ts` | M4 | TODO |
-| Type object lists / image objects | `src/components/objects/{TypeObjectsView,ImageObjectView}.vue`, `src/lib/objectImages.ts`, `src/lib/iconResolver.ts` | M4 | TODO |
-| Entry titles | `src/lib/entryTitles.ts` | M4 | TODO |
+| Note types & system types | `src/lib/typedNotes.ts`, `src/lib/typedNoteSchemas.ts`, `src/lib/systemTypes.ts`, `systemType{,Game,Visual}Definitions.ts`, `src/lib/kepler-note-type-api.ts` | M4 | DONE (M1) |
+| Typed note header & property editors | `src/components/typed-notes/{TypedHeader,ObjectPropertyField,ObjectPropertyPicker}.vue`, `src/lib/typedNoteHeaderProps.ts`, `src/lib/objectFieldFormatting.ts` | M4 | PARTIAL (M1: `typedNoteHeaderProps` ported; UI TODO) |
+| Type object lists / image objects | `src/components/objects/{TypeObjectsView,ImageObjectView}.vue`, `src/lib/objectImages.ts`, `src/lib/iconResolver.ts` | M4 | PARTIAL (M1: `iconResolver` ported; UI TODO) |
+| Entry titles | `src/lib/entryTitles.ts` | M4 | DONE (M1) |
 | Books: cover, dropzone, metadata import | `src/components/books/{BookCover,BookCoverFileDropzone,BookMetadataImportModal}.vue`, `src/lib/bookMetadata.ts`, `src/lib/bookLanguages.ts` | M5 | TODO |
 | Diary bubbles view + timeline + calendar | `src/components/bubbles/{BubbleDiaryView,BubbleTimelineItem,BubbleTiptapRenderer,BubbleDiaryCalendarSidebar}.vue`, `bubbleDiaryModel.ts`, `src/lib/kepler-bubble-api.ts` | M6 | TODO |
 | Stickers (floating note windows) | `src/views/StickerNoteView.vue`, `src/lib/sticker.ts`, `src/composables/useDockedWidget.ts` | M7 | TODO |
 | Settings page + sections | `src/components/settings/{SettingsPage,GeneralSettings,ExportSettings,TrashSettings}.vue(+css)`, `src/views/EdenSettingsView.vue`, `src/composables/usePreferences.ts` | M8 | TODO |
 | Conflict banner | `src/components/EntryConflictBanner.vue` | M8 | TODO |
 | FPS monitor (dev overlay) | `src/composables/useFpsMonitor.ts` | M8 | TODO |
-| Obsidian vault import/export (+ images, frontmatter, journal transaction) | `src/lib/obsidianVault{,Export,ExportAssets,ExportAssetPaths,ImportFrontmatter,ImportImages,ImportTransaction}.ts`, `src/lib/markdownFrontmatter.ts` | M9 | TODO |
-| Eden legacy migration (read-only: storage keys, userData, command prefixes) | `src/lib/memoria-migration.ts`, `manifest.json` `legacy_*` fields | M9 | TODO |
+| Obsidian vault import/export (+ images, frontmatter, journal transaction) | `src/lib/obsidianVault{,Export,ExportAssets,ExportAssetPaths,ImportFrontmatter,ImportImages,ImportTransaction}.ts`, `src/lib/markdownFrontmatter.ts` | M9 | PARTIAL (M1: `markdownFrontmatter` ported; import/export TODO) |
+| Eden legacy migration (read-only: storage keys, userData, command prefixes) | `src/lib/memoria-migration.ts`, `manifest.json` `legacy_*` fields | M9 | PARTIAL (M1: storage/userData/command-prefix ports + tests; `manifest.json` contract is Vue-only) |
 | Local image resolution | `src/lib/localImages.ts` | M1 | TODO |
 | App bootstrap / env types | `src/main.ts`, `src/vite-env.d.ts` | M2 | n/a — replaced by Rust app shell |
 | Sidebar leftovers | `src/components/sidebar/types.ts` | — | не нужен: sidebar was removed; only a dead `types.ts` (3 lines) remains |
@@ -182,7 +184,7 @@ see "не нужен" row above — everything else must be empty.)
 | `src/composables/usePreferences.ts` | M8 | TODO |  |
 | `src/composables/useSearch.ts` | M3 | TODO |  |
 | `src/composables/useTheme.ts` | M2 | TODO |  |
-| `src/editor-content/content.ts` | M1 | TODO |  |
+| `src/editor-content/content.ts` | M1 | DONE (M1) |  |
 | `src/editor-tiptap/TiptapEditor.vue` | M1 | TODO |  |
 | `src/editor-tiptap/shikiHighlight.ts` | M1 | TODO |  |
 | `src/index.css` | M2 | TODO | same — theme tokens only |
@@ -190,24 +192,24 @@ see "не нужен" row above — everything else must be empty.)
 | `src/lib/blockSelectionPointer.ts` | M1 | TODO |  |
 | `src/lib/bookLanguages.ts` | M5 | TODO |  |
 | `src/lib/bookMetadata.ts` | M5 | TODO |  |
-| `src/lib/charCount.ts` | M1 | TODO |  |
+| `src/lib/charCount.ts` | M1 | DONE (M1) |  |
 | `src/lib/edenApi.ts` | M3 | TODO |  |
-| `src/lib/entryTitles.ts` | M4 | TODO |  |
-| `src/lib/iconResolver.ts` | M4 | TODO |  |
+| `src/lib/entryTitles.ts` | M4 | DONE (M1) |  |
+| `src/lib/iconResolver.ts` | M4 | DONE (M1) |  |
 | `src/lib/kepler-api-shim.ts` | M3 | TODO |  |
 | `src/lib/kepler-bubble-api.ts` | M6 | TODO |  |
-| `src/lib/kepler-command-bus.ts` | M3 | TODO |  |
-| `src/lib/kepler-entry-api.ts` | M3 | TODO |  |
-| `src/lib/kepler-entry-mappers.ts` | M3 | TODO |  |
+| `src/lib/kepler-command-bus.ts` | M3 | DONE (M1) |  |
+| `src/lib/kepler-entry-api.ts` | M3 | DONE (M1) |  |
+| `src/lib/kepler-entry-mappers.ts` | M3 | DONE (M1) |  |
 | `src/lib/kepler-folder-stubs.ts` | M3 | TODO |  |
 | `src/lib/kepler-navigation.ts` | M3 | TODO |  |
-| `src/lib/kepler-note-type-api.ts` | M4 | TODO |  |
+| `src/lib/kepler-note-type-api.ts` | M4 | DONE (M1) |  |
 | `src/lib/kepler-task-sync.ts` | M3 | TODO |  |
-| `src/lib/kepler-trash-storage.ts` | M3 | TODO |  |
+| `src/lib/kepler-trash-storage.ts` | M3 | DONE (M1) |  |
 | `src/lib/kepler-ui-runtime.ts` | M3 | TODO |  |
 | `src/lib/localImages.ts` | M1 | TODO |  |
-| `src/lib/markdownFrontmatter.ts` | M9 | TODO |  |
-| `src/lib/memoria-migration.ts` | M9 | TODO |  |
+| `src/lib/markdownFrontmatter.ts` | M9 | DONE (M1) |  |
+| `src/lib/memoria-migration.ts` | M9 | DONE (M1) |  |
 | `src/lib/objectFieldFormatting.ts` | M4 | TODO |  |
 | `src/lib/objectImages.ts` | M4 | TODO |  |
 | `src/lib/obsidianVault.ts` | M9 | TODO |  |
@@ -217,16 +219,16 @@ see "не нужен" row above — everything else must be empty.)
 | `src/lib/obsidianVaultImportFrontmatter.ts` | M9 | TODO |  |
 | `src/lib/obsidianVaultImportImages.ts` | M9 | TODO |  |
 | `src/lib/obsidianVaultImportTransaction.ts` | M9 | TODO |  |
-| `src/lib/saveResult.ts` | M3 | TODO |  |
+| `src/lib/saveResult.ts` | M3 | DONE (M1) |  |
 | `src/lib/sticker.ts` | M7 | TODO |  |
-| `src/lib/systemTypeDefinitions.ts` | M4 | TODO |  |
+| `src/lib/systemTypeDefinitions.ts` | M4 | DONE (M1) |  |
 | `src/lib/systemTypeGameDefinitions.ts` | M4 | TODO |  |
 | `src/lib/systemTypeVisualDefinitions.ts` | M4 | TODO |  |
-| `src/lib/systemTypes.ts` | M4 | TODO |  |
+| `src/lib/systemTypes.ts` | M4 | DONE (M1) |  |
 | `src/lib/taskStatus.ts` | M3 | TODO |  |
-| `src/lib/typedNoteHeaderProps.ts` | M4 | TODO |  |
-| `src/lib/typedNoteSchemas.ts` | M4 | TODO |  |
-| `src/lib/typedNotes.ts` | M4 | TODO |  |
+| `src/lib/typedNoteHeaderProps.ts` | M4 | DONE (M1) |  |
+| `src/lib/typedNoteSchemas.ts` | M4 | DONE (M1) |  |
+| `src/lib/typedNotes.ts` | M4 | DONE (M1) |  |
 | `src/main.ts` | M2 | TODO | replaced by Rust `src/main.rs` bootstrap |
 | `src/store/eden.ts` | M3 | TODO |  |
 | `src/store/edenEntryFactory.ts` | M3 | TODO |  |
@@ -235,14 +237,50 @@ see "не нужен" row above — everything else must be empty.)
 | `src/store/edenStoreDraftActions.ts` | M3 | TODO |  |
 | `src/store/edenStoreHelpers.ts` | M3 | TODO |  |
 | `src/store/edenStoreNoteTypeActions.ts` | M3 | TODO |  |
-| `src/store/edenStoreSaveActions.ts` | M3 | TODO |  |
+| `src/store/edenStoreSaveActions.ts` | M3 | DONE (M1) |  |
 | `src/store/edenStoreSystemTypeActions.ts` | M3 | TODO |  |
-| `src/store/entryChanges.ts` | M3 | TODO |  |
-| `src/store/entryConflicts.ts` | M3 | TODO |  |
+| `src/store/entryChanges.ts` | M3 | DONE (M1) |  |
+| `src/store/entryConflicts.ts` | M3 | DONE (M1) |  |
 | `src/store/layout.ts` | M2 | TODO |  |
-| `src/store/liveListFilter.ts` | M3 | TODO |  |
-| `src/store/liveRefresh.ts` | M3 | TODO |  |
+| `src/store/liveListFilter.ts` | M3 | DONE (M1) |  |
+| `src/store/liveRefresh.ts` | M3 | DONE (M1) |  |
 | `src/views/EdenSettingsView.vue` | M8 | TODO |  |
 | `src/views/StickerNoteView.vue` | M7 | TODO |  |
 | `src/vite-env.d.ts` | M2 | TODO | vite ambient types — n/a for Rust |
 
+
+## Known deliberate divergences (post-commit M1 parity review)
+
+Reviewed against Vue `7ccbb9f`. Intentional, documented tolerances — revisit
+when the corresponding flows get wired in M2+:
+
+- **Malformed Engine data degrades instead of throwing.** Vue propagates
+  `JSON.parse`/schema/zod throws out of API calls (whole op rejects); the
+  Rust port drops malformed records per-item or applies documented defaults
+  at tolerant sites (`listEntries` summaries, `related_notes` arrays,
+  `SearchResult` decode, `getVaultStorageInfo` titles, `entry_header_layout`
+  fallback). Wired-path throw sites that DO match Vue: save-path header-prop
+  schema parse → `EngineError::Malformed`; malformed legacy note types →
+  dropped/`None` (no phantom `NoteType`).
+- **`Date.parse` residual edges.** Numbers/numeric strings now match JS
+  (`NaN` → fallback); day/hour/minute/second/offset ranges and trailing junk
+  are enforced. Zone-less date-times are rejected (JS treats them as *local*
+  time — the port has no TZ source); `YYYY-MM` shorthand is not accepted.
+- **Case handling.** `to_lowercase()` ≈ `toLocaleLowerCase("ru")` for
+  Cyrillic; `ẞ`/`İ`-class edge cases diverge. `char::is_whitespace` ≠ JS
+  `trim` for `\uFEFF`.
+- **Command bus.** Per-handler panics are caught like Vue's per-handler
+  try/catch; queue flush is synchronous inside `subscribe` (Vue uses
+  `queueMicrotask`); the bus is an owned instance, not a process global.
+- **Conflict persistence.** Only the `ConflictStore` bridge surface exists —
+  Vue additionally mirrors into `localStorage["memoria.entry-conflicts.v1"]`
+  as a crash-recovery checkpoint (`merge_entry_conflict_snapshots` is
+  available for a future second surface). `resolve_with_state` covers the
+  `merged` close.
+- **Conflict snapshot numbers.** Integral floats (`1.0`) accepted for
+  `version`/revisions/`detectedAt`/entry timestamps; non-integral floats are
+  still rejected (JS would keep them — nonsense data either way).
+- **Non-integral revision/timestamp fields** in `Entry` (`i64`) — JS would
+  carry `1.5`; the port drops them at parse.
+- **No-async shapes.** `Promise.all` call groups are sequential RPCs —
+  semantics identical, latency differs.

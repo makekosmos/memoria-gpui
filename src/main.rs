@@ -2,7 +2,6 @@
 #![windows_subsystem = "windows"]
 mod app;
 mod pages;
-mod store;
 mod theme;
 
 use gpui::{px, size, App, AppContext, Bounds, WindowBounds, WindowOptions};

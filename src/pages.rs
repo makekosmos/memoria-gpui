@@ -2,6 +2,7 @@
 //! the `src/` source it must match and the milestone that implements it.
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[allow(dead_code)] // M1 debug shell doesn't route pages yet — reserved for M2+.
 pub enum Page {
     /// «Всё» — Everything grid of notes and objects.
     Everything,
@@ -19,6 +20,7 @@ pub enum Page {
     Sticker,
 }
 
+#[allow(dead_code)]
 impl Page {
     pub const ALL: &[Page] = &[
         Page::Everything,
