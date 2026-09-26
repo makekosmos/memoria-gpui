@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: '0'
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+          rustup default stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libfontconfig-dev libwayland-dev libxkbcommon-x11-dev libx11-xcb-dev libssl-dev libzstd-dev libvulkan1
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest,cargo-deny,cargo-shear
+
+      - name: Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: >-
+          cargo clippy --workspace --all-targets --all-features --
+          -D warnings -A dead_code
+          -A clippy::option_map_unit_fn -A clippy::map_flatten -A clippy::nonminimal_bool
+          -A clippy::type_complexity -A clippy::collapsible_if -A clippy::let_and_return
+          -A clippy::result_large_err -A clippy::duplicated_attributes -A clippy::useless_conversion
+          -A clippy::panic -A clippy::assertions_on_constants
+
+      - name: Tests
+        run: cargo nextest run --workspace --all-features --no-tests=pass
+
+      - name: cargo deny
+        run: cargo deny check
+
+      - name: cargo shear
+        run: cargo shear
+
+      - name: Source size
+        run: cargo run -q --bin check-source-size
