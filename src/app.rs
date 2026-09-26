@@ -116,8 +116,9 @@ pub struct Memoria {
     pub(crate) edit_input: Option<Entity<gpui_component::input::TextareaState>>,
     /// Two-step delete arm (`deleteStep === 1`).
     pub(crate) bubble_delete_armed: Option<String>,
-    /// Kind dropdown open for this bubble id.
-    pub(crate) kind_menu_for: Option<String>,
+    /// Kind dropdown open for this bubble id, anchored at the click point
+    /// (rendered as a root-level overlay like `render_ctx_menu`).
+    pub(crate) kind_menu_for: Option<(String, gpui::Point<gpui::Pixels>)>,
     pub(crate) diary_scroll: gpui::ScrollHandle,
     /// Calendar click → scroll target date key, consumed by the next render.
     pub(crate) diary_jump: Option<String>,

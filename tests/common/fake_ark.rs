@@ -49,7 +49,17 @@ impl ArkBridge for FakeArk {
     fn rpc(&self, operation: &str, params: Value) -> Result<Value, EngineError> {
         self.calls.lock().unwrap().push(operation.to_string());
         match operation {
-            "list_objects_by_type" => {
+            // Object-type discovery succeeds so `list_all_entries` uses the
+            // `list_objects_by_type` fan-out like production Engine.
+            "list_object_types" => Ok(Value::Array(
+                self.objects
+                    .lock()
+                    .unwrap()
+                    .values()
+                    .map(|o| serde_json::json!({ "id": o["typeId"] }))
+                    .collect(),
+            )),
+            "list_objects" | "list_objects_by_type" => {
                 let type_id = params["type_id"].as_str().unwrap_or_default();
                 Ok(Value::Array(
                     self.objects

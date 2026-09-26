@@ -101,6 +101,10 @@ impl Memoria {
                 self.send(Command::ListBubbles, cx);
             }
             Err(e) => {
+                // Leave `diary_started` false so the next diary visit
+                // retries the migration (Vue retries on journalEntries
+                // change; a failed first run shouldn't stick all session).
+                self.diary_started = false;
                 self.toast(e, cx);
                 self.send(Command::ListBubbles, cx);
             }

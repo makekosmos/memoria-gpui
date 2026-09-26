@@ -81,6 +81,7 @@ impl Render for Memoria {
             .child(content)
             .children(self.render_search_overlay(window, cx))
             .children(self.render_ctx_menu(cx))
+            .children(self.render_kind_menu(cx))
             .children(self.render_confirm(cx))
             .child(self.render_toasts(cx))
     }

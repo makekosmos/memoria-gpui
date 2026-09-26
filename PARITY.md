@@ -112,17 +112,18 @@ screenshots to compare — unit/golden tests are the parity evidence).
 |---|---|---|---|
 | Модель: kinds (`plain`/`idea`/`task`/`highlight`), draft tags, sortKey, date/time occurrence | `bubbleDiaryModel.ts` | PASS | `tests/bubble_diary_model.rs` |
 | Threads: `reply_to` links, roots newest-first / replies oldest-first, invalid links stay roots | `normalizeBubbleThreads` | PASS | `tests/bubble_diary_model.rs` |
-| Legacy journal → bubbles (`system-type-journal` detection, `journal-*-N` sortKeys) | `createJournalBubblesFromEntry` | PASS | `tests/bubble_diary_model.rs`, `tests/bubble_ark_api.rs` |
+| Legacy journal → bubbles (`system-type-journal` detection, `journal-*-N` sortKeys, `listAllEntries` source) | `createJournalBubblesFromEntry` | PASS | `tests/bubble_diary_model.rs`, `tests/bubble_ark_migrate.rs::migrate_diary_imports_and_deletes_legacy_dated_journals` |
 | Local blob `{version, journalImported, bubbles}` — `JSON.stringify` key order, byte-identical | `encodeLocalBubblesStorage` | PASS | `tests/bubble_diary_golden.rs` + `fixtures/diary-bubbles.json` |
 | ARK API: create/update/delete, `reply_to` links, `writeEntryTiptapDoc`, migration idempotence | `kepler-bubble-api.ts` | PASS vs `FakeArk` | `tests/bubble_ark_api.rs`; live Engine writes still blocked — see Byte-compat |
 | Unknown tiptap nodes: rendered as text, preserved on non-text save | `BubbleTiptapRenderer` | PASS | `render_model.rs` + `kind_only_update_preserves_unknown_tiptap_nodes` |
 | Composer: compact editor, submit on button/Ctrl+Enter, `#tags`, kind `plain` | `addDraftBubble` (Tiptap) | PASS | `ui_tests::diary::composer_*`, `tags_extract_and_render`; markdown→tiptap rules in editor `DESIGN.md` |
-| Item card: kind dot+menu, time label opens edit, 2-step «Удалить», Esc cancels | `BubbleTimelineItem.vue` | PASS | `ui_tests::diary::{edit_flow_updates_bubble,delete_flow_removes_bubble,bubble_kind_menu_changes_kind}` |
+| Item card: kind dot+menu (overlay, Esc/backdrop dismiss), time label opens edit (autofocus), 2-step «Удалить», Esc cancels | `BubbleTimelineItem.vue` + shared `Dropdown` | PASS | `ui_tests::diary::{edit_flow_updates_bubble,delete_flow_removes_bubble,bubble_kind_menu_changes_kind}` |
 | Reply form under last thread row; `Отмена`/`Ответить` | `BubbleTimelineItem.vue` | PASS | `ui_tests::diary::reply_in_thread` |
 | Calendar: Monday weeks, newest-first days, counts, today ring, 40-day pad | `BubbleDiaryCalendarSidebar.vue` | PASS | `src/diary/calendar.rs` + `ui_tests::diary::calendar_day_jump` |
 | Дата-jump scroll | `scrollIntoView({block:"center"})` | PARTIAL | GPUI `scroll_to_item` aligns differently — visual GAP |
 | Timeline virtualization (`virtualRows` measured heights) | Vue virtual list | PARTIAL | GPUI renders the full list; fine at diary scale — perf GAP if feeds grow |
-| Journal migration re-run on `journalEntries` prop change mid-session | Vue `watch` → `migrateJournalEntries` | PARTIAL | GPUI migrates once per `start_diary`; legacy dated entries can't be authored in this app, so reachable only via out-of-band Engine writes — behavioral GAP |
+| Journal migration re-run on `journalEntries` prop change mid-session | Vue `watch` → `migrateJournalEntries` | PARTIAL | GPUI migrates once per `start_diary` via `listAllEntries` (unfiltered; re-navigation retries after a failed run); a dated journal entry created mid-session migrates on the next diary open, not immediately — behavioral GAP |
+| Midnight/focus label re-resolution (`labelNow` timer + `visibilitychange`) | `midnightTimer` + listeners | PARTIAL | GPUI refreshes `labelNow` on every diary render and on `Bubbles` replies; an idle app left open across midnight keeps stale labels until the next interaction — residual GAP |
 | Populated-diary visual check vs `reference/screens/diary-*` | host screenshots | NOT_RUN | Vue shots are empty-state only (ARK ingress rejects bubble props); GPUI verified via `ui_tests::diary` |
 
 ## Screens for reference (`reference/screens/`)

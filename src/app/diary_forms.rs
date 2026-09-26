@@ -172,6 +172,7 @@ impl Memoria {
     pub(crate) fn diary_reply_form(
         &mut self,
         root: &str,
+        occurrence_label: &str,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
@@ -199,10 +200,13 @@ impl Memoria {
         }
 
         div()
+            .id(format!("bubble-reply-composer-{root}"))
             .debug_selector({
                 let root = root.clone();
                 move || format!("bubble-reply-composer-{root}")
             })
+            .role(gpui::Role::Group)
+            .aria_label(format!("Ответ в ветку {occurrence_label}"))
             .relative()
             .flex()
             .min_w_0()

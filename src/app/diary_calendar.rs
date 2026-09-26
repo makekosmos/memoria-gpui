@@ -109,6 +109,8 @@ impl Memoria {
         div()
             .id("diary-calendar-sidebar")
             .debug_selector(|| "diary-calendar-sidebar".into())
+            .role(gpui::Role::Complementary)
+            .aria_label("Календарь дневника")
             .w(px(180.))
             .flex_none()
             .h_full()

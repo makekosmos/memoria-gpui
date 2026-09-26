@@ -141,8 +141,3 @@ fn create_week(
         days,
     }
 }
-
-/// `dotsForCount` — cap at 48 dots.
-pub fn dots_for_count(count: usize) -> usize {
-    count.min(48)
-}

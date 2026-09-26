@@ -2,7 +2,7 @@
 //! timeline scroll + optional calendar sidebar). Store ops live in
 //! `diary_ops.rs`; per-row markup in `diary_item`, the rich renderer in
 //! `diary_blocks`, the sidebar in `diary_calendar`.
-use gpui::{div, prelude::*, px, Context, Entity, Window};
+use gpui::{div, prelude::*, px, Context, Entity, Focusable, Window};
 use gpui_component::Sizable;
 use memoria_editor_gpui::MemoriaEditor;
 use memoria_gpui::content::markdown_to_tiptap_doc;
@@ -18,6 +18,10 @@ impl Memoria {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
+        // `labelNow` re-resolves on every diary render (Vue additionally
+        // schedules a midnight timer + visibilitychange — residual GAP:
+        // labels can stay stale only while the app sits idle at midnight).
+        self.label_now = memoria_gpui::time::now_millis();
         if let Some(date) = self.diary_jump.take() {
             if let Some(ix) = self.diary_jump_target(&date) {
                 self.diary_scroll.scroll_to_item(ix);
@@ -57,6 +61,8 @@ impl Memoria {
         let timeline = div()
             .id("diary-timeline")
             .debug_selector(|| "diary-timeline".into())
+            .role(gpui::Role::Region)
+            .aria_label("Лента дневника")
             .flex_1()
             .min_h_0()
             .w_full()
@@ -86,6 +92,8 @@ impl Memoria {
         div()
             .id("diary-view")
             .debug_selector(|| "diary-view".into())
+            .role(gpui::Role::Main)
+            .aria_label("Дневник")
             .size_full()
             .min_w_0()
             .flex()
@@ -120,6 +128,8 @@ impl Memoria {
         div()
             .id("bubble-composer")
             .debug_selector(|| "bubble-composer".into())
+            .role(gpui::Role::Region)
+            .aria_label("Новая мысль")
             .w_full()
             .max_w(px(700.))
             .mx_auto()
@@ -133,6 +143,12 @@ impl Memoria {
             .shadow_sm()
             .p(px(16.))
             .cursor_text()
+            // Vue `focusComposer` — card padding clicks focus the editor.
+            .on_click(cx.listener(|this, _, window, cx| {
+                if let Some(editor) = &this.diary_composer {
+                    editor.read(cx).focus_handle(cx).focus(window, cx);
+                }
+            }))
             .child(
                 div()
                     .id("bubble-composer-editor")

@@ -20,6 +20,12 @@ impl Memoria {
     /// Apply a route without touching history (back/forward replay).
     fn apply_route(&mut self, route: Route, cx: &mut Context<Self>) {
         self.ctx_menu = None;
+        self.kind_menu_for = None;
+        // Vue App.vue watch(route) — `calendarOpen` resets on every
+        // navigation away from the diary.
+        if !matches!(route, Route::Diary) {
+            self.diary_calendar_open = false;
+        }
         self.route = route.clone();
         match &route {
             Route::Diary => {

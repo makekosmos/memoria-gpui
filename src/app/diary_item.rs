@@ -79,10 +79,14 @@ impl Memoria {
     ) -> gpui::Div {
         let node_id = node.id.clone();
         let replying_here = reply_target.is_some() && self.reply_target.as_deref() == reply_target;
+        let occurrence_label =
+            format_bubble_occurrence_label(Some(&node_occurrence(node)), self.label_now);
 
         let mut article = div()
             .id(format!("bubble-node-{}", node.id))
             .debug_selector(move || format!("bubble-node-{node_id}"))
+            .role(gpui::Role::Group)
+            .aria_label(format!("Запись {occurrence_label}"))
             .group(format!("thread-{thread_root_id}"))
             .relative()
             .flex()
@@ -96,17 +100,14 @@ impl Memoria {
             article = article.child(self.thread_line(px(18.8), None, true));
         }
 
-        let (rail, menu) = self.diary_rail(node, cx);
-        article = article.child(rail).child(self.diary_card(node, window, cx));
-        // Menu paints last — absolute inside `article`, clear of the card.
-        if let Some(menu) = menu {
-            article = article.child(menu);
-        }
+        article = article
+            .child(self.diary_rail(node, cx))
+            .child(self.diary_card(node, window, cx));
 
         let mut row = div().flex().flex_col().min_w_0().child(article);
         if let Some(root) = reply_target {
             row = if replying_here {
-                row.child(self.diary_reply_form(root, window, cx))
+                row.child(self.diary_reply_form(root, &occurrence_label, window, cx))
             } else {
                 row.child(self.diary_thread_actions(thread_root_id, root, cx))
             };

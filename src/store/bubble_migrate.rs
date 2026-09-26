@@ -58,9 +58,11 @@ pub fn migrate_diary<B: ArkBridge>(
 ) -> Result<Option<Vec<Value>>, EngineError> {
     let remaining = local_bubbles_json.and_then(|blob| migrate_local_blob(api, blob));
 
-    // `readJournalMigration` — dated entries sorted newest title/created first.
+    // `readJournalSourceEntries` — `listAllEntries` (unfiltered full
+    // objects): `listEntries` deliberately excludes dated journal objects
+    // from the feed, which is exactly the set the migration must find.
     let mut legacy: Vec<crate::model::Entry> = entry_api
-        .list_entries(&[])?
+        .list_all_entries()?
         .into_iter()
         .filter(crate::diary::is_legacy_dated_journal_entry)
         .collect();

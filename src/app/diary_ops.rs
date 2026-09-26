@@ -1,7 +1,7 @@
 //! Diary (M6) — store ops half of the `BubbleDiaryView` port:
 //! `startDiary` migration kickoff, composer/reply/edit/delete state and the
 //! `Command` senders. View markup lives in `diary.rs`.
-use gpui::{prelude::*, Context, Entity, Window};
+use gpui::{prelude::*, Context, Entity, Focusable, Window};
 use gpui_component::input::TextareaState;
 use memoria_editor_gpui::{EditorEvent, MemoriaEditor};
 use memoria_gpui::content::markdown_to_tiptap_doc;
@@ -130,7 +130,11 @@ impl Memoria {
     ) {
         let input = self.edit_input_state(window, cx);
         let draft = Self::draft_from_node(node);
-        input.update(cx, |s, cx| s.set_value(draft, window, cx));
+        input.update(cx, |s, cx| {
+            s.set_value(draft, window, cx);
+            // Vue `nextTick(() => editInputRef.value?.focus())`.
+            s.focus_handle(cx).focus(window, cx);
+        });
         self.bubble_delete_armed = None;
         self.editing_bubble = Some(node.id.clone());
         self.kind_menu_for = None;

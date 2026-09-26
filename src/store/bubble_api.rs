@@ -216,16 +216,21 @@ fn object_to_bubble(object: &ArkObjectRecord) -> BubbleTimelineNode {
     let created = created.unwrap_or(0);
     BubbleTimelineNode {
         id: object.id.clone(),
-        created_at: object
-            .created_at
-            .as_str()
-            .map(str::to_string)
-            .or_else(|| valid.then(|| crate::time::millis_to_iso(created))),
-        updated_at: object
-            .updated_at
-            .as_str()
-            .map(str::to_string)
-            .or_else(|| valid.then(|| crate::time::millis_to_iso(created))),
+        created_at: match &object.created_at {
+            Value::String(s) => Some(s.clone()),
+            Value::Null => valid.then(|| crate::time::millis_to_iso(created)),
+            // Non-string wire values (e.g. epoch ms) are preserved verbatim
+            // like Vue; occurrence still resolves via `date`/`time` below.
+            other => Some(other.to_string()),
+        },
+        updated_at: match &object.updated_at {
+            Value::String(s) => Some(s.clone()),
+            // Vue passes `updatedAt` through verbatim — a non-string value
+            // (e.g. numeric) must stay different from `createdAt` so the
+            // «изменено» marker still fires; stringifying keeps it.
+            Value::Null => valid.then(|| crate::time::millis_to_iso(created)),
+            other => Some(other.to_string()),
+        },
         date: valid.then(|| format_bubble_date_key(created)),
         time: if valid {
             let c = crate::local_time::local_civil(created);

@@ -17,12 +17,14 @@ use super::{BubbleTimelineNode, DATE_KEY_PATTERN};
 pub const SYSTEM_TYPE_JOURNAL_ID: &str = "system-type-journal";
 pub const SYSTEM_TYPE_NOTE_ID: &str = "note_obj";
 
-/// `isLegacyDatedJournalEntry` — dated title, journal/note/None type, not
-/// deleted.
+/// `isLegacyDatedJournalEntry` — dated title, journal/note/untyped, not
+/// deleted. Vue's gate is `!e.typeId || e.typeId === journal || note_obj` —
+/// falsy typeId covers `""` too, and `stored_type_id` yields `Some("")` for
+/// objects whose wire typeId is empty.
 pub fn is_legacy_dated_journal_entry(entry: &Entry) -> bool {
     let type_ok = matches!(
         entry.type_id.as_deref(),
-        Some(SYSTEM_TYPE_JOURNAL_ID) | Some(SYSTEM_TYPE_NOTE_ID) | None
+        Some(SYSTEM_TYPE_JOURNAL_ID) | Some(SYSTEM_TYPE_NOTE_ID) | None | Some("")
     );
     type_ok && entry.deleted_at.is_none() && DATE_KEY_PATTERN.is_match(entry.title.trim())
 }

@@ -243,6 +243,12 @@ impl Memoria {
             return;
         }
         let k = &ev.keystroke;
+        // Vue `Dropdown` Esc-dismiss for the kind menu.
+        if k.key == "escape" && self.kind_menu_for.is_some() {
+            self.kind_menu_for = None;
+            cx.notify();
+            return;
+        }
         let ctrl = k.modifiers.control || k.modifiers.platform;
         if ctrl && k.key == "k" {
             if self.search_open {
