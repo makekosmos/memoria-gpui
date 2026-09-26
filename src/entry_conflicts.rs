@@ -1,0 +1,293 @@
+//! Port of `src/store/entryConflicts.ts` — pure conflict-state logic plus a
+//! bridge-backed snapshot (the localStorage fallback is a Vue host detail;
+//! here `ConflictStore` bridges are the only persistence surface).
+
+use serde_json::{Map, Value};
+
+use crate::model::Entry;
+use crate::time::now_millis;
+
+pub const ENTRY_CONFLICTS_FILE: &str = "memoria-entry-conflicts.json";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntryConflictState {
+    RemoteUpdated,
+    RemoteDeleted,
+    StaleSave,
+    Merged,
+    Resolved,
+}
+
+impl EntryConflictState {
+    fn from_str(s: &str) -> Option<Self> {
+        Some(match s {
+            "remote-updated" => Self::RemoteUpdated,
+            "remote-deleted" => Self::RemoteDeleted,
+            "stale-save" => Self::StaleSave,
+            "merged" => Self::Merged,
+            "resolved" => Self::Resolved,
+            _ => return None,
+        })
+    }
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::RemoteUpdated => "remote-updated",
+            Self::RemoteDeleted => "remote-deleted",
+            Self::StaleSave => "stale-save",
+            Self::Merged => "merged",
+            Self::Resolved => "resolved",
+        }
+    }
+    fn is_closed(&self) -> bool {
+        matches!(self, Self::Merged | Self::Resolved)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct EntryConflict {
+    pub id: String,
+    pub entry_id: String,
+    pub state: EntryConflictState,
+    pub local: Entry,
+    pub remote: Option<Entry>,
+    pub local_revision: i64,
+    pub remote_revision: Option<i64>,
+    pub detected_at: i64,
+    pub resolved_at: Option<i64>,
+    pub resolution: Option<String>,
+}
+
+/// `isEntry` — minimal shape check used by snapshot parsing.
+fn is_entry(value: &Value) -> bool {
+    value.get("id").map(Value::is_string) == Some(true)
+        && value.get("title").map(Value::is_string) == Some(true)
+        && value.get("content_json").map(Value::is_string) == Some(true)
+        && value.get("updated_at").map(Value::is_number) == Some(true)
+}
+
+fn de_entry(value: &Value) -> Option<Entry> {
+    serde_json::from_value(value.clone()).ok()
+}
+
+/// `parseSnapshot` — `{version:1, conflicts:[…]}` with per-item validation.
+pub fn parse_snapshot(value: &Value) -> Vec<EntryConflict> {
+    let Some(map) = value.as_object() else {
+        return Vec::new();
+    };
+    if map.get("version") != Some(&Value::from(1)) {
+        return Vec::new();
+    }
+    let Some(Value::Array(items)) = map.get("conflicts") else {
+        return Vec::new();
+    };
+    items
+        .iter()
+        .filter_map(|item| {
+            let obj = item.as_object()?;
+            let id = obj.get("id")?.as_str()?.to_string();
+            let entry_id = obj.get("entryId")?.as_str()?.to_string();
+            let state = EntryConflictState::from_str(obj.get("state")?.as_str()?)?;
+            let local_v = obj.get("local")?;
+            if !is_entry(local_v) {
+                return None;
+            }
+            let remote_v = obj.get("remote");
+            let remote = match remote_v {
+                None | Some(Value::Null) => None,
+                Some(v) if is_entry(v) => de_entry(v),
+                Some(_) => return None,
+            };
+            let local = de_entry(local_v)?;
+            let local_revision = obj.get("localRevision")?.as_i64()?;
+            let remote_revision = match obj.get("remoteRevision") {
+                None | Some(Value::Null) => None,
+                Some(v) => Some(v.as_i64()?),
+            };
+            let detected_at = obj.get("detectedAt")?.as_i64()?;
+            Some(EntryConflict {
+                id,
+                entry_id,
+                state,
+                local,
+                remote,
+                local_revision,
+                remote_revision,
+                detected_at,
+                resolved_at: obj.get("resolvedAt").and_then(Value::as_i64),
+                resolution: obj
+                    .get("resolution")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
+            })
+        })
+        .collect()
+}
+
+/// Serialize to the `{version:1, conflicts:[…]}` snapshot shape.
+pub fn serialize_snapshot(conflicts: &[EntryConflict]) -> Value {
+    let items: Vec<Value> = conflicts
+        .iter()
+        .map(|c| {
+            let mut map = Map::new();
+            map.insert("id".into(), Value::from(c.id.clone()));
+            map.insert("entryId".into(), Value::from(c.entry_id.clone()));
+            map.insert("state".into(), Value::from(c.state.as_str()));
+            map.insert(
+                "local".into(),
+                serde_json::to_value(&c.local).unwrap_or(Value::Null),
+            );
+            map.insert(
+                "remote".into(),
+                c.remote
+                    .as_ref()
+                    .and_then(|r| serde_json::to_value(r).ok())
+                    .unwrap_or(Value::Null),
+            );
+            map.insert("localRevision".into(), Value::from(c.local_revision));
+            map.insert(
+                "remoteRevision".into(),
+                c.remote_revision.map(Value::from).unwrap_or(Value::Null),
+            );
+            map.insert("detectedAt".into(), Value::from(c.detected_at));
+            if let Some(v) = c.resolved_at {
+                map.insert("resolvedAt".into(), Value::from(v));
+            }
+            if let Some(v) = &c.resolution {
+                map.insert("resolution".into(), Value::from(v.clone()));
+            }
+            Value::Object(map)
+        })
+        .collect();
+    let mut snapshot = Map::new();
+    snapshot.insert("version".into(), Value::from(1));
+    snapshot.insert("conflicts".into(), Value::Array(items));
+    Value::Object(snapshot)
+}
+
+/// `conflictFreshness` — (revision, time) tuple.
+fn conflict_freshness(conflict: &EntryConflict) -> (i64, i64) {
+    (
+        conflict
+            .remote_revision
+            .unwrap_or(0)
+            .max(conflict.local_revision),
+        conflict.detected_at.max(conflict.resolved_at.unwrap_or(0)),
+    )
+}
+
+pub(crate) fn is_at_least_as_fresh(candidate: &EntryConflict, current: &EntryConflict) -> bool {
+    conflict_freshness(candidate) >= conflict_freshness(current)
+}
+
+/// `unresolvedEntryConflicts`.
+pub fn unresolved_entry_conflicts(conflicts: &[EntryConflict]) -> Vec<EntryConflict> {
+    conflicts
+        .iter()
+        .filter(|c| !c.state.is_closed())
+        .cloned()
+        .collect()
+}
+
+/// `upsertEntryConflict` — reuses a pending conflict for the entry; stale
+/// remote notifications never roll back `remoteRevision`.
+pub fn upsert_entry_conflict(
+    current: &[EntryConflict],
+    local: &Entry,
+    remote: Option<&Entry>,
+    state: EntryConflictState,
+    now: i64,
+) -> Vec<EntryConflict> {
+    let existing = current
+        .iter()
+        .find(|c| c.entry_id == local.id && !c.state.is_closed());
+    if let (Some(_existing), Some(remote), Some(remote_revision)) =
+        (existing, remote, existing.and_then(|e| e.remote_revision))
+    {
+        if remote.updated_at < remote_revision {
+            return current.to_vec();
+        }
+    }
+    let next = EntryConflict {
+        id: existing
+            .map(|e| e.id.clone())
+            .unwrap_or_else(|| format!("{}:{}", local.id, now)),
+        entry_id: local.id.clone(),
+        state,
+        local: existing
+            .map(|e| e.local.clone())
+            .unwrap_or_else(|| local.clone()),
+        remote: remote.cloned(),
+        local_revision: existing
+            .map(|e| e.local_revision)
+            .unwrap_or(local.updated_at),
+        remote_revision: remote
+            .map(|r| r.updated_at)
+            .or_else(|| existing.and_then(|e| e.remote_revision)),
+        detected_at: existing.map(|e| e.detected_at).unwrap_or(now),
+        resolved_at: None,
+        resolution: None,
+    };
+    let mut out: Vec<EntryConflict> = current
+        .iter()
+        .filter(|c| existing.map(|e| c.id != e.id.as_str()).unwrap_or(true))
+        .cloned()
+        .collect();
+    out.push(next);
+    out
+}
+
+/// `markEntryConflictResolved`.
+pub fn mark_entry_conflict_resolved(
+    current: &[EntryConflict],
+    conflict_id: &str,
+    resolution: Option<&str>,
+    state: EntryConflictState,
+    now: i64,
+) -> Vec<EntryConflict> {
+    current
+        .iter()
+        .map(|c| {
+            if c.id == conflict_id {
+                let mut next = c.clone();
+                next.state = state;
+                next.resolution = resolution.map(str::to_string);
+                next.resolved_at = Some(now);
+                next
+            } else {
+                c.clone()
+            }
+        })
+        .collect()
+}
+
+/// `updateEntryConflictLocal`.
+pub fn update_entry_conflict_local(current: &[EntryConflict], entry: &Entry) -> Vec<EntryConflict> {
+    current
+        .iter()
+        .map(|c| {
+            if c.entry_id == entry.id && !c.state.is_closed() {
+                let mut next = c.clone();
+                next.local = entry.clone();
+                next.local_revision = entry.updated_at;
+                next
+            } else {
+                c.clone()
+            }
+        })
+        .collect()
+}
+
+/// `conflictForEntry`.
+pub fn conflict_for_entry<'a>(
+    conflicts: &'a [EntryConflict],
+    entry_id: &str,
+) -> Option<&'a EntryConflict> {
+    conflicts
+        .iter()
+        .find(|c| c.entry_id == entry_id && !c.state.is_closed())
+}
+
+/// Convenience `now`.
+pub fn now() -> i64 {
+    now_millis()
+}

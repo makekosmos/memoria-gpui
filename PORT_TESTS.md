@@ -15,9 +15,9 @@ For the GPUI port these split into:
 
 | Test file | Subject | Port to | Plan |
 |---|---|---|---|
-| `tests/content.test.ts` | `editor-content/content.ts` tiptap/markdown/legacy codecs | M1 | port — core `content_json` byte-compat vectors |
+| `tests/content.test.ts` | `editor-content/content.ts` tiptap/markdown/legacy codecs | M1 | DONE → `tests/content_codec.rs`, `tests/codec_props.rs` (proptest), `tests/golden_roundtrip.rs` |
 | `tests/components/ContentAdapter.spec.ts` | content adapter | M1 | port (logic) |
-| `tests/charCount.test.ts` | `lib/charCount.ts` | M1 | port |
+| `tests/charCount.test.ts` | `lib/charCount.ts` | M1 | DONE → `tests/char_count.rs` |
 | `tests/components/CharCounter.spec.ts` | char counter UI | M1 | reference |
 | `tests/components/BlockSelectionClasses.spec.ts` | block selection classes | M1 | port |
 | `tests/components/BlockSelectionPointer.spec.ts` | pointer hit-testing | M1 | reference (GPUI hit model differs) |
@@ -28,15 +28,15 @@ For the GPUI port these split into:
 | `tests/components/BubbleDiaryView.spec.ts` | diary view | M6 | reference |
 | `tests/bookLanguages.test.ts` | `lib/bookLanguages` | M5 | port (static table) |
 | `tests/components/BookMetadataImportModal.spec.ts` | book metadata import modal | M5 | reference + port `bookMetadata` parsing |
-| `tests/systemTypes.test.ts` | `systemTypes`, `iconResolver` | M4 | port — system type registry |
+| `tests/systemTypes.test.ts` | `systemTypes`, `iconResolver` | M4 | DONE → `tests/system_types.rs` |
 | `tests/components/EntryTitle.spec.ts` | `entryTitles` | M4 | port |
 | `tests/components/JournalTitleReadonly.spec.ts` | journal title rules | M4 | port |
 | `tests/components/EverythingView.spec.ts` | home grid filtering | M2/M4 | reference + store-level port |
-| `tests/entryChanges.test.ts` | `store/entryChanges` | M3 | port |
-| `tests/entryConflicts.test.ts` | `store/entryConflicts` | M3 | port |
-| `tests/saveConflict.test.ts` | `edenStoreSaveActions` conflict path | M3 | port |
-| `tests/liveRefresh.test.ts` | `store/liveRefresh` | M3 | port |
-| `tests/liveListFilter.test.ts` | `store/liveListFilter` | M3 | port |
+| `tests/entryChanges.test.ts` | `store/entryChanges` | M3 | DONE → `tests/entry_changes.rs` |
+| `tests/entryConflicts.test.ts` | `store/entryConflicts` | M3 | DONE → `tests/entry_conflicts.rs` |
+| `tests/saveConflict.test.ts` | `edenStoreSaveActions` conflict path | M3 | DONE → `tests/save_actions.rs` (synchronous coordinator port; the Promise-queue ordering cases are covered by sequenced-call tests) |
+| `tests/liveRefresh.test.ts` | `store/liveRefresh` | M3 | DONE → `tests/live_refresh.rs` |
+| `tests/liveListFilter.test.ts` | `store/liveListFilter` | M3 | DONE → `tests/live_list_filter.rs` |
 | `tests/components/EdenLiveRefreshSubscription.spec.ts` | ARK subscription wiring | M3 | port (engine subscribe → store) |
 | `tests/components/EdenStoreNavigation.spec.ts` | store navigation state | M2/M3 | port |
 | `tests/components/EdenStoreRefreshRace.spec.ts` | refresh race handling | M3 | port |
@@ -54,7 +54,7 @@ For the GPUI port these split into:
 | `tests/obsidianVault.export.test.ts` | vault export | M9 | port |
 | `tests/obsidianVaultImportTransaction.test.ts` | import journal/rollback | M9 | port |
 | `tests/obsidianVault.helpers.ts` | (helper, not a test) | M9 | — |
-| `tests/memoriaMigration.test.ts` | `memoria-migration` legacy keys | M9 | port (read-only migration detection) |
+| `tests/memoriaMigration.test.ts` | `memoria-migration` legacy keys | M9 | DONE → `tests/migration.rs` + `tests/command_bus.rs` + `tests/ark_api.rs` (fake `ArkBridge`); manifest.json/compatibility.json assertions are Vue-package-only — N/A |
 | `tests/packageContract.test.ts` | manifest/package contract | repo | keep — re-point at GPUI packaging metadata |
 | `tests/workspaceDependencies.test.ts` | workspace dep audit | repo | n/a — repo-specific |
 | `scripts/package-manager.test.mjs` | package manager pin | repo | n/a — repo-specific |

@@ -1,2 +1,11 @@
 [net]
 git-fetch-with-cli = true
+
+# kos-sysroot ships a dangling libxcb.so symlink, so ld falls back to the
+# static libxcb.a which references libXau/libXdmcp symbols. The sysroot has no
+# dev symlinks for those — link them by soname.
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+  "-C", "link-arg=-Wl,-l:libXau.so.6",
+  "-C", "link-arg=-Wl,-l:libXdmcp.so.6",
+]
