@@ -1,0 +1,58 @@
+amends "package://github.com/jdx/hk/releases/download/v2.0.1/hk@2.0.1#/Config.pkl"
+
+// Rust files plus the inputs that change how they build or lint.
+local rust_glob = List(
+  "*.rs",
+  "build.rs",
+  "Cargo.toml",
+  "Cargo.lock",
+  "rust-toolchain*",
+  ".cargo/**",
+  "vendor/**/Cargo.toml",
+  "vendor/**/*.rs",
+)
+
+local clippy_cmd =
+  "cargo clippy --workspace --all-targets --all-features"
+    + " -- -D warnings -A dead_code"
+    + " -A clippy::option_map_unit_fn -A clippy::map_flatten -A clippy::nonminimal_bool"
+    + " -A clippy::type_complexity -A clippy::collapsible_if -A clippy::let_and_return"
+    + " -A clippy::result_large_err -A clippy::duplicated_attributes -A clippy::useless_conversion"
+    + " -A clippy::panic -A clippy::assertions_on_constants"
+
+// Whole-project steps: run on every push and via `hk check --all`. They take no
+// file list on purpose — a push must not skip the gate when file matching fails.
+local gate = new Mapping<String, Step> {
+  ["test"] {
+    check = "cargo nextest run --workspace --all-features --no-tests=pass"
+  }
+  ["cargo-shear"] { check = "cargo shear" }
+  ["clippy"] {
+    // `dead_code` is the explicit baseline for seeded UI model fields/helpers that
+    // mirror Memoria state but are not rendered by the GPUI clone yet.
+    check = clippy_cmd
+  }
+  ["cargo-deny"] { check = "cargo deny check advisories bans sources" }
+  ["source-size"] { check = "cargo run -q --bin check-source-size" }
+}
+
+hooks {
+  ["pre-commit"] {
+    steps {
+      ["cargo-check"] {
+        glob = rust_glob
+        check = "cargo check --quiet"
+      }
+      ["rustfmt"] {
+        glob = List("*.rs", "build.rs")
+        check = "cargo fmt --check"
+      }
+    }
+  }
+  ["pre-push"] {
+    steps = gate
+  }
+  ["check"] {
+    steps = gate
+  }
+}

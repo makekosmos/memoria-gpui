@@ -1,0 +1,29 @@
+[package]
+name = "memoria-gpui"
+version = "0.1.0"
+publish = false
+edition = "2021"
+description = "GPUI clone of the Memoria notes/diary UI (experimental, KOS-146)"
+default-run = "memoria-gpui"
+
+[dependencies]
+# gpui-kit pins the matching gpui-pre snapshot and puts GPUI at its root, so
+# `use gpui::...` keeps working through this alias.
+gpui = { package = "gpui-kit", version = "=0.6.2" }
+gpui-component = "=0.6.2"
+# Shared Kosmos GPUI visual core (theme/palettes). Same pin as agenda-gpui.
+imago-gpui = { git = "https://github.com/makekosmos/imago.git", rev = "300fe3717cb68f1f653c39310fffb0d0b8b8ba6e" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+uuid = { version = "1.26.1", features = ["v4"] }
+ureq = { version = "2.12", default-features = false, features = ["json"] }
+
+# Dev builds: keep debug info but optimize — unoptimized taffy/cosmic-text/
+# gpui (and our own render path) make even modest UIs run at ~20fps.
+[profile.dev]
+opt-level = 3
+
+[profile.dev.package."*"]
+opt-level = 3
+debug-assertions = false
+overflow-checks = false
