@@ -3,6 +3,8 @@
 //! (agenda-gpui `Worker` pattern). Engine change events arrive as
 //! `Reply::Event` so the list can refresh without an app restart.
 
+pub mod bubble_api;
+mod bubble_migrate;
 mod entry_api;
 mod note_type_api;
 #[cfg(test)]
@@ -14,8 +16,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::Arc;
 
+use crate::diary::{BubbleKind, BubbleTimelineNode};
 use crate::model::{DeleteEntryResult, Entry, NoteType, SaveEntryResult, SearchResult};
 
+pub use bubble_api::{BubbleApi, BubblePatch};
 pub use entry_api::EntryApi;
 pub use note_type_api::{NoteTypeApi, MEMORIA_NOTE_TYPE_PROP};
 pub use transport::{ArkBridge, Engine, EngineError, EngineEvent};
@@ -42,6 +46,33 @@ pub enum Command {
     RestoreEntry(String),
     /// `permanentDeleteEntry` — hard delete (trash only).
     DeleteForever(String),
+    /// `listBubbles` — thread-normalized diary bubbles.
+    ListBubbles,
+    /// `createBubble` — `input` parses `#tag`s; `content_json` keeps the
+    /// composer tiptap doc so rich nodes persist verbatim.
+    CreateBubble {
+        input: String,
+        kind: BubbleKind,
+        parent_id: Option<String>,
+        content_json: Option<serde_json::Value>,
+    },
+    /// `updateBubble` — text/kind patch; preserves occurrence + extra props.
+    UpdateBubble { id: String, patch: BubblePatch },
+    /// `deleteBubble` — object plus its `reply_to` links.
+    DeleteBubble(String),
+    /// `migrateBubble` — deterministic id + read-back check.
+    MigrateBubble {
+        namespace: String,
+        source_id: String,
+        bubble: Box<BubbleTimelineNode>,
+    },
+    /// `migrateLocalBubbles` + `migrateJournalEntries` — diary start-up
+    /// migration: the local-storage blob is imported first, then dated legacy
+    /// journal entries become bubbles; entries whose bubbles all migrated are
+    /// deleted (Vue `deleteImportedJournalEntries`).
+    MigrateDiary {
+        local_bubbles_json: Option<serde_json::Value>,
+    },
 }
 
 pub enum Reply {
@@ -68,6 +99,25 @@ pub enum Reply {
     },
     /// Engine push — `Online`/`Offline`/`Changed(payload)`.
     Event(EngineEvent),
+    Bubbles(Result<Vec<BubbleTimelineNode>, String>),
+    BubbleCreated(Result<String, String>),
+    BubbleUpdated {
+        id: String,
+        result: Result<(), String>,
+    },
+    BubbleDeleted {
+        id: String,
+        result: Result<(), String>,
+    },
+    BubbleMigrated {
+        source_id: String,
+        result: Result<String, String>,
+    },
+    /// Result of `MigrateDiary` — `Ok(Some(remaining))` carries the
+    /// local-blob sources that could not migrate (empty ⇒ clear the blob,
+    /// like `localStorage.removeItem`); `Ok(None)` means the blob was
+    /// absent/invalid so the storage key stays untouched.
+    DiaryMigrated(Result<Option<Vec<serde_json::Value>>, String>),
 }
 
 pub struct Worker {
@@ -102,6 +152,7 @@ impl Worker {
                 });
             }
             let mut api = EntryApi::<Engine>::new(engine.clone());
+            let bubbles = BubbleApi::<Engine>::new(engine.clone());
             let mut trash = TrashStorageApi::<Engine>::new(engine);
             for request in requests {
                 let reply = match request {
@@ -145,6 +196,41 @@ impl Worker {
                         let result = trash.permanent_delete_entry(&id).map_err(err_string);
                         Reply::Deleted { id, result }
                     }
+                    Command::ListBubbles => {
+                        Reply::Bubbles(bubbles.list_bubbles().map_err(err_string))
+                    }
+                    Command::CreateBubble {
+                        input,
+                        kind,
+                        parent_id,
+                        content_json,
+                    } => Reply::BubbleCreated(
+                        bubbles
+                            .create_bubble(&input, kind, parent_id.as_deref(), content_json)
+                            .map_err(err_string),
+                    ),
+                    Command::UpdateBubble { id, patch } => Reply::BubbleUpdated {
+                        result: bubbles.update_bubble(&id, patch).map_err(err_string),
+                        id,
+                    },
+                    Command::DeleteBubble(id) => Reply::BubbleDeleted {
+                        result: bubbles.delete_bubble(&id).map_err(err_string),
+                        id,
+                    },
+                    Command::MigrateBubble {
+                        namespace,
+                        source_id,
+                        bubble,
+                    } => Reply::BubbleMigrated {
+                        result: bubbles
+                            .migrate_bubble(&namespace, &source_id, &bubble)
+                            .map_err(err_string),
+                        source_id,
+                    },
+                    Command::MigrateDiary { local_bubbles_json } => Reply::DiaryMigrated(
+                        bubble_api::migrate_diary(&bubbles, &mut api, local_bubbles_json.as_ref())
+                            .map_err(err_string),
+                    ),
                 };
                 if results.send(reply).is_err() {
                     break;

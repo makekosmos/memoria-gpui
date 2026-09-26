@@ -65,6 +65,12 @@ impl Memoria {
                 }
             }
             Reply::Event(event) => self.on_engine_event(event, cx),
+            r @ (Reply::Bubbles(_)
+            | Reply::BubbleCreated(_)
+            | Reply::BubbleUpdated { .. }
+            | Reply::BubbleDeleted { .. }
+            | Reply::BubbleMigrated { .. }
+            | Reply::DiaryMigrated(_)) => self.on_bubble_reply(r, cx),
         }
         cx.notify();
     }
@@ -184,6 +190,12 @@ impl Memoria {
                 self.send(Command::LoadList(Vec::new()), cx);
                 if matches!(self.route, Route::Settings(_)) {
                     self.send(Command::LoadTrash, cx);
+                }
+                // Vue `subscribeBubbleChanges` — the diary re-lists on any
+                // Engine change while it is the active screen.
+                // Vue: `if (activeBubbleWrites === 0) void refreshLocalBubbles()`
+                if matches!(self.route, Route::Diary) && self.active_bubble_writes == 0 {
+                    self.send(Command::ListBubbles, cx);
                 }
                 // Skip remote entry reload while the user is typing — autosave
                 // will persist, and live-refresh guards protect the buffer.

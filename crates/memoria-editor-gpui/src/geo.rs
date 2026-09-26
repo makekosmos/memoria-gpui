@@ -100,7 +100,7 @@ impl MemoriaEditor {
         Some(Bounds::new(
             Point::new(
                 element_bounds.origin.x
-                    + px(style::text_origin_x(f32::from(element_bounds.size.width)))
+                    + px(self.text_origin_x(f32::from(element_bounds.size.width)))
                     + pad_x
                     + p.x,
                 element_bounds.origin.y + self.layout.offsets[i] + pad_y - self.scroll_y + p.y,
@@ -157,7 +157,7 @@ impl MemoriaEditor {
     ) -> Option<usize> {
         self.ensure_rows();
         let local = point - self.bounds.origin;
-        let content_x = local.x - px(style::text_origin_x(f32::from(self.bounds.size.width)));
+        let content_x = local.x - px(self.text_origin_x(f32::from(self.bounds.size.width)));
         let content_y = local.y + self.scroll_y;
         let i = self
             .layout

@@ -113,3 +113,137 @@ pub fn index_for_point(line: &WrappedLine, position: Point<Pixels>, line_height:
 pub fn row_style(row: &Row, z: EditorScale) -> BlockStyle {
     style::block_style(&row.tag, z)
 }
+
+// ---------------------------------------------------------------------------
+// `MemoriaEditor` row-shaping — moved here (file-size gate) since every
+// function is a layout concern.
+// ---------------------------------------------------------------------------
+
+use std::rc::Rc;
+use std::sync::Arc;
+
+use crate::editor::MemoriaEditor;
+use gpui::Window;
+
+/// Pixels shaved off a row's wrap width (code rows are inset by panel padding).
+fn row_wrap_delta(row: &Row, z: EditorScale) -> Pixels {
+    if crate::rows::is_code_row(row) {
+        px(2. * style::CODE_PAD_X * z.0)
+    } else {
+        px(0.)
+    }
+}
+
+/// Cached shaped line plus the wrap width it was shaped at.
+pub(crate) struct WrappedSlot {
+    pub line: gpui::WrappedLine,
+    pub width: Pixels,
+}
+
+impl MemoriaEditor {
+    /// Text-column X origin — compact mode drops the centered 760px column
+    /// and fills the container (the composer card carries its own padding).
+    pub(crate) fn text_origin_x(&self, bounds_w: f32) -> f32 {
+        if self.compact {
+            0.0
+        } else {
+            style::text_origin_x(bounds_w)
+        }
+    }
+
+    /// Text-column wrap width — full container width in compact mode.
+    pub(crate) fn text_wrap_width(&self, bounds_w: f32) -> f32 {
+        if self.compact {
+            bounds_w
+        } else {
+            style::wrap_width(bounds_w)
+        }
+    }
+
+    // ---- projection / rows -------------------------------------------------
+
+    /// Rebuild projection + rows when the buffer or selection changed.
+    pub(crate) fn ensure_rows(&mut self) {
+        let (rev, sel) = (self.core.revision(), self.core.selection());
+        if self.built_rev == rev && self.built_sel == sel && self.proj.is_some() {
+            return;
+        }
+        let (proj, doc) = self.core.project_and_doc();
+        let proj = Arc::new(proj.clone());
+        self.rows = Rc::new(crate::rows::build_rows(&proj, doc));
+        self.proj = Some(proj);
+        self.shaped.clear();
+        self.built_rev = rev;
+        self.built_sel = sel;
+        self.relayout();
+    }
+
+    pub(crate) fn relayout(&mut self) {
+        let z = self.zoom;
+        let shaped = &self.shaped;
+        let global = self.layout.wrap_width;
+        let rows = self.rows.clone();
+        self.layout.rebuild(&rows, z, |i| {
+            let slot = shaped.get(&i)?;
+            let row = &rows[i];
+            let want = global? - row_wrap_delta(row, z);
+            (slot.width == want).then(|| {
+                slot.line
+                    .size(style::block_style(&row.tag, z).line_height)
+                    .height
+            })
+        });
+    }
+
+    /// Ensure `row` is shaped for `wrap_width`; returns whether its measured
+    /// height changed (caller re-runs layout if so).
+    pub(crate) fn shape_row(&mut self, i: usize, window: &mut Window) -> bool {
+        let Some(global_wrap) = self.layout.wrap_width else {
+            return false;
+        };
+        let old_h = self.layout.heights.get(i).copied();
+        let row = self.rows.get(i).cloned().unwrap_or_else(|| Row {
+            vis: 0..0,
+            block_ix: 0,
+            tag: memoria_editor_core::project::BlockTag::Paragraph,
+            spans: vec![],
+            kind: crate::rows::RowKind::Text,
+            first_in_block: true,
+            last_in_block: true,
+            code_origin: 0,
+        });
+        let z = self.zoom;
+        let st = style::block_style(&row.tag, z);
+        // Code rows are inset by the panel padding on both sides.
+        let wrap = global_wrap - row_wrap_delta(&row, z);
+        if let Some(slot) = self.shaped.get(&i) {
+            if slot.width == wrap {
+                return false;
+            }
+        }
+        let runs = self.runs_for_row(i, &row);
+        // NB: H5's CSS `text-transform: uppercase` is NOT reproduced —
+        // uppercasing here would desync shaped-glyph indices for
+        // case-expanding chars (ß→SS). Documented GAP in PARITY.md.
+        let text = self
+            .proj
+            .as_ref()
+            .map(|p| gpui::SharedString::from(p.text[row.vis.clone()].to_string()))
+            .unwrap_or_default();
+        let ts = window.text_system();
+        let line = ts
+            .shape_text(text, st.size, &runs, Some(wrap), None)
+            .unwrap_or_default()
+            .into_iter()
+            .next()
+            .unwrap_or_default();
+        let h = line.size(st.line_height).height
+            + if crate::rows::is_code_row(&row) && (row.first_in_block || row.last_in_block) {
+                crate::layout::row_pad(&row, z)
+            } else {
+                px(0.)
+            };
+        self.shaped.insert(i, WrappedSlot { line, width: wrap });
+        Some(h) != old_h
+    }
+}

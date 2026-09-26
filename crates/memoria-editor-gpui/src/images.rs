@@ -80,7 +80,7 @@ pub fn paint_image_row(
     window: &mut Window,
     cx: &mut App,
 ) {
-    let col_w = px(style::wrap_width(f32::from(e.bounds.size.width)));
+    let col_w = px(e.text_wrap_width(f32::from(e.bounds.size.width)));
     match resolve(e, src) {
         Some(res) => {
             match window.use_asset::<gpui::ImgResourceLoader>(&res, cx) {

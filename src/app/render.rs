@@ -29,9 +29,22 @@ impl Render for Memoria {
             self.dirty = false;
         }
 
+        // `composerEditor.clearContent()` + reply reset deferred from bubble
+        // replies. An open *edit* session keeps its text (Vue `editText` is
+        // component-local and survives a sibling bubble create).
+        if self.pending_diary_reset {
+            self.pending_diary_reset = false;
+            if let Some(composer) = &self.diary_composer {
+                composer.update(cx, |e, cx| e.set_markdown("", cx));
+            }
+            if let Some(input) = &self.reply_input {
+                input.update(cx, |s, cx| s.set_value("", window, cx));
+            }
+        }
+
         let body: gpui::AnyElement = match self.route.clone() {
             Route::Everything => self.render_everything(cx).into_any_element(),
-            Route::Diary => self.render_diary_placeholder().into_any_element(),
+            Route::Diary => self.render_diary(window, cx).into_any_element(),
             Route::Collection(id) => self.render_collection(&id, cx).into_any_element(),
             Route::Entry(id) => match self.current.clone() {
                 Some(e) if e.id == id => self.render_entry_view(&e, window, cx).into_any_element(),
@@ -74,11 +87,6 @@ impl Render for Memoria {
 }
 
 impl Memoria {
-    /// Diary — M6 milestone; App.vue routes it to `BubbleDiaryView`.
-    fn render_diary_placeholder(&self) -> impl IntoElement {
-        self.missing_view("Дневник появится в M6")
-    }
-
     /// Empty/loading state shared by missing routes.
     fn missing_view(&self, text: &str) -> impl IntoElement {
         div()

@@ -22,6 +22,11 @@ impl Memoria {
         self.ctx_menu = None;
         self.route = route.clone();
         match &route {
+            Route::Diary => {
+                self.current = None;
+                self.loading_entry = None;
+                self.start_diary(cx);
+            }
             Route::Entry(id) => self.open_entry(id.clone(), cx),
             Route::Collection(type_id) => {
                 self.loading_entry = None;

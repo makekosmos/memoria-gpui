@@ -9,6 +9,13 @@ mod conflict;
 mod conflict_banner;
 mod conflict_ops;
 mod demo;
+mod diary;
+mod diary_blocks;
+mod diary_calendar;
+mod diary_forms;
+mod diary_item;
+mod diary_ops;
+mod diary_rail;
 mod editor_host;
 mod everything;
 mod highlight;
@@ -45,6 +52,7 @@ use types::{Confirm, ConflictOp, CtxMenu, DataDirStore, Toast};
 mod dispatch;
 mod nav;
 mod replies;
+mod replies_diary;
 
 pub(crate) use backend::Backend;
 pub(crate) use demo::DemoStore;
@@ -90,6 +98,37 @@ pub struct Memoria {
     /// (title, markdown) queued for the inputs — `set_value` needs a `Window`,
     /// so replies stash values here and `render` applies them.
     pub(crate) pending_fill: Option<(String, String)>,
+    // ---- diary (M6) ---------------------------------------------------------
+    /// Thread-normalized diary feed (`listBubbles` reply).
+    pub(crate) bubbles: Vec<memoria_gpui::diary::BubbleTimelineNode>,
+    pub(crate) bubbles_loaded: bool,
+    /// `calendarOpen` — the titlebar toggle drives the calendar sidebar.
+    pub(crate) diary_calendar_open: bool,
+    /// `startDiary` ran once (migration + first list) for this session.
+    pub(crate) diary_started: bool,
+    /// Compact composer entity (Vue `composerEditor`).
+    pub(crate) diary_composer: Option<Entity<MemoriaEditor>>,
+    /// Thread root id whose reply box is open (`replyOpen`).
+    pub(crate) reply_target: Option<String>,
+    pub(crate) reply_input: Option<Entity<gpui_component::input::TextareaState>>,
+    /// Bubble id in edit mode (`isEditing`) + its textarea.
+    pub(crate) editing_bubble: Option<String>,
+    pub(crate) edit_input: Option<Entity<gpui_component::input::TextareaState>>,
+    /// Two-step delete arm (`deleteStep === 1`).
+    pub(crate) bubble_delete_armed: Option<String>,
+    /// Kind dropdown open for this bubble id.
+    pub(crate) kind_menu_for: Option<String>,
+    pub(crate) diary_scroll: gpui::ScrollHandle,
+    /// Calendar click → scroll target date key, consumed by the next render.
+    pub(crate) diary_jump: Option<String>,
+    /// `labelNow` — occurrence labels re-resolve when this refreshes.
+    pub(crate) label_now: i64,
+    /// `BubbleCreated(Ok)` asks render to clear the composer + reply textarea
+    /// (they need a `Window`, so the reset is deferred).
+    pub(crate) pending_diary_reset: bool,
+    /// Vue `activeBubbleWrites` — Engine `Changed` events skip the feed
+    /// refresh while a bubble write is in flight.
+    pub(crate) active_bubble_writes: u32,
     pub(crate) _subs: Vec<Subscription>,
     pub(crate) _poll: Option<gpui::Task<()>>,
 }
@@ -153,6 +192,22 @@ impl Memoria {
             editor: None,
             zen: false,
             pending_fill: None,
+            bubbles: Vec::new(),
+            bubbles_loaded: false,
+            diary_calendar_open: false,
+            diary_started: false,
+            diary_composer: None,
+            reply_target: None,
+            reply_input: None,
+            editing_bubble: None,
+            edit_input: None,
+            bubble_delete_armed: None,
+            kind_menu_for: None,
+            diary_scroll: gpui::ScrollHandle::new(),
+            diary_jump: None,
+            label_now: 0,
+            pending_diary_reset: false,
+            active_bubble_writes: 0,
             _subs: Vec::new(),
             _poll: None,
         };

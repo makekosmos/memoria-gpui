@@ -139,6 +139,60 @@ goes through `should_apply_remote_entry` (self-echo fingerprint skip, dirty
 skip) so remote changes never wipe in-progress input. Zen hides the sidebar;
 the status bar shows `char_count()` (core `charcount`, Vue parity).
 
+## Compact mode (M6 diary composer)
+
+`MemoriaEditor::new_compact(src, placeholder, window, cx)` builds the
+same markdown editor core in a small variant used by the diary bubble
+composer (`src/app/diary.rs`):
+
+- Owns its state per surface — placeholder string comes from the caller
+  («Напиши мысль...», Vue `Placeholder.configure`), autosave debounce is
+  suppressed (submit is
+  explicit), zen/zoom actions and the `Ctrl+K` chord are gated off, and the
+  column is full-width (no 760px note-column clamp).
+- `Ctrl+Enter`/`Cmd+Enter` binds `editor::Submit` → `EditorEvent::Submit`;
+  the shell turns it into `Command::CreateBubble`. Plain `Enter` stays a
+  newline, matching Vue's `@submit.prevent` on the composer form.
+
+### Markdown ↔ tiptap boundary
+
+The composer's source of truth is markdown (core contract); on submit
+`markdown_to_tiptap_doc` (`src/content/parse.rs`, the line parser — *not*
+the editor-core pulldown path) produces the bubble `contentJson`, and
+`strip_tags_from_tiptap_doc` removes `#tag` text runs before save.
+
+markdown → tiptap (supported subset):
+
+| markdown | tiptap |
+|---|---|
+| paragraph lines (multi-line → `hardBreak`) | `paragraph` + `hardBreak` |
+| `#`…`###### ` (space required) | `heading` `attrs.level` |
+| `> ` lines (blank lines continue the quote) | `blockquote` (recursive blocks) |
+| `- `/`* `/`+ `, `1. ` ordered, `- [ ]`/`- [x]` tasks | `bulletList`/`orderedList`/`taskList` |
+| ` ``` ` / `~~~` fence + info string | `codeBlock` `attrs.language` |
+| `---`/`***`/`___` alone on a line | `horizontalRule` |
+| `![alt](src "title")` | `image` (bare image splits the paragraph) |
+| `**`/`__` `*`/`_` `~~` `` ` `` `[t](href)` | `bold`/`italic`/`strike`/`code`/`link` marks |
+
+GAPs (markdown → tiptap): setext headings (`===`/`---` under text — the
+`---` parses as `horizontalRule`), GFM tables (lines stay paragraph text),
+footnotes, HTML blocks, nested list indentation levels, `^highlight`
+and custom Vue nodes — all degrade to plain paragraph text. This mirrors
+what the Vue Tiptap composer could produce (StarterKit + TaskList subset),
+plus markdown-only constructs Tiptap paste never generated.
+
+tiptap → markdown (`tiptap_doc_to_markdown`, `src/content/render.rs`) is
+the inverse for the supported subset; **unknown nodes degrade to their
+extracted inline text** and extra attrs (link `title`/`target`, image
+sizes, mark attrs beyond `href`) are dropped. For diary bubbles this path
+is display-only: `BubbleTimelineNode.content_json` is stored verbatim and
+re-persisted untouched on non-text updates, so unknown nodes survive a
+kind-only save (`tests/bubble_ark_api.rs::
+kind_only_update_preserves_unknown_tiptap_nodes`). Editing bubble *text*
+uses a plain-text field over `node.text` — same as Vue's `updateBubble`,
+which replaces `contentJson` with `plainTextToTiptapDoc(draft.text)` when
+`input` is provided.
+
 ## Known limits / GAPs
 
 - No incremental parse — whole doc reprojects per edit (fine at note scale;

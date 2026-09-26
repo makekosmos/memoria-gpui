@@ -246,7 +246,11 @@ impl MemoriaEditor {
     }
 
     /// `ctrl-k` — arm the zen chord and tell the app (Vue opens search).
+    /// Compact embeds gate the chord/zoom keys — the composer is chromeless.
     pub(crate) fn ctrl_k(&mut self, cx: &mut Context<Self>) {
+        if self.compact {
+            return;
+        }
         self.arm_zen_chord(cx);
         cx.emit(crate::editor::EditorEvent::CtrlK);
     }

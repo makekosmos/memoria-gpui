@@ -47,6 +47,7 @@ gpui::actions!(
         OpenLangPicker,
         CtrlK,
         ZenToggle,
+        Submit,
         ZoomIn,
         ZoomOut,
         ZoomReset,
@@ -102,6 +103,10 @@ pub fn key_bindings() -> Vec<KeyBinding> {
         KeyBinding::new("ctrl-k", CtrlK, c),
         // Legacy Vue alternative: Ctrl+Alt+Z toggles zen directly.
         KeyBinding::new("ctrl-alt-z", ZenToggle, c),
+        // Composer submit — `Ctrl`/`Cmd`+`Enter` (Vue `handleKeyDown` →
+        // `addDraftBubble`); the handler is a no-op in non-compact embeds.
+        KeyBinding::new("ctrl-enter", Submit, c),
+        KeyBinding::new("cmd-enter", Submit, c),
         // Code-block language picker («Поиск языка...») — Vue opens it from
         // the block toolbar; M3 binds a physical key instead.
         KeyBinding::new("ctrl-shift-l", OpenLangPicker, c),
@@ -171,7 +176,14 @@ impl Render for MemoriaEditor {
         wire!(CtrlK => |e: &mut Self, _w: &mut Window, cx: &mut Context<Self>| e.ctrl_k(cx));
         wire!(ZenToggle => |e: &mut Self, _w: &mut Window, cx: &mut Context<Self>| {
             e.clear_zen_chord();
-            cx.emit(EditorEvent::ZenToggled);
+            if !e.compact {
+                cx.emit(EditorEvent::ZenToggled);
+            }
+        });
+        wire!(Submit => |e: &mut Self, _w: &mut Window, cx: &mut Context<Self>| {
+            if e.compact {
+                cx.emit(EditorEvent::Submit);
+            }
         });
         wire!(ZoomIn => |e: &mut Self, _w: &mut Window, cx: &mut Context<Self>| e.zoom_in(cx));
         wire!(ZoomOut => |e: &mut Self, _w: &mut Window, cx: &mut Context<Self>| e.zoom_out(cx));
