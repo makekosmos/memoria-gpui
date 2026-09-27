@@ -161,15 +161,41 @@ pub(crate) fn parse_inline_markdown(text: &str) -> Vec<Value> {
         }
 
         if text[index..].starts_with('`') {
-            if let Some(rel) = text[index + 1..].find('`') {
-                let closing = index + 1 + rel;
-                if closing > index + 1 {
-                    flush_buffer!();
-                    let marks = vec![mark("code", None)];
-                    append_text_node(&mut nodes, &text[index + 1..closing], marks);
-                    index = closing + 1;
-                    continue;
+            // N-backtick code span — closes on a run of exactly N backticks
+            // (CommonMark). `wrap_inline_code` relies on this when it grows
+            // the fence past inner backtick runs.
+            let ticks = text[index..].chars().take_while(|&c| c == '`').count();
+            let mut scan = index + ticks;
+            let closing = loop {
+                match text[scan..].find('`') {
+                    None => break None,
+                    Some(rel) => {
+                        let run_start = scan + rel;
+                        let run = text[run_start..].chars().take_while(|&c| c == '`').count();
+                        if run == ticks {
+                            break Some(run_start);
+                        }
+                        scan = run_start + run;
+                    }
                 }
+            };
+            if let Some(end) = closing {
+                let inner = &text[index + ticks..end];
+                // CommonMark strips one leading+trailing space when both
+                // are present and the content isn't all spaces.
+                let inner = if inner.len() > 1
+                    && inner.starts_with(' ')
+                    && inner.ends_with(' ')
+                    && inner.trim() != ""
+                {
+                    &inner[1..inner.len() - 1]
+                } else {
+                    inner
+                };
+                flush_buffer!();
+                append_text_node(&mut nodes, inner, vec![mark("code", None)]);
+                index = end + ticks;
+                continue;
             }
         }
 

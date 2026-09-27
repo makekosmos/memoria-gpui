@@ -9,106 +9,14 @@ use crate::content::read_entry_markdown;
 
 /// `PREVIEW_LIMIT` in EverythingItemCard.vue.
 pub const PREVIEW_LIMIT: usize = 800;
-
-/// Skip leading whitespace plus an optional `- `/`+ `/`N. ` list marker at
-/// a line start.
-fn skip_list_marker(chars: &mut std::iter::Peekable<std::str::Chars>) {
-    while matches!(chars.clone().next(), Some(' ') | Some('\t')) {
-        chars.next();
-    }
-    match chars.clone().next() {
-        Some('-') | Some('+') => {
-            let mut clone = chars.clone();
-            clone.next();
-            if clone.next() == Some(' ') {
-                chars.next();
-                chars.next();
-            }
-        }
-        Some(d) if d.is_ascii_digit() => {
-            // "1. " ordered list marker.
-            let mut clone = chars.clone();
-            let mut digits = 0usize;
-            while matches!(clone.clone().next(), Some(c) if c.is_ascii_digit()) {
-                clone.next();
-                digits += 1;
-            }
-            if digits > 0 && clone.next() == Some('.') && clone.next() == Some(' ') {
-                for _ in 0..digits + 2 {
-                    chars.next();
-                }
-            }
-        }
-        _ => {}
-    }
-}
+mod scan;
+mod syntax;
 
 /// Markdown → plain text. Blocks collapse to single newlines; inline markers
 /// (`**`, `` ` ``, `[[…]]`, `![…](…)`, `#`, `>`) are dropped. Not a full
 /// markdown parser — a card preview only needs legible text.
 pub fn markdown_plain_text(markdown: &str) -> String {
-    let mut out = String::with_capacity(markdown.len());
-    let mut chars = markdown.chars().peekable();
-    let mut line_start = true;
-    let mut in_code_fence = false;
-    skip_list_marker(&mut chars);
-    while let Some(ch) = chars.next() {
-        if in_code_fence {
-            if ch == '`' && chars.clone().take(2).eq("``".chars()) {
-                chars.next();
-                chars.next();
-                in_code_fence = false;
-            } else {
-                out.push(ch);
-            }
-            continue;
-        }
-        match ch {
-            '`' => {
-                // ``` fence → code mode; single ` → skip the marker only.
-                if chars.clone().take(2).eq("``".chars()) {
-                    chars.next();
-                    chars.next();
-                    in_code_fence = true;
-                }
-            }
-            '#' | '>' | '*' | '_' | '~' => {
-                if !line_start {
-                    // Emphasis markers mid-line are dropped unless escaped.
-                }
-            }
-            '\n' => {
-                if !out.ends_with('\n') && !out.is_empty() {
-                    out.push('\n');
-                }
-                line_start = true;
-                skip_list_marker(&mut chars);
-                continue;
-            }
-            '!' | '[' | ']' | '(' | ')' => {}
-            _ => {
-                out.push(ch);
-            }
-        }
-        if ch != '\n' {
-            line_start = false;
-        }
-    }
-    // Collapse 3+ newlines (Vue `tiptapPlainText` does the same).
-    let mut collapsed = String::with_capacity(out.len());
-    let mut newlines = 0;
-    for ch in out.chars() {
-        if ch == '\n' {
-            newlines += 1;
-            if newlines <= 2 {
-                collapsed.push(ch);
-            }
-        } else {
-            newlines = 0;
-            collapsed.push(ch);
-        }
-    }
-    collapsed.trim().to_string()
+    scan::plain_text(markdown)
 }
 
 /// `previewForEntry` — markdown body → ≤800 chars of plain text.
@@ -145,6 +53,53 @@ mod tests {
         assert_eq!(text, "first\nsecond\nbullet\nplain");
         let text = markdown_plain_text("12. dozen\n13.b not a marker");
         assert_eq!(text, "dozen\n13.b not a marker");
+    }
+
+    #[test]
+    fn keeps_literal_text_chars() {
+        // KOS-249: `# > * _ ~ ! [ ] ( )` were dropped unconditionally, so
+        // prose lost real characters.
+        assert_eq!(
+            markdown_plain_text("используй C# и F#"),
+            "используй C# и F#"
+        );
+        assert_eq!(markdown_plain_text("a (b) c"), "a (b) c");
+        assert_eq!(
+            markdown_plain_text("snake_case и 2*3 и a~b"),
+            "snake_case и 2*3 и a~b"
+        );
+        assert_eq!(markdown_plain_text("see file a*"), "see file a*");
+        assert_eq!(markdown_plain_text("wow! done"), "wow! done");
+        assert_eq!(
+            markdown_plain_text("экранированный \\* не italic"),
+            "экранированный * не italic"
+        );
+    }
+
+    #[test]
+    fn link_and_wiki_and_image_syntax() {
+        assert_eq!(
+            markdown_plain_text("см. [текст](https://example.com) после"),
+            "см. текст после"
+        );
+        assert_eq!(
+            markdown_plain_text("wiki [[страница|метка]] и [[другая]]"),
+            "wiki метка и другая"
+        );
+        assert_eq!(
+            markdown_plain_text("картинка ![alt](x.png) конец"),
+            "картинка  конец"
+        );
+        assert_eq!(markdown_plain_text("a ] b ) c"), "a ] b ) c");
+    }
+
+    #[test]
+    fn emphasis_pairs_drop() {
+        assert_eq!(
+            markdown_plain_text("**b** и *e* и _u_ и ~~s~~"),
+            "b и e и u и s"
+        );
+        assert_eq!(markdown_plain_text("# Foo #\n\nок"), "Foo\nок");
     }
 
     #[test]

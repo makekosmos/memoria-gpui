@@ -215,3 +215,47 @@ pub fn snap_up(src: &str, pos: usize) -> usize {
     }
     p
 }
+
+/// Tiptap `exitCode` for Shift+Enter inside a fenced block: land on a fresh
+/// line after the fence. Returns `(insert_pos, insert_text, caret)`. An
+/// unclosed fence (runs to EOF) first gets a matching closing fence
+/// appended so there is an "after" to land on.
+pub(crate) fn code_exit_edit(src: &str, br: &crate::md::ast::RangeB) -> (usize, String, usize) {
+    let block = &src[br.start.min(src.len())..br.end.min(src.len())];
+    let tail = block.trim_end();
+    let last = tail.rsplit('\n').next().unwrap_or(tail);
+    // Closed = the last line is a fence that isn't the opener itself.
+    let closed = tail.contains('\n') && {
+        let t = last.trim_start_matches([' ', '\t']);
+        let n = t.chars().take_while(|&c| c == '`' || c == '~').count();
+        n >= 3 && t[n..].trim().is_empty()
+    };
+    let mut pos = br.end.min(src.len());
+    if src.as_bytes().get(pos) == Some(&b'\n') {
+        pos += 1;
+    }
+    if !closed {
+        let opener: String = block
+            .trim_start_matches([' ', '\t'])
+            .chars()
+            .take_while(|&c| c == '`' || c == '~')
+            .collect();
+        let fence = if opener.is_empty() { "```" } else { &opener };
+        let ins = format!(
+            "{}{fence}\n\n",
+            if block.ends_with('\n') { "" } else { "\n" }
+        );
+        return (pos, ins.clone(), pos + ins.len());
+    }
+    if pos == src.len() {
+        return (pos, "\n".into(), pos + 1);
+    }
+    // A blank line already follows the fence — land on it; otherwise leave
+    // one so the new paragraph doesn't merge into the next line's text.
+    let ins = if src.as_bytes().get(pos) == Some(&b'\n') {
+        ""
+    } else {
+        "\n\n"
+    };
+    (pos, ins.into(), pos)
+}
