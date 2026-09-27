@@ -165,6 +165,25 @@ fn backspace_at_line_start_joins_lines() {
 }
 
 #[test]
+fn backspace_eats_one_terminator_not_blank_lines() {
+    // Caret at a line start after blank lines: one Backspace joins to the
+    // line directly above — the empty lines are deleted one at a time.
+    let mut e = ed("a\n\nb", 3);
+    e.key_backspace();
+    assert_eq!(e.text(), "a\nb");
+    assert_eq!(e.selection().start(), 2);
+    let mut e = ed("a\n\n\nb", 4);
+    e.key_backspace();
+    assert_eq!(e.text(), "a\n\nb");
+    assert_eq!(e.selection().start(), 3);
+    // `\r\n` pairs still count as a single terminator each.
+    let mut e = ed("a\r\n\r\nb", 5);
+    e.key_backspace();
+    assert_eq!(e.text(), "a\r\nb");
+    assert_eq!(e.selection().start(), 3);
+}
+
+#[test]
 fn backspace_at_doc_start_noop() {
     let mut e = ed("a", 0);
     e.key_backspace();

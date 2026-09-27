@@ -69,7 +69,7 @@ pub fn toggle_inline(src: &str, sel: Selection, kind: Inline) -> Tx {
     for d in kind.delims() {
         let seg = &src[s..e];
         let n = d.len();
-        if seg.len() >= 2 * n && seg.starts_with(d) && seg.ends_with(d) {
+        if seg.len() >= 2 * n && seg.starts_with(d) && seg.ends_with(d) && edge_runs_odd(seg, d) {
             tx.replace(e - n, e, "");
             tx.replace(s, s + n, "");
             tx.selection(Selection::new(s, e - 2 * n));
@@ -116,6 +116,20 @@ fn surrounding_delim(src: &str, s: usize, e: usize, kind: Inline) -> Option<Stri
         }
     }
     None
+}
+
+/// For single-char `*`/`_` delimiters, both edge runs inside the selection
+/// must be odd-length to count as emphasis: `*x*` (1) and `***x***` (3)
+/// carry an italic layer that unwrapping removes; `**x**` (2) is a strong
+/// pair — stripping one `*` would silently turn bold into italic, so the
+/// toggle must wrap instead (`***x***`). Multi-char delimiters always fit.
+fn edge_runs_odd(seg: &str, d: &str) -> bool {
+    if d.len() != 1 {
+        return true;
+    }
+    let c = d.as_bytes()[0] as char;
+    seg.chars().take_while(|&ch| ch == c).count() % 2 == 1
+        && seg.chars().rev().take_while(|&ch| ch == c).count() % 2 == 1
 }
 
 /// For italic single-char delimiters, the matched `*`/`_` must not be part

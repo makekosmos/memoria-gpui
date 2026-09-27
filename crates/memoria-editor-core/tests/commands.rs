@@ -50,6 +50,15 @@ fn italic_wraps_and_unwraps() {
 fn italic_does_not_strip_strong() {
     // `**abc**` is a strong run; italic toggle must wrap, not strip one `*`.
     assert_eq!(run("**abc**", 2, 5, &Command::Italic), "***abc***");
+    // Same when the selection covers the `**` delimiters (select-all): the
+    // strong marks must survive — result is bold+italic, not `*abc*`.
+    assert_eq!(run("**abc**", 0, 7, &Command::Italic), "***abc***");
+    assert_eq!(run("__abc__", 0, 7, &Command::Italic), "*__abc__*");
+    // `***abc***` carries an italic layer — toggling removes exactly that
+    // layer, keeping the strong pair.
+    assert_eq!(run("***abc***", 0, 9, &Command::Italic), "**abc**");
+    // Plain `*abc*` still unwraps.
+    assert_eq!(run("*abc*", 0, 5, &Command::Italic), "abc");
 }
 
 #[test]
@@ -260,5 +269,19 @@ fn local_image_url_matches_vue_encoding() {
     assert_eq!(
         cmd::local_image_url("/a b/c.png"),
         "kosmos-local-image://file/%2Fa%20b%2Fc.png"
+    );
+}
+
+#[test]
+fn display_image_src_non_ascii_after_percent_does_not_panic() {
+    // `%` followed by a multi-byte UTF-8 char must not slice mid-char.
+    assert_eq!(
+        cmd::display_image_src("file:///%€x"),
+        "kosmos-local-image://file/%2F%25%E2%82%ACx"
+    );
+    // And a real `%HH` escape still decodes.
+    assert_eq!(
+        cmd::display_image_src("file:///%E2%82%AC/a.png"),
+        "kosmos-local-image://file/%2F%E2%82%AC%2Fa.png"
     );
 }

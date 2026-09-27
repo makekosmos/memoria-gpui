@@ -125,10 +125,14 @@ fn percent_decode(s: &str) -> String {
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;
     while i < bytes.len() {
+        // Decode only `%HH` — operate on raw bytes: `s[i + 1..i + 3]` can
+        // split a multi-byte UTF-8 char when `%` precedes it (`file:///%€`).
         if bytes[i] == b'%' && i + 2 < bytes.len() {
-            let h = u8::from_str_radix(&s[i + 1..i + 3], 16);
-            if let Ok(h) = h {
-                out.push(h);
+            let hex = (bytes[i + 1] as char)
+                .to_digit(16)
+                .zip((bytes[i + 2] as char).to_digit(16));
+            if let Some((hi, lo)) = hex {
+                out.push((hi * 16 + lo) as u8);
                 i += 3;
                 continue;
             }
