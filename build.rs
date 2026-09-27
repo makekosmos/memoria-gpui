@@ -1,8 +1,14 @@
-//! Embed Windows resources: the Common Controls v6 manifest, the application
-//! icon and VERSIONINFO. Gates on `CARGO_CFG_TARGET_OS` (the target), not
-//! `cfg!(target_os)` — the build script itself always compiles for the host,
-//! so Linux→MSVC cross builds (cargo-xwin) embed resources exactly like a
-//! native Windows build.
+//! Embed Windows resources: the application icon and VERSIONINFO.
+//! Gates on `CARGO_CFG_TARGET_OS` (the target), not `cfg!(target_os)` — the
+//! build script itself always compiles for the host, so Linux→MSVC cross
+//! builds (cargo-xwin) embed resources exactly like a native Windows build.
+//!
+//! Do **not** embed `windows/app.manifest` here: `gpui-pre` (via the
+//! `windows-manifest` feature force-enabled by gpui-pre-platform) already
+//! embeds RT_MANIFEST id=1 with Common Controls v6 + PerMonitorV2. A second
+//! id=1 resource fails to link on MSVC with CVTRES CVT1100 / LNK1123 (see
+//! agenda-gpui's gpui-pre patch notes). Keep `windows/app.manifest` in-tree
+//! as the documented product manifest; gpui's embedded copy covers runtime.
 //!
 //! `KOSMOS_MEMORIA_VERSION` (X.Y.Z) overrides the stamped version: the Cortex
 //! component build sets it to the desktop release version so the packaged
@@ -22,10 +28,6 @@ fn main() {
     let windows_dir = manifest_dir.join("windows");
     println!(
         "cargo:rerun-if-changed={}",
-        windows_dir.join("app.manifest").display()
-    );
-    println!(
-        "cargo:rerun-if-changed={}",
         windows_dir.join("app.ico").display()
     );
     println!("cargo:rerun-if-env-changed=KOSMOS_MEMORIA_VERSION");
@@ -37,8 +39,8 @@ fn main() {
     let target = env::var("TARGET").unwrap_or_default();
     if target.ends_with("-msvc") {
         // MSVC (native or cargo-xwin): llvm-rc/rc.exe via embed-resource.
+        // Icon + VERSIONINFO only — no RT_MANIFEST (gpui-pre owns id=1).
         embed_resource::compile(&rc, embed_resource::NONE)
-            .manifest_required()
             .expect("embed Memoria icon and version resources");
         return;
     }
@@ -73,19 +75,13 @@ fn main() {
 fn resource_script(windows_dir: &Path) -> String {
     let [major, minor, patch] = memoria_version();
     let version = format!("{major}.{minor}.{patch}");
-    let manifest = windows_dir
-        .join("app.manifest")
-        .display()
-        .to_string()
-        .replace('\\', "\\\\");
     let icon = windows_dir
         .join("app.ico")
         .display()
         .to_string()
         .replace('\\', "\\\\");
     format!(
-        r#"1 24 "{manifest}"
-1 ICON "{icon}"
+        r#"1 ICON "{icon}"
 1 VERSIONINFO
 FILEVERSION {major},{minor},{patch},0
 PRODUCTVERSION {major},{minor},{patch},0

@@ -148,7 +148,7 @@ Product contour mirrors KOS-137/agenda-gpui:
 
 | Item | Status | Notes |
 |---|---|---|
-| `build.rs` Windows resources (manifest + icon + VERSIONINFO) | DONE | `windows/{app.manifest,app.ico}`; `KOSMOS_MEMORIA_VERSION` stamps FileVersion/ProductVersion (cortex sets the desktop release version; fallback = `Cargo.toml`) |
+| `build.rs` Windows resources (icon + VERSIONINFO) | DONE | Icon/VERSIONINFO via `embed-resource`; **no** RT_MANIFEST id=1 (gpui-pre already embeds Common Controls v6 + PerMonitorV2 — duplicate → CVT1100). `windows/app.manifest` kept in-tree as docs. `KOSMOS_MEMORIA_VERSION` stamps FileVersion/ProductVersion (cortex sets desktop release version; fallback = `Cargo.toml`) |
 | Release tooling (`scripts/release.py`, `publish-version.sh`, `test_release.py`) | DONE | same rules as agenda-gpui; `python scripts/test_release.py` green |
 | Nightly workflow `.github/workflows/build.yml` | DONE | ubuntu/windows/macos matrix → `dist/` artifacts + `SHA256SUMS.txt` (`collect` job); **no GitHub Release** — publish held for Jack's default-launch decision |
 | cortex component pin `memoria_gpui` | DONE | `desktop/component-pins.json`, verified by `build-package-components.mjs` |
