@@ -24,6 +24,10 @@ uuid = { version = "1.26.1", features = ["v4"] }
 ureq = { version = "2.12", default-features = false, features = ["json"] }
 thiserror = "2"
 regex = "1.11"
+# Local wall-clock for diary labels (JS `new Date()` getters are local time).
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
+# `migrationObjectId` — SHA-256 of `${namespace}\0${sourceId}`.
+sha2 = "0.10.9"
 # Plain-text WS client for the Engine change stream (ws_port in
 # engine.lock.json); loopback only, no TLS.
 tungstenite = { version = "0.26", default-features = false, features = ["handshake"] }

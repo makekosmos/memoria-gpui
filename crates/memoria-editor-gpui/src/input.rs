@@ -116,9 +116,7 @@ impl EntityInputHandler for MemoriaEditor {
             )
             .unwrap_or_default();
         let x0 = element_bounds.origin.x
-            + px(crate::style::text_origin_x(f32::from(
-                element_bounds.size.width,
-            )))
+            + px(self.text_origin_x(f32::from(element_bounds.size.width)))
             + pad_x;
         let mut bounds = Bounds::new(
             Point::new(

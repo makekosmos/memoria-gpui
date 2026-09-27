@@ -21,6 +21,7 @@ use crate::app::Memoria;
 /// `gpui_component::Root` — on the deterministic test platform.
 fn launch(cx: &mut TestAppContext) -> (Entity<Memoria>, &mut VisualTestContext) {
     cx.update(gpui_component::init);
+    cx.update(|cx| cx.bind_keys(memoria_editor_gpui::key_bindings()));
     let slot: Rc<RefCell<Option<Entity<Memoria>>>> = Rc::new(RefCell::new(None));
     let slot2 = slot.clone();
     let (_root, cx) = cx.add_window_view(move |window, cx| {
@@ -212,4 +213,5 @@ fn pin_via_context_menu(cx: &mut TestAppContext) {
 }
 
 /// Delete via context menu + confirm → the open entry falls back to «Всё»
+mod diary;
 mod extra;

@@ -117,6 +117,30 @@ impl Memoria {
                                 .child(format!("Конфликты: {unresolved}")),
                         )
                     })
+                    .when(matches!(self.route, Route::Diary) && !self.zen, |d| {
+                        // Vue `TitlebarButton` — CalendarDays, `aria-pressed`.
+                        let open = self.diary_calendar_open;
+                        d.child(
+                            div()
+                                .id("titlebar-diary-calendar-toggle")
+                                .debug_selector(|| "titlebar-diary-calendar-toggle".into())
+                                .a11y_switch("Календарь", open)
+                                .w(px(28.))
+                                .h(px(28.))
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .rounded_md()
+                                .cursor_pointer()
+                                .when(open, |b| b.bg(rgba(FG(), 0.10)))
+                                .hover(|s| s.bg(rgba(FG(), 0.08)))
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    this.diary_calendar_open = !this.diary_calendar_open;
+                                    cx.notify();
+                                }))
+                                .child(icon(IconId::Calendar, 15., rgba(FG(), 0.82))),
+                        )
+                    })
                     .child(titlebar_button(
                         "titlebar-search",
                         IconId::Search,
@@ -219,6 +243,12 @@ impl Memoria {
             return;
         }
         let k = &ev.keystroke;
+        // Vue `Dropdown` Esc-dismiss for the kind menu.
+        if k.key == "escape" && self.kind_menu_for.is_some() {
+            self.kind_menu_for = None;
+            cx.notify();
+            return;
+        }
         let ctrl = k.modifiers.control || k.modifiers.platform;
         if ctrl && k.key == "k" {
             if self.search_open {

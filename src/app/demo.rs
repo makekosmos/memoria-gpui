@@ -8,10 +8,13 @@ use memoria_gpui::system_types_data::{
     system_types, SYSTEM_TYPE_BOOK_ID, SYSTEM_TYPE_COLLECTION_ID, SYSTEM_TYPE_NOTE_ID,
 };
 use memoria_gpui::time::now_millis;
+mod ark;
+pub(crate) use ark::DemoArk;
 
 pub(crate) struct DemoStore {
     pub entries: Vec<Entry>,
     pub note_types: Vec<NoteType>,
+    pub ark: DemoArk,
     seq: u64,
 }
 
@@ -24,6 +27,7 @@ impl DemoStore {
         Self {
             entries: Vec::new(),
             note_types: system_types(),
+            ark: DemoArk::default(),
             seq: 0,
         }
     }
@@ -209,6 +213,7 @@ impl DemoStore {
                     result: Ok(results),
                 }
             }
+            command => self.dispatch_bubble(command),
         };
         vec![reply]
     }

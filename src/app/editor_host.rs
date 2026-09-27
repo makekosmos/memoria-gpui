@@ -58,9 +58,12 @@ impl Memoria {
                     }
                     cx.notify();
                 }
+                // `Submit` is only emitted by compact editors — the note
+                // editor never produces it, so there's nothing to do here.
                 EditorEvent::ZoomChanged(_)
                 | EditorEvent::SelectionChanged
-                | EditorEvent::CtrlK => {}
+                | EditorEvent::CtrlK
+                | EditorEvent::Submit => {}
             }),
         );
         self.editor = Some(editor.clone());

@@ -56,7 +56,7 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | Type object lists / image objects | `src/components/objects/{TypeObjectsView,ImageObjectView}.vue`, `src/lib/objectImages.ts`, `src/lib/iconResolver.ts` | M4 | DONE (M4: `src/app/objects.rs`, `src/app/image.rs`, `src/object_views.rs`, `src/image_src.rs` — summary columns, gallery, person names) |
 | Entry titles | `src/lib/entryTitles.ts` | M4 | DONE (M1) |
 | Books: cover, dropzone, metadata import | `src/components/books/{BookCover,BookCoverFileDropzone,BookMetadataImportModal}.vue`, `src/lib/bookMetadata.ts`, `src/lib/bookLanguages.ts` | M5 | TODO |
-| Diary bubbles view + timeline + calendar | `src/components/bubbles/{BubbleDiaryView,BubbleTimelineItem,BubbleTiptapRenderer,BubbleDiaryCalendarSidebar}.vue`, `bubbleDiaryModel.ts`, `src/lib/kepler-bubble-api.ts` | M6 | TODO |
+| Diary bubbles view + timeline + calendar | `src/components/bubbles/{BubbleDiaryView,BubbleTimelineItem,BubbleTiptapRenderer,BubbleDiaryCalendarSidebar}.vue`, `bubbleDiaryModel.ts`, `src/lib/kepler-bubble-api.ts` | M6 | DONE (M6: `src/diary/*` model + `src/store/bubble_api.rs` + `src/app/diary{,_item,_forms,_blocks,_calendar}.rs` — см. «Дневник — M6 GPUI»; ARK writes still blocked by Engine ingress, see Byte-compat) |
 | Stickers (floating note windows) | `src/views/StickerNoteView.vue`, `src/lib/sticker.ts`, `src/composables/useDockedWidget.ts` | M7 | PARTIAL (M4: `src/sticker_route.rs` + `src/app/sticker.rs` — `/sticker/<id>` routes, host-safe keys, floating GPUI window; GAP: `useDockedWidget`/host `kepler.window.open` docking needs the kosmos host, unavailable in GPUI shell) |
 | Settings page + sections | `src/components/settings/{SettingsPage,GeneralSettings,ExportSettings,TrashSettings}.vue(+css)`, `src/views/EdenSettingsView.vue`, `src/composables/usePreferences.ts` | M8 | PARTIAL (M4: `src/app/settings.rs` — General prefs persist via `local_state.rs` (`memoria-settings.json` + legacy `eden-settings.json`), Trash works, Export is UI-only stub pending M8) |
 | Conflict banner | `src/components/EntryConflictBanner.vue` | M8 | DONE (M4: `src/app/conflict*.rs` — recheck/accept-remote/keep-copy/copy-local/cancel; `ui_tests::extra::conflict_banner_accept_remote`) |
@@ -105,6 +105,26 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | Live refresh без затирания ввода | `liveRefresh.ts` | PASS | `app::refresh::tests` (5 кейсов) + `set_markdown_is_the_live_refresh_path` |
 | Undo-изоляция между заметками | PM history per-editor | PASS | `tests_regressions::note_switch_resets_undo_history` (`set_markdown` → `reset_history`) |
 | Perf: 10k строк, frame time | — | NOT_RUN default | `tests::perf_ten_thousand_lines` (`--ignored`) |
+
+### «Дневник» — M6 GPUI (`src/diary/`, `src/app/diary*.rs`, `src/store/bubble_api.rs`)
+
+| Фича | Vue-эталон | Status | Evidence |
+|---|---|---|---|
+| Модель: kinds (`plain`/`idea`/`task`/`highlight`), draft tags, sortKey, date/time occurrence | `bubbleDiaryModel.ts` | PASS | `tests/bubble_diary_model.rs` |
+| Threads: `reply_to` links, roots newest-first / replies oldest-first, invalid links stay roots | `normalizeBubbleThreads` | PASS | `tests/bubble_diary_model.rs` |
+| Legacy journal → bubbles (`system-type-journal` detection, `journal-*-N` sortKeys, `listAllEntries` source) | `createJournalBubblesFromEntry` | PASS | `tests/bubble_diary_model.rs`, `tests/bubble_ark_migrate.rs::migrate_diary_imports_and_deletes_legacy_dated_journals` |
+| Local blob `{version, journalImported, bubbles}` — `JSON.stringify` key order, byte-identical | `encodeLocalBubblesStorage` | PASS | `tests/bubble_diary_golden.rs` + `fixtures/diary-bubbles.json` |
+| ARK API: create/update/delete, `reply_to` links, `writeEntryTiptapDoc`, migration idempotence | `kepler-bubble-api.ts` | PASS vs `FakeArk` | `tests/bubble_ark_api.rs`; live Engine writes still blocked — see Byte-compat |
+| Unknown tiptap nodes: rendered as text, preserved on non-text save | `BubbleTiptapRenderer` | PASS | `render_model.rs` + `kind_only_update_preserves_unknown_tiptap_nodes` |
+| Composer: compact editor, submit on button/Ctrl+Enter, `#tags`, kind `plain` | `addDraftBubble` (Tiptap) | PASS | `ui_tests::diary::composer_*`, `tags_extract_and_render`; markdown→tiptap rules in editor `DESIGN.md` |
+| Item card: kind dot+menu (overlay, Esc/backdrop dismiss), time label opens edit (autofocus), 2-step «Удалить», Esc cancels | `BubbleTimelineItem.vue` + shared `Dropdown` | PASS | `ui_tests::diary::{edit_flow_updates_bubble,delete_flow_removes_bubble,bubble_kind_menu_changes_kind}` |
+| Reply form under last thread row; `Отмена`/`Ответить` | `BubbleTimelineItem.vue` | PASS | `ui_tests::diary::reply_in_thread` |
+| Calendar: Monday weeks, newest-first days, counts, today ring, 40-day pad | `BubbleDiaryCalendarSidebar.vue` | PASS | `src/diary/calendar.rs` + `ui_tests::diary::calendar_day_jump` |
+| Дата-jump scroll | `scrollIntoView({block:"center"})` | PARTIAL | GPUI `scroll_to_item` aligns differently — visual GAP |
+| Timeline virtualization (`virtualRows` measured heights) | Vue virtual list | PARTIAL | GPUI renders the full list; fine at diary scale — perf GAP if feeds grow |
+| Journal migration re-run on `journalEntries` prop change mid-session | Vue `watch` → `migrateJournalEntries` | PARTIAL | GPUI migrates once per `start_diary` via `listAllEntries` (unfiltered; re-navigation retries after a failed run); a dated journal entry created mid-session migrates on the next diary open, not immediately — behavioral GAP |
+| Midnight/focus label re-resolution (`labelNow` timer + `visibilitychange`) | `midnightTimer` + listeners | PARTIAL | GPUI refreshes `labelNow` on every diary render and on `Bubbles` replies; an idle app left open across midnight keeps stale labels until the next interaction — residual GAP |
+| Populated-diary visual check vs `reference/screens/diary-*` | host screenshots | NOT_RUN | Vue shots are empty-state only (ARK ingress rejects bubble props); GPUI verified via `ui_tests::diary` |
 
 ## Screens for reference (`reference/screens/`)
 
@@ -195,11 +215,11 @@ see "не нужен" row above — everything else must be empty.)
 | `src/components/books/BookCover.vue` | M5 | TODO |  |
 | `src/components/books/BookCoverFileDropzone.vue` | M5 | TODO |  |
 | `src/components/books/BookMetadataImportModal.vue` | M5 | TODO |  |
-| `src/components/bubbles/BubbleDiaryCalendarSidebar.vue` | M6 | TODO |  |
-| `src/components/bubbles/BubbleDiaryView.vue` | M6 | TODO |  |
-| `src/components/bubbles/BubbleTimelineItem.vue` | M6 | TODO |  |
-| `src/components/bubbles/BubbleTiptapRenderer.vue` | M6 | TODO |  |
-| `src/components/bubbles/bubbleDiaryModel.ts` | M6 | TODO |  |
+| `src/components/bubbles/BubbleDiaryCalendarSidebar.vue` | M6 | DONE (M6) | `src/app/diary_calendar.rs` + `src/diary/calendar.rs` |
+| `src/components/bubbles/BubbleDiaryView.vue` | M6 | DONE (M6) | `src/app/diary.rs` (view/composer/thread orchestration) |
+| `src/components/bubbles/BubbleTimelineItem.vue` | M6 | DONE (M6) | `src/app/diary_item.rs` + `src/app/diary_forms.rs` |
+| `src/components/bubbles/BubbleTiptapRenderer.vue` | M6 | DONE (M6) | `src/diary/render_model.rs` + `src/app/diary_blocks.rs` |
+| `src/components/bubbles/bubbleDiaryModel.ts` | M6 | DONE (M6) | `src/diary/{text,timeline,calendar,journal,storage}.rs` |
 | `src/components/everything/EverythingItemCard.vue` | M2 | TODO |  |
 | `src/components/everything/EverythingView.vue` | M2 | TODO |  |
 | `src/components/objects/ImageObjectView.vue` | M4 | TODO |  |
@@ -236,7 +256,7 @@ see "не нужен" row above — everything else must be empty.)
 | `src/lib/entryTitles.ts` | M4 | DONE (M1) |  |
 | `src/lib/iconResolver.ts` | M4 | DONE (M1) |  |
 | `src/lib/kepler-api-shim.ts` | M3 | TODO |  |
-| `src/lib/kepler-bubble-api.ts` | M6 | TODO |  |
+| `src/lib/kepler-bubble-api.ts` | M6 | DONE (M6) | `src/store/bubble_api.rs` over `ArkBridge` |
 | `src/lib/kepler-command-bus.ts` | M3 | DONE (M1) |  |
 | `src/lib/kepler-entry-api.ts` | M3 | DONE (M1) |  |
 | `src/lib/kepler-entry-mappers.ts` | M3 | DONE (M1) |  |

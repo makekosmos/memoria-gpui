@@ -2,7 +2,8 @@
 //! the shapes Vue Memoria round-trips (`Date.parse` / `Date.toISOString`).
 
 /// Unix epoch millis for a civil date (Howard Hinnant's days-from-civil).
-fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+/// `pub(crate)` — `local_time` reuses it for wall-clock conversion.
+pub(crate) fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
     let y = if m <= 2 { y - 1 } else { y };
     let era = if y >= 0 { y } else { y - 399 } / 400;
     let yoe = y - era * 400;
@@ -12,7 +13,7 @@ fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
     era * 146097 + doe - 719468
 }
 
-fn civil_from_days(z: i64) -> (i64, i64, i64) {
+pub(crate) fn civil_from_days(z: i64) -> (i64, i64, i64) {
     let z = z + 719468;
     let era = if z >= 0 { z } else { z - 146096 } / 146097;
     let doe = z - era * 146097;
@@ -22,7 +23,7 @@ fn civil_from_days(z: i64) -> (i64, i64, i64) {
     let mp = (5 * doy + 2) / 153;
     (
         if mp < 10 { y } else { y + 1 },
-        mp + 3,
+        if mp < 10 { mp + 3 } else { mp - 9 },
         doy - (153 * mp + 2) / 5 + 1,
     )
 }
@@ -39,7 +40,7 @@ pub fn millis_to_iso(ms: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}T{h:02}:{min:02}:{s:02}.{ms:03}Z")
 }
 
-fn days_in_month(y: i64, m: i64) -> i64 {
+pub(crate) fn days_in_month(y: i64, m: i64) -> i64 {
     match m {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,

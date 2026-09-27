@@ -76,7 +76,7 @@ impl Element for EditorElement {
     ) -> Self::PrepaintState {
         self.view.update(cx, |e, cx| {
             e.bounds = bounds;
-            let wrap = px(style::wrap_width(f32::from(bounds.size.width)));
+            let wrap = px(e.text_wrap_width(f32::from(bounds.size.width)));
             if e.layout.wrap_width != Some(wrap) {
                 e.layout.wrap_width = Some(wrap);
                 e.shaped.clear();
@@ -137,7 +137,7 @@ impl Element for EditorElement {
             cx,
         );
         self.view.update(cx, |e, cx| {
-            let text_x = px(style::text_origin_x(f32::from(bounds.size.width)));
+            let text_x = px(e.text_origin_x(f32::from(bounds.size.width)));
             let origin_x = bounds.origin.x + text_x;
             let top = bounds.origin.y - e.scroll_y;
 
@@ -148,7 +148,13 @@ impl Element for EditorElement {
                 match (run_start, code) {
                     (None, true) => run_start = Some((e.rows[i].block_ix, y)),
                     (Some((b, y0)), false) => {
-                        crate::paint::code_panel(bounds, origin_x, top + y0, y - y0, window);
+                        crate::paint::code_panel(
+                            px(e.text_wrap_width(f32::from(bounds.size.width))),
+                            origin_x,
+                            top + y0,
+                            y - y0,
+                            window,
+                        );
                         run_start = None;
                         let _ = b;
                     }
@@ -157,7 +163,13 @@ impl Element for EditorElement {
             }
             if let Some((_, y0)) = run_start {
                 let last = prepaint.geometry.last().map(|g| g.1 + g.2).unwrap_or(y0);
-                crate::paint::code_panel(bounds, origin_x, top + y0, last - y0, window);
+                crate::paint::code_panel(
+                    px(e.text_wrap_width(f32::from(bounds.size.width))),
+                    origin_x,
+                    top + y0,
+                    last - y0,
+                    window,
+                );
             }
 
             // -- rows --------------------------------------------------------------
@@ -173,7 +185,7 @@ impl Element for EditorElement {
                         window.paint_quad(fill(
                             Bounds::new(
                                 point(origin_x, cy - px(0.5)),
-                                size(px(style::wrap_width(f32::from(bounds.size.width))), px(1.)),
+                                size(px(e.text_wrap_width(f32::from(bounds.size.width))), px(1.)),
                             ),
                             style::marker_color(),
                         ));

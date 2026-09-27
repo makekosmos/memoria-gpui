@@ -50,14 +50,23 @@ impl MemoriaEditor {
     /// Vue `useKeyboard` ZOOM_STEP=0.1, range 0.5..2.0 (app-side persists
     /// via `memoria-zoom` localStorage — out of scope for the editor crate).
     pub fn zoom_in(&mut self, cx: &mut Context<Self>) {
+        if self.compact {
+            return;
+        }
         self.zoom.0 = (self.zoom.0 + 0.1).min(2.0);
         self.zoom_changed(cx);
     }
     pub fn zoom_out(&mut self, cx: &mut Context<Self>) {
+        if self.compact {
+            return;
+        }
         self.zoom.0 = (self.zoom.0 - 0.1).max(0.5);
         self.zoom_changed(cx);
     }
     pub fn zoom_reset(&mut self, cx: &mut Context<Self>) {
+        if self.compact {
+            return;
+        }
         self.zoom = EditorScale::default();
         self.zoom_changed(cx);
     }
@@ -90,7 +99,11 @@ impl MemoriaEditor {
     }
 
     /// Re-arm the autosave debounce (Vue: 300 ms after the last edit).
+    /// Compact embeds own their save cadence (composer submit) — no emits.
     fn schedule_save(&mut self, cx: &mut Context<Self>) {
+        if self.compact {
+            return;
+        }
         self.save_task = cx.spawn(async move |this, cx| {
             cx.background_executor().timer(AUTOSAVE_DEBOUNCE).await;
             this.update(cx, |editor, cx| {

@@ -13,10 +13,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::highlight::HighlightCache;
-use crate::layout::DocLayout;
+use crate::layout::{DocLayout, WrappedSlot};
 use crate::picker::LangPicker;
 use crate::rows::Row;
-use crate::style::{self, EditorScale};
+use crate::style::EditorScale;
 
 /// Vue `autosave` debounce — `edenStoreSaveActions` uses 300 ms.
 pub const AUTOSAVE_DEBOUNCE: Duration = Duration::from_millis(300);
@@ -41,6 +41,9 @@ pub enum EditorEvent {
     CtrlK,
     /// Zoom factor changed (`Ctrl +/-/0`).
     ZoomChanged(f32),
+    /// `Ctrl`/`Cmd`+`Enter` in compact mode — the diary composer submit
+    /// (Vue `handleKeyDown` → `addDraftBubble`). Never fires in note mode.
+    Submit,
 }
 
 pub struct MemoriaEditor {
@@ -57,8 +60,8 @@ pub struct MemoriaEditor {
     pub(crate) layout: DocLayout,
     /// `row index → shaped line` (visible window only, cleared on rebuild).
     pub(crate) shaped: std::collections::HashMap<usize, WrappedSlot>,
-    built_rev: u64,
-    built_sel: Selection,
+    pub(crate) built_rev: u64,
+    pub(crate) built_sel: Selection,
     pub(crate) scroll_y: Pixels,
     pub(crate) zoom: EditorScale,
     /// Last element bounds — for IME bounds + scroll clamping.
@@ -80,22 +83,14 @@ pub struct MemoriaEditor {
     /// `dirty` when nothing was typed since (stale `Saved` replies must
     /// not un-dirty edits that raced an in-flight save).
     pub(crate) autosaved_rev: u64,
+    // ---- compact (M6 diary composer) ----------------------------------------
+    /// Compact mode — the diary composer's embed: full-width column (no
+    /// centered 760px column), no autosave emits, zen chord and zoom keys
+    /// disabled, `Ctrl`/`Cmd`+`Enter` emits [`EditorEvent::Submit`].
+    pub compact: bool,
+    /// Empty-doc placeholder text (`Placeholder.configure` per surface).
+    pub placeholder: SharedString,
     _subs: Vec<Subscription>,
-}
-
-/// Pixels shaved off a row's wrap width (code rows are inset by panel padding).
-fn row_wrap_delta(row: &Row, z: EditorScale) -> Pixels {
-    if crate::rows::is_code_row(row) {
-        px(2. * style::CODE_PAD_X * z.0)
-    } else {
-        px(0.)
-    }
-}
-
-/// Cached shaped line plus the wrap width it was shaped at.
-pub(crate) struct WrappedSlot {
-    pub line: gpui::WrappedLine,
-    pub width: Pixels,
 }
 
 impl MemoriaEditor {
@@ -138,8 +133,24 @@ impl MemoriaEditor {
             save_task: Task::ready(()),
             dirty: false,
             autosaved_rev: 0,
+            compact: false,
+            placeholder: PLACEHOLDER.into(),
             _subs,
         }
+    }
+
+    /// Compact constructor — the diary composer/reply embed (M6). Same core
+    /// editing engine, no autosave/zen/zoom, edge-to-edge column.
+    pub fn new_compact(
+        src: impl Into<String>,
+        placeholder: impl Into<SharedString>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        let mut editor = Self::new(src, window, cx);
+        editor.compact = true;
+        editor.placeholder = placeholder.into();
+        editor
     }
 
     // ---- content -----------------------------------------------------------
@@ -198,93 +209,6 @@ impl MemoriaEditor {
             let md: SharedString = self.markdown().into();
             cx.emit(EditorEvent::Autosave(md));
         }
-    }
-
-    // ---- projection / rows -------------------------------------------------
-
-    /// Rebuild projection + rows when the buffer or selection changed.
-    pub(crate) fn ensure_rows(&mut self) {
-        let (rev, sel) = (self.core.revision(), self.core.selection());
-        if self.built_rev == rev && self.built_sel == sel && self.proj.is_some() {
-            return;
-        }
-        let (proj, doc) = self.core.project_and_doc();
-        let proj = Arc::new(proj.clone());
-        self.rows = Rc::new(crate::rows::build_rows(&proj, doc));
-        self.proj = Some(proj);
-        self.shaped.clear();
-        self.built_rev = rev;
-        self.built_sel = sel;
-        self.relayout();
-    }
-
-    pub(crate) fn relayout(&mut self) {
-        let z = self.zoom;
-        let shaped = &self.shaped;
-        let global = self.layout.wrap_width;
-        let rows = self.rows.clone();
-        self.layout.rebuild(&rows, z, |i| {
-            let slot = shaped.get(&i)?;
-            let row = &rows[i];
-            let want = global? - row_wrap_delta(row, z);
-            (slot.width == want).then(|| {
-                slot.line
-                    .size(style::block_style(&row.tag, z).line_height)
-                    .height
-            })
-        });
-    }
-
-    /// Ensure `row` is shaped for `wrap_width`; returns whether its measured
-    /// height changed (caller re-runs layout if so).
-    pub(crate) fn shape_row(&mut self, i: usize, window: &mut Window) -> bool {
-        let Some(global_wrap) = self.layout.wrap_width else {
-            return false;
-        };
-        let old_h = self.layout.heights.get(i).copied();
-        let row = self.rows.get(i).cloned().unwrap_or_else(|| Row {
-            vis: 0..0,
-            block_ix: 0,
-            tag: memoria_editor_core::project::BlockTag::Paragraph,
-            spans: vec![],
-            kind: crate::rows::RowKind::Text,
-            first_in_block: true,
-            last_in_block: true,
-            code_origin: 0,
-        });
-        let z = self.zoom;
-        let st = style::block_style(&row.tag, z);
-        // Code rows are inset by the panel padding on both sides.
-        let wrap = global_wrap - row_wrap_delta(&row, z);
-        if let Some(slot) = self.shaped.get(&i) {
-            if slot.width == wrap {
-                return false;
-            }
-        }
-        let runs = self.runs_for_row(i, &row);
-        // NB: H5's CSS `text-transform: uppercase` is NOT reproduced —
-        // uppercasing here would desync shaped-glyph indices for
-        // case-expanding chars (ß→SS). Documented GAP in PARITY.md.
-        let text = self
-            .proj
-            .as_ref()
-            .map(|p| gpui::SharedString::from(p.text[row.vis.clone()].to_string()))
-            .unwrap_or_default();
-        let ts = window.text_system();
-        let line = ts
-            .shape_text(text, st.size, &runs, Some(wrap), None)
-            .unwrap_or_default()
-            .into_iter()
-            .next()
-            .unwrap_or_default();
-        let h = line.size(st.line_height).height
-            + if crate::rows::is_code_row(&row) && (row.first_in_block || row.last_in_block) {
-                crate::layout::row_pad(&row, z)
-            } else {
-                px(0.)
-            };
-        self.shaped.insert(i, WrappedSlot { line, width: wrap });
-        Some(h) != old_h
     }
 }
 

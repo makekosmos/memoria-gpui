@@ -3,19 +3,19 @@
 
 use gpui::{point, px, quad, size, Bounds, Pixels, TextAlign, Window};
 
-use crate::editor::{MemoriaEditor, PLACEHOLDER};
+use crate::editor::MemoriaEditor;
 use crate::style;
 
-/// Rounded code panel behind a run of code rows.
+/// Rounded code panel behind a run of code rows — `width` is the caller's
+/// text-column width (compact embeds span the container).
 pub fn code_panel(
-    _bounds: Bounds<Pixels>,
+    width: Pixels,
     origin_x: Pixels,
     top: Pixels,
     height: Pixels,
     window: &mut Window,
 ) {
-    // Panel spans the full text column.
-    let w = px(style::wrap_width(f32::from(_bounds.size.width)));
+    let w = width;
     window.paint_quad(quad(
         Bounds::new(point(origin_x, top), size(w, height)),
         gpui::Corners::all(px(style::CODE_RADIUS)),
@@ -86,11 +86,12 @@ pub fn placeholder(
     st.font_size = style::block_style(&memoria_editor_core::project::BlockTag::Paragraph, e.zoom)
         .size
         .into();
+    let placeholder = e.placeholder.clone();
     let line = window.text_system().shape_line(
-        PLACEHOLDER.into(),
+        placeholder.clone(),
         px(style::BODY_SIZE * e.zoom.0),
         &[gpui::TextRun {
-            len: PLACEHOLDER.len(),
+            len: placeholder.len(),
             font: st.font(),
             color: st.color,
             ..Default::default()
