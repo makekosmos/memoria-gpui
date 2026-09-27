@@ -60,7 +60,7 @@ impl Memoria {
             memoria_gpui::entry_conflicts::unresolved_entry_conflicts(&self.conflicts.conflicts)
                 .len();
 
-        let mut bar = chrome::titlebar()
+        let bar = chrome::titlebar()
             .id("titlebar")
             .debug_selector(|| "memoria-titlebar".into())
             .gap_1()
@@ -183,13 +183,7 @@ impl Memoria {
             );
 
         #[cfg(target_os = "linux")]
-        {
-            bar = bar.child(self.render_window_controls(cx));
-        }
-        #[cfg(target_os = "macos")]
-        {
-            let _ = window;
-        }
+        let bar = bar.child(self.render_window_controls(cx));
         bar
     }
 
