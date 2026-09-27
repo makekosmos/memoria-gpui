@@ -76,8 +76,18 @@ pub fn to_display_image_src(src: &str) -> String {
         return trimmed.to_string();
     }
     // `file:///C:/…` / `file:///home/…` — decode to a plain path and wrap.
-    let path = trimmed.trim_start_matches("file:").trim_start_matches('/');
-    let path = percent_decode(path);
+    // `new URL().pathname` semantics: `//host` drops the authority (Vue),
+    // `file:rel` normalizes to `/rel`, POSIX paths keep the leading `/`.
+    let rest = &trimmed["file:".len()..];
+    let raw_path = match rest.strip_prefix("//") {
+        Some(auth) => match auth.find('/') {
+            Some(i) => auth[i..].to_string(),
+            None => "/".to_string(),
+        },
+        None if rest.starts_with('/') => rest.to_string(),
+        None => format!("/{rest}"),
+    };
+    let path = percent_decode(&raw_path);
     let path = path
         .strip_suffix('/')
         .map(|s| s.to_string())
@@ -206,6 +216,19 @@ mod tests {
             to_display_image_src("file:///home/x/c.png").starts_with("kosmos-local-image://file/")
         );
         assert!(to_display_image_src("file:///C:/covers/c.png").contains("C%3A"));
+
+        // POSIX absolute paths keep the leading `/`; an authority segment is
+        // dropped like `new URL().pathname`.
+        let enc = to_display_image_src("file:///home/x/c.png")
+            .strip_prefix("kosmos-local-image://file/")
+            .unwrap()
+            .to_string();
+        assert_eq!(percent_decode_path(&enc), "/home/x/c.png");
+        let enc = to_display_image_src("file://host/home/x.png")
+            .strip_prefix("kosmos-local-image://file/")
+            .unwrap()
+            .to_string();
+        assert_eq!(percent_decode_path(&enc), "/home/x.png");
     }
 
     #[test]

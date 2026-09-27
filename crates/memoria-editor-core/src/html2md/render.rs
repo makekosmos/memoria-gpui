@@ -63,11 +63,17 @@ impl Rend {
 
     fn open(&mut self, name: &str, attrs: &[(String, String)]) {
         let get = |k: &str| attrs.iter().find(|(a, _)| a == k).map(|(_, v)| v.as_str());
+        // Void elements (`meta`, `link`, …) never get a `Close` token, so
+        // they must not enter the skip stack — the counter would stay >0 and
+        // everything after them would silently drop.
         if matches!(
             name,
-            "script" | "style" | "head" | "title" | "meta" | "link" | "noscript" | "template"
+            "script" | "style" | "head" | "title" | "noscript" | "template"
         ) {
             self.skip += 1;
+            return;
+        }
+        if matches!(name, "meta" | "link" | "base" | "wbr") {
             return;
         }
         if self.skip > 0 {

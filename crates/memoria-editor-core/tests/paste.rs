@@ -60,3 +60,14 @@ fn prefers_html_over_plain() {
     e.paste(Some("plain"), Some("<b>bold</b>"));
     assert_eq!(e.text(), "**bold**\n");
 }
+
+#[test]
+fn meta_link_void_tags_do_not_drop_rest() {
+    // `<meta>`/`<link>` are void elements — the tokenizer only emits Open for
+    // them, so the renderer's skip counter must not wait for a Close.
+    // (KOS-190: browser clipboard markup starts with `<head><meta…>` and
+    // previously the whole body pasted as an empty string.)
+    let html = "<html><head><meta charset=\"utf-8\"><link rel=\"x\"></head><body><p>kept</p></body></html>";
+    let md = html_to_markdown(html);
+    assert!(md.contains("kept"), "{md:?}");
+}

@@ -31,10 +31,18 @@ pub fn display_image_src(src: &str) -> String {
     if !t.starts_with("file:") {
         return t.to_string();
     }
-    // file:// URL → decode path, drop `file://` + optional host
+    // `file:` URL → decode `new URL().pathname`: `//host` drops the
+    // authority, `file:rel` normalizes to `/rel`, POSIX paths keep `/`.
     let rest = &t[5..];
-    let rest = rest.strip_prefix("//").unwrap_or(rest);
-    let path = percent_decode(rest);
+    let raw_path = match rest.strip_prefix("//") {
+        Some(auth) => match auth.find('/') {
+            Some(i) => auth[i..].to_string(),
+            None => "/".to_string(),
+        },
+        None if rest.starts_with('/') => rest.to_string(),
+        None => format!("/{rest}"),
+    };
+    let path = percent_decode(&raw_path);
     let path = if path.len() > 2
         && path.as_bytes()[0] == b'/'
         && path.as_bytes()[2] == b':'

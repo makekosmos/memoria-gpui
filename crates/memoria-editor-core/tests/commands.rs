@@ -181,7 +181,10 @@ fn rule_insert_midline_splits() {
 
 #[test]
 fn rule_insert_empty_line() {
-    assert_eq!(run("a\n\nb", 2, 2, &Command::Rule), "a\n---\nb");
+    // `a\n---` would parse as a setext heading — the rule needs a blank line.
+    assert_eq!(run("a\n\nb", 2, 2, &Command::Rule), "a\n\n---\nb");
+    // A blank line already above → no extra separator.
+    assert_eq!(run("a\n\n\nb", 3, 3, &Command::Rule), "a\n\n---\nb");
 }
 
 // --- link / image ------------------------------------------------------------
