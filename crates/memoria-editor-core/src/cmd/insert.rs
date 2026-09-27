@@ -69,9 +69,12 @@ pub fn insert_link(src: &str, sel: Selection, dest: &str, title: Option<&str>) -
         tx.insert(s, &text);
         tx.selection(Selection::caret(s + 1));
     } else {
-        tx.insert(e, format!("]({dest}{title_part})"));
+        let suffix = format!("]({dest}{title_part})");
+        tx.insert(e, suffix.as_str());
         tx.insert(s, "[");
-        tx.selection(Selection::caret(e + 1 + dest.len() + title_part.len() + 1));
+        // Post-edit coords: the `[` inserted at `s` shifts everything ≥s by
+        // one byte, so the caret lands after the whole `](…)` suffix.
+        tx.selection(Selection::caret(e + 1 + suffix.len()));
     }
     tx
 }

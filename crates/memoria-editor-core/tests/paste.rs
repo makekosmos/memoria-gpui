@@ -39,6 +39,24 @@ fn html_heading_table_link() {
 }
 
 #[test]
+fn html_table_delimiter_matches_column_count() {
+    // KOS-219: the delimiter row used to be a single `| ---` regardless of
+    // the header's cell count, so pasted multi-column tables reparsed as a
+    // plain paragraph of literal pipes instead of a table.
+    let html = "<table><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr></table>";
+    let md = html_to_markdown(html);
+    assert_eq!(md, "| a | b |\n| --- | --- |\n| 1 | 2 |\n");
+    let doc = memoria_editor_core::md::parse::parse(&md);
+    assert!(doc.children.iter().any(|n| matches!(
+        n,
+        memoria_editor_core::md::ast::Node::Block {
+            kind: memoria_editor_core::md::ast::BlockKind::Table { .. },
+            ..
+        }
+    )));
+}
+
+#[test]
 fn html_word_checkbox_quote_pre() {
     let html = "<blockquote><p>q</p></blockquote><ul><li><input type=\"checkbox\" checked>t</li></ul><pre>code\nline2</pre>";
     let md = html_to_markdown(html);

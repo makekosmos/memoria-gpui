@@ -10,6 +10,39 @@ use crate::content::read_entry_markdown;
 /// `PREVIEW_LIMIT` in EverythingItemCard.vue.
 pub const PREVIEW_LIMIT: usize = 800;
 
+/// Skip leading whitespace plus an optional `- `/`+ `/`N. ` list marker at
+/// a line start.
+fn skip_list_marker(chars: &mut std::iter::Peekable<std::str::Chars>) {
+    while matches!(chars.clone().next(), Some(' ') | Some('\t')) {
+        chars.next();
+    }
+    match chars.clone().next() {
+        Some('-') | Some('+') => {
+            let mut clone = chars.clone();
+            clone.next();
+            if clone.next() == Some(' ') {
+                chars.next();
+                chars.next();
+            }
+        }
+        Some(d) if d.is_ascii_digit() => {
+            // "1. " ordered list marker.
+            let mut clone = chars.clone();
+            let mut digits = 0usize;
+            while matches!(clone.clone().next(), Some(c) if c.is_ascii_digit()) {
+                clone.next();
+                digits += 1;
+            }
+            if digits > 0 && clone.next() == Some('.') && clone.next() == Some(' ') {
+                for _ in 0..digits + 2 {
+                    chars.next();
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
 /// Markdown → plain text. Blocks collapse to single newlines; inline markers
 /// (`**`, `` ` ``, `[[…]]`, `![…](…)`, `#`, `>`) are dropped. Not a full
 /// markdown parser — a card preview only needs legible text.
@@ -18,6 +51,7 @@ pub fn markdown_plain_text(markdown: &str) -> String {
     let mut chars = markdown.chars().peekable();
     let mut line_start = true;
     let mut in_code_fence = false;
+    skip_list_marker(&mut chars);
     while let Some(ch) = chars.next() {
         if in_code_fence {
             if ch == '`' && chars.clone().take(2).eq("``".chars()) {
@@ -48,38 +82,7 @@ pub fn markdown_plain_text(markdown: &str) -> String {
                     out.push('\n');
                 }
                 line_start = true;
-                // Skip leading whitespace then an optional list marker.
-                while matches!(chars.clone().next(), Some(' ') | Some('\t')) {
-                    chars.next();
-                }
-                match chars.clone().next() {
-                    Some('-') | Some('+') => {
-                        let mut clone = chars.clone();
-                        clone.next();
-                        if clone.next() == Some(' ') {
-                            chars.next();
-                            chars.next();
-                        }
-                    }
-                    Some(d) if d.is_ascii_digit() => {
-                        // "1. " ordered list marker.
-                        let mut clone = chars.clone();
-                        let mut digits = 0usize;
-                        while matches!(clone.clone().next(), Some(c) if c.is_ascii_digit()) {
-                            clone.next();
-                            digits += 1;
-                        }
-                        if digits > 0
-                            && clone.next() == Some('.')
-                            && clone.clone().nth(1) == Some(' ')
-                        {
-                            for _ in 0..digits + 2 {
-                                chars.next();
-                            }
-                        }
-                    }
-                    _ => {}
-                }
+                skip_list_marker(&mut chars);
                 continue;
             }
             '!' | '[' | ']' | '(' | ')' => {}
@@ -130,6 +133,18 @@ mod tests {
         assert!(text.contains("пункт один"));
         assert!(!text.contains("**"));
         assert!(!text.contains('!'), "{text}");
+    }
+
+    #[test]
+    fn strips_ordered_list_markers() {
+        // KOS-219: `1. ` markers leaked into card previews — the lookahead
+        // checked the wrong char after `.`, so only `1.  x` (two spaces)
+        // was ever stripped; and a list marker on the first line was never
+        // stripped at all.
+        let text = markdown_plain_text("1. first\n2. second\n\n- bullet\nplain");
+        assert_eq!(text, "first\nsecond\nbullet\nplain");
+        let text = markdown_plain_text("12. dozen\n13.b not a marker");
+        assert_eq!(text, "dozen\n13.b not a marker");
     }
 
     #[test]
