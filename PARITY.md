@@ -57,7 +57,7 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | Entry titles | `src/lib/entryTitles.ts` | M4 | DONE (M1) |
 | Books: cover, dropzone, metadata import | `src/components/books/{BookCover,BookCoverFileDropzone,BookMetadataImportModal}.vue`, `src/lib/bookMetadata.ts`, `src/lib/bookLanguages.ts` | M5 | TODO |
 | Diary bubbles view + timeline + calendar | `src/components/bubbles/{BubbleDiaryView,BubbleTimelineItem,BubbleTiptapRenderer,BubbleDiaryCalendarSidebar}.vue`, `bubbleDiaryModel.ts`, `src/lib/kepler-bubble-api.ts` | M6 | DONE (M6: `src/diary/*` model + `src/store/bubble_api.rs` + `src/app/diary{,_item,_forms,_blocks,_calendar}.rs` — см. «Дневник — M6 GPUI»; ARK writes still blocked by Engine ingress, see Byte-compat) |
-| Stickers (floating note windows) | `src/views/StickerNoteView.vue`, `src/lib/sticker.ts`, `src/composables/useDockedWidget.ts` | M7 | PARTIAL (M4: `src/sticker_route.rs` + `src/app/sticker.rs` — `/sticker/<id>` routes, host-safe keys, floating GPUI window; GAP: `useDockedWidget`/host `kepler.window.open` docking needs the kosmos host, unavailable in GPUI shell) |
+| Stickers (floating note windows) | `src/views/StickerNoteView.vue`, `src/lib/sticker.ts`, `src/composables/useDockedWidget.ts` | M7 | DONE (`src/sticker_route.rs`, `src/app/doc.rs`, `src/app/sticker.rs` — см. «Стикеры» ниже. GAP: `useDockedWidget`/host docking и runtime always-on-top — нет API в GPUI) |
 | Settings page + sections | `src/components/settings/{SettingsPage,GeneralSettings,ExportSettings,TrashSettings}.vue(+css)`, `src/views/EdenSettingsView.vue`, `src/composables/usePreferences.ts` | M8 | PARTIAL (M4: `src/app/settings.rs` — General prefs persist via `local_state.rs` (`memoria-settings.json` + legacy `eden-settings.json`), Trash works, Export is UI-only stub pending M8) |
 | Conflict banner | `src/components/EntryConflictBanner.vue` | M8 | DONE (M4: `src/app/conflict*.rs` — recheck/accept-remote/keep-copy/copy-local/cancel; `ui_tests::extra::conflict_banner_accept_remote`) |
 | FPS monitor (dev overlay) | `src/composables/useFpsMonitor.ts` | M8 | TODO |
@@ -125,6 +125,24 @@ screenshots to compare — unit/golden tests are the parity evidence).
 | Journal migration re-run on `journalEntries` prop change mid-session | Vue `watch` → `migrateJournalEntries` | PARTIAL | GPUI migrates once per `start_diary` via `listAllEntries` (unfiltered; re-navigation retries after a failed run); a dated journal entry created mid-session migrates on the next diary open, not immediately — behavioral GAP |
 | Midnight/focus label re-resolution (`labelNow` timer + `visibilitychange`) | `midnightTimer` + listeners | PARTIAL | GPUI refreshes `labelNow` on every diary render and on `Bubbles` replies; an idle app left open across midnight keeps stale labels until the next interaction — residual GAP |
 | Populated-diary visual check vs `reference/screens/diary-*` | host screenshots | NOT_RUN | Vue shots are empty-state only (ARK ingress rejects bubble props); GPUI verified via `ui_tests::diary` |
+
+### «Стикеры» — M7 (`src/sticker_route.rs`, `src/app/doc.rs`, `src/app/sticker.rs`)
+
+| Behavior | Vue source | Status | Notes |
+|---|---|---|---|
+| `canOpenInSticker` — только `note_obj`/`book_obj` | `sticker.ts` | PASS | `sticker_route::can_open_in_sticker`; тест `sticker_route::tests::can_open_in_sticker_types` |
+| `stickerWindowKeyFor` — raw `sticker:<id>` при host-safe id, иначе FNV-1a→base36 | `sticker.ts` | PASS | fnv считает по UTF-16 code unit (`charCodeAt(0)`-паритет: для astral char — high surrogate); `sticker_roundtrip_and_window_keys`, `long_and_odd_ids_get_fnv_tags` |
+| `stickerRouteFor`/`parseStickerRoute` — `/sticker/<encoded>` | `sticker.ts` + call sites | PASS | `parse_sticker_route` — rejects: bad `%`-encoding, encoded `? # \`, whitespace, control chars, id>200 (decoded `/` легален); `#/sticker` normalisation — на call sites как в Vue. Тест `sticker_route::tests::sticker_routes` |
+| Окно 380×480, min 260×200 | `sticker.ts` STICKER_WINDOW_* | PASS | `STICKER_WINDOW_SIZE`/`STICKER_MIN_SIZE` в `open_sticker` |
+| Одно окно на ключ; reopen фокусирует существующее | `useDockedWidget` keyed windows | PASS | `Memoria::stickers` map `key → WindowHandle`; `ui_tests::sticker::sticker_reopen_focuses_existing_window` |
+| Shared document: edit в стикере виден в основном окне и наоборот | одна `entry` в store | PASS | `NoteDoc` (`app/doc.rs`) — один `MemoriaEditor`+entry snapshot на id; title — canonical string + per-window `InputState` (shared `InputState` ping-pong-ит `cx.notify` между окнами) |
+| Сохранение через общий backend, 1 save на autosave-цикл | `edenStoreSaveActions` | PASS | `DocEvent::Save` → `Backend::send`; `Reply::Saved` несёт entry id → routing к нужному doc; `ui_tests::sticker::sticker_window_shares_document_and_dedupes_save` |
+| Компактный вид: мини-титлбар, без сайдбара, title editable | `StickerNoteView.vue` | PASS | titlebar pin/close, `titlebar-open-sticker` button в основном окне (zen/route/`can_open_in_sticker`-gated) |
+| Entry points: titlebar + context menu «Открыть стикером» | `NoteView`/`EntryListItem` | PASS | `chrome.rs` button + `menus.rs` ctx item |
+| `useDockedWidget` — host `kepler.window.open` docking | `useDockedWidget.ts` | GAP | kosmos host недоступен в GPUI shell; `WindowKind::Floating` — ближайший нативный аналог |
+| Runtime always-on-top toggle (pin button) | `setAlwaysOnTop` host API | GAP | нет runtime level API в GPUI; pin — индикатор. На Wayland always-on-top для обычных окон вообще не гарантируется композитором |
+| In-sticker navigation (по ссылкам в редакторе) | `StickerNoteView` `handleNavigate` | GAP | editor-level gap (нет `Navigate` event в `MemoriaEditor`), не sticker-specific |
+| Window position persistence | — | n/a | в Vue нет — out of scope |
 
 ## Screens for reference (`reference/screens/`)
 

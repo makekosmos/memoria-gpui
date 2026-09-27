@@ -2,7 +2,6 @@
 //! operation continuations (recheck/accept need a canonical remote read).
 use gpui::Context;
 
-use memoria_gpui::content;
 use memoria_gpui::entry_conflicts::EntryConflictState;
 use memoria_gpui::live_refresh::RemoteEntryDecision;
 use memoria_gpui::model::Entry;
@@ -35,7 +34,7 @@ impl Memoria {
                     .collect();
             }
             Reply::Entry { id, result } => self.on_entry_loaded(id, result, cx),
-            Reply::Saved(result) => self.on_saved(result, cx),
+            Reply::Saved { id, result } => self.on_saved(id, result, cx),
             Reply::Deleted { id, result } => self.on_deleted(id, result, cx),
             Reply::Restored { id, result } => match result {
                 Ok(done) if done.ok => {
@@ -64,13 +63,13 @@ impl Memoria {
                     self.search_selected = 0;
                 }
             }
-            Reply::Event(event) => self.on_engine_event(event, cx),
             r @ (Reply::Bubbles(_)
             | Reply::BubbleCreated(_)
             | Reply::BubbleUpdated { .. }
             | Reply::BubbleDeleted { .. }
             | Reply::BubbleMigrated { .. }
             | Reply::DiaryMigrated(_)) => self.on_bubble_reply(r, cx),
+            Reply::Event(event) => self.on_engine_event(event, cx),
         }
         cx.notify();
     }
@@ -81,9 +80,21 @@ impl Memoria {
         result: Result<Option<Entry>, String>,
         cx: &mut Context<Self>,
     ) {
+        // Route to the shared doc first — sticker windows and remote-change
+        // reloads land there regardless of the main window's current entry.
+        if let Some(doc) = self.docs.get(&id).cloned() {
+            doc.update(cx, |doc, cx| doc.apply_entry_reply(result.clone(), cx));
+        }
         // A pending conflict op owns this reply — it needs the canonical read.
         if self.conflict_op.is_some() {
             self.conflict_entry_reply(id.clone(), result.clone(), cx);
+        }
+        // Only a reply for the main window's pending/open entry mutates
+        // `current`/`route` — a sticker-initiated load must not hijack nav.
+        let is_current_request = self.loading_entry.as_deref() == Some(id.as_str())
+            || self.current.as_ref().is_some_and(|e| e.id == id);
+        if !is_current_request {
+            return;
         }
         match result {
             Ok(Some(entry)) => {
@@ -111,44 +122,53 @@ impl Memoria {
 
     fn on_saved(
         &mut self,
+        id: String,
         result: Result<memoria_gpui::model::SaveEntryResult, String>,
         cx: &mut Context<Self>,
     ) {
-        match result {
-            Ok(saved) if saved.ok => {
-                if let Some(conflict_id) = self.pending_copy_save.take() {
-                    // keepConflictLocalAsCopy → copy landed; run accept flow.
+        // keepConflictLocalAsCopy → copy landed; run accept flow.
+        if let Some(conflict_id) = self.pending_copy_save.take() {
+            match &result {
+                Ok(saved) if saved.ok => {
                     self.send_accept_remote(conflict_id, cx);
                     return;
                 }
-                // Restore dirty from the editor: edits typed after the
-                // autosave fired are still unsaved.
-                self.dirty = self
-                    .editor
-                    .as_ref()
-                    .map(|e| {
-                        e.update(cx, |e, _| {
-                            e.mark_saved();
-                            e.is_dirty()
-                        })
-                    })
-                    .unwrap_or(false);
-                self.status = Some("Сохранено".into());
-                self.send(Command::LoadList(Vec::new()), cx);
+                Ok(saved) => self.toast(
+                    saved
+                        .message
+                        .clone()
+                        .unwrap_or_else(|| "Не удалось сохранить".into()),
+                    cx,
+                ),
+                Err(error) => self.toast(error.clone(), cx),
             }
-            Ok(saved) => {
-                self.pending_copy_save = None;
-                self.toast(
+        }
+        let saved_ok = matches!(&result, Ok(s) if s.ok);
+        // The owning doc restores dirty flags (editor revision + title) —
+        // typing during an in-flight save stays dirty in every window.
+        if let Some(doc) = self.docs.get(&id).cloned() {
+            doc.update(cx, |doc, cx| doc.on_saved(result, cx));
+        } else if !saved_ok {
+            match result {
+                Ok(saved) => self.toast(
                     saved
                         .message
                         .unwrap_or_else(|| "Не удалось сохранить".into()),
                     cx,
-                );
+                ),
+                Err(error) => self.toast(error, cx),
             }
-            Err(error) => {
-                self.pending_copy_save = None;
-                self.toast(error, cx);
+        }
+        if saved_ok {
+            if self.current.as_ref().is_some_and(|e| e.id == id) {
+                self.dirty = self
+                    .docs
+                    .get(&id)
+                    .map(|d| d.read(cx).is_dirty(cx))
+                    .unwrap_or(false);
+                self.status = Some("Сохранено".into());
             }
+            self.send(Command::LoadList(Vec::new()), cx);
         }
     }
 
@@ -197,35 +217,42 @@ impl Memoria {
                 if matches!(self.route, Route::Diary) && self.active_bubble_writes == 0 {
                     self.send(Command::ListBubbles, cx);
                 }
-                // Skip remote entry reload while the user is typing — autosave
-                // will persist, and live-refresh guards protect the buffer.
-                if !self.dirty {
-                    if let Some(id) = self.current.as_ref().map(|e| e.id.clone()) {
-                        self.send(
-                            Command::LoadEntry {
-                                id,
-                                content_only: false,
-                            },
-                            cx,
-                        );
-                    }
+                // Reload every clean open doc (current note + sticker
+                // windows) — typing docs are left alone; autosave persists
+                // and live-refresh guards protect their buffers.
+                let reload: Vec<String> = self
+                    .docs
+                    .iter()
+                    .filter(|(_, doc)| !doc.read(cx).is_dirty(cx))
+                    .map(|(id, _)| id.clone())
+                    .collect();
+                for id in reload {
+                    self.send(
+                        Command::LoadEntry {
+                            id,
+                            content_only: false,
+                        },
+                        cx,
+                    );
                 }
             }
         }
     }
 
     /// `set_current` — remote-change guard + conflict upsert, then fill the
-    /// M3 editor (via `pending_fill`) when the swap is safe.
+    /// shared doc (via `pending_fill`) when the swap is safe.
     pub(crate) fn set_current(&mut self, entry: Entry, cx: &mut Context<Self>) {
-        let raw = serde_json::from_str(&entry.content_json).unwrap_or(serde_json::Value::Null);
-        let markdown = content::read_entry_markdown(&raw);
         let current_md = self
             .editor
             .as_ref()
             .map(|e| e.read(cx).markdown().to_string())
             .unwrap_or_default();
-        let decision =
-            refresh::refresh_decision(&entry, self.current.as_ref(), &current_md, self.dirty);
+        let decision = refresh::refresh_decision(
+            &entry,
+            self.current.as_ref(),
+            &current_md,
+            self.current_doc_dirty(cx),
+        );
         match decision {
             RemoteEntryDecision::Apply => {
                 // A remote revision differing from the open baseline while the
@@ -239,7 +266,7 @@ impl Memoria {
                         );
                     }
                 }
-                self.pending_fill = Some((entry.title.clone(), markdown));
+                self.pending_fill = Some(entry.clone());
                 self.current = Some(entry);
                 self.dirty = false;
             }

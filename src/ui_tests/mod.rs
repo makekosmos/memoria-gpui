@@ -215,3 +215,4 @@ fn pin_via_context_menu(cx: &mut TestAppContext) {
 /// Delete via context menu + confirm → the open entry falls back to «Всё»
 mod diary;
 mod extra;
+mod sticker;

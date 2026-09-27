@@ -17,17 +17,18 @@ impl Render for Memoria {
             self.root_focus.focus(window, cx);
         }
 
-        // Ensure editor/title entities exist and apply any pending fill from
-        // Engine replies (`set_value` / `set_markdown` need a `Window`).
-        let title_state = self.title_state(window, cx);
-        let editor = self.editor_state(window, cx);
-        if let Some((title, markdown)) = self.pending_fill.take() {
-            title_state.update(cx, |s, cx| s.set_value(title, window, cx));
-            // `set_markdown` emits no `Edited` event and does not mark the
-            // editor dirty — a programmatic fill isn't a user edit.
-            editor.update(cx, |e, cx| e.set_markdown(&markdown, cx));
+        // Sync the shared doc for the current entry — creates the doc's
+        // editor + this window's title binding on first paint and pushes the
+        // canonical title into the binding (`set_value` needs a `Window`).
+        if let Some(entry) = self.pending_fill.take() {
+            let markdown = memoria_gpui::content::read_entry_markdown(
+                &serde_json::from_str(&entry.content_json).unwrap_or(serde_json::Value::Null),
+            );
+            let doc = self.ensure_doc(&entry.id, window, cx);
+            doc.update(cx, |doc, cx| doc.apply_fill(&entry, &markdown, cx));
             self.dirty = false;
         }
+        self.sync_editor_entities(window, cx);
 
         // `composerEditor.clearContent()` + reply reset deferred from bubble
         // replies. An open *edit* session keeps its text (Vue `editText` is

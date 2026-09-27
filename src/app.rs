@@ -34,9 +34,10 @@ mod toasts;
 mod trash;
 mod types;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 
-use gpui::{Context, Entity, FocusHandle, Subscription};
+use gpui::{Context, Entity, FocusHandle, Subscription, WindowHandle};
 use gpui_component::input::InputState;
 use memoria_editor_gpui::MemoriaEditor;
 
@@ -50,12 +51,14 @@ use memoria_gpui::store::{Command, Engine, Worker};
 use types::{Confirm, ConflictOp, CtxMenu, DataDirStore, Toast};
 
 mod dispatch;
+mod doc;
 mod nav;
 mod replies;
 mod replies_diary;
 
 pub(crate) use backend::Backend;
 pub(crate) use demo::DemoStore;
+pub(crate) use doc::{DocEvent, NoteDoc};
 pub(crate) use toasts::{icon, icon_name};
 
 pub struct Memoria {
@@ -95,9 +98,15 @@ pub struct Memoria {
     pub(crate) editor: Option<Entity<MemoriaEditor>>,
     /// Zen mode (Vue `Ctrl+K Z`): hides the sidebar.
     pub(crate) zen: bool,
-    /// (title, markdown) queued for the inputs — `set_value` needs a `Window`,
-    /// so replies stash values here and `render` applies them.
-    pub(crate) pending_fill: Option<(String, String)>,
+    /// Entry queued for the shared doc — `set_value` needs a `Window`, so
+    /// replies stash it here and `render` applies it via `NoteDoc::apply_fill`.
+    pub(crate) pending_fill: Option<Entry>,
+    /// Shared per-entry documents — the main window and every sticker window
+    /// showing a note edit the same `NoteDoc` (one buffer, one save path).
+    pub(crate) docs: HashMap<String, Entity<NoteDoc>>,
+    /// Open sticker windows by `stickerWindowKeyFor` id — reopening a key
+    /// focuses the existing window instead of spawning a duplicate.
+    pub(crate) stickers: HashMap<String, WindowHandle<gpui_component::Root>>,
     // ---- diary (M6) ---------------------------------------------------------
     /// Thread-normalized diary feed (`listBubbles` reply).
     pub(crate) bubbles: Vec<memoria_gpui::diary::BubbleTimelineNode>,
@@ -193,6 +202,8 @@ impl Memoria {
             editor: None,
             zen: false,
             pending_fill: None,
+            docs: HashMap::new(),
+            stickers: HashMap::new(),
             bubbles: Vec::new(),
             bubbles_loaded: false,
             diary_calendar_open: false,

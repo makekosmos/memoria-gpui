@@ -15,6 +15,9 @@ pub(crate) struct DemoStore {
     pub entries: Vec<Entry>,
     pub note_types: Vec<NoteType>,
     pub ark: DemoArk,
+    /// `SaveEntry` calls observed — tests assert one save per autosave cycle
+    /// even when several windows edit the same document.
+    pub save_count: usize,
     seq: u64,
 }
 
@@ -28,6 +31,7 @@ impl DemoStore {
             entries: Vec::new(),
             note_types: system_types(),
             ark: DemoArk::default(),
+            save_count: 0,
             seq: 0,
         }
     }
@@ -107,7 +111,11 @@ impl DemoStore {
                     Some(slot) => *slot = entry.clone(),
                     None => self.entries.push(entry.clone()),
                 }
-                Reply::Saved(Ok(SaveEntryResult::ok(entry.id)))
+                self.save_count += 1;
+                Reply::Saved {
+                    id: entry.id.clone(),
+                    result: Ok(SaveEntryResult::ok(entry.id)),
+                }
             }
             Command::DeleteEntry(id) => {
                 if let Some(e) = self.entries.iter_mut().find(|e| e.id == id) {

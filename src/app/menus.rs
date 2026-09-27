@@ -1,7 +1,7 @@
 //! Context menu + confirm dialog — the Vue `@click.stop` context menu on
 //! Everything cards and the `window.confirm` equivalents for destructive
 //! trash actions.
-use gpui::{div, prelude::*, px, Context, MouseButton, SharedString};
+use gpui::{div, prelude::*, px, Context, MouseButton, Window};
 
 use super::types::{Confirm, CtxMenu};
 use super::Memoria;
@@ -45,39 +45,34 @@ impl Memoria {
         cx.notify();
     }
 
-    /// `openStickerWindow` — a floating GPUI window per entry id.
-    /// `canOpenInSticker` guards: stickers only render note/book types.
-    pub(crate) fn open_sticker(&mut self, entry_id: String, cx: &mut Context<Self>) {
+    /// `openStickerWindow` — one floating GPUI window per note key; reopening
+    /// focuses the existing window (`menus.rs` keeps the key→window registry
+    /// — `kepler.window.open` keyed semantics). `canOpenInSticker` guards:
+    /// stickers only render note/book types.
+    pub(crate) fn open_sticker(
+        &mut self,
+        entry_id: String,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let type_id = self
             .list
             .iter()
             .find(|e| e.id == entry_id)
-            .and_then(|e| e.type_id.clone());
+            .and_then(|e| e.type_id.clone())
+            .or_else(|| {
+                self.current
+                    .as_ref()
+                    .filter(|e| e.id == entry_id)
+                    .and_then(|e| e.type_id.clone())
+            });
         if !memoria_gpui::sticker_route::can_open_in_sticker(type_id.as_deref()) {
             self.toast("Стикер доступен только для заметок и книг", cx);
             return;
         }
-        let key = memoria_gpui::sticker_route::sticker_window_key_for(&entry_id);
-        let route = memoria_gpui::sticker_route::sticker_route_for(&entry_id);
-        let id = entry_id.clone();
-        let bounds = gpui::Bounds::centered(None, gpui::size(px(420.), px(520.)), cx);
-        let _ = cx.open_window(
-            gpui::WindowOptions {
-                window_bounds: Some(gpui::WindowBounds::Windowed(bounds)),
-                kind: gpui::WindowKind::Floating,
-                titlebar: Some(gpui::TitlebarOptions {
-                    title: Some(SharedString::from("Memoria — стикер")),
-                    appears_transparent: true,
-                    ..Default::default()
-                }),
-                ..Default::default()
-            },
-            move |window, cx| {
-                let view = cx.new(|cx| super::sticker::StickerView::new(id.clone(), window, cx));
-                cx.new(|cx| gpui_component::Root::new(view, window, cx))
-            },
-        );
-        let _ = (key, route);
+        if !super::sticker::open_sticker_window(self, &entry_id, window, cx) {
+            self.toast("Не удалось открыть стикер", cx);
+        }
     }
 
     /// `handlePermanentDelete` — confirm first (Vue `window.confirm`).
@@ -100,7 +95,7 @@ impl Memoria {
 
         let item = |id: &'static str,
                     label: &'static str,
-                    f: Box<dyn Fn(&mut Memoria, &mut Context<Memoria>)>,
+                    f: Box<dyn Fn(&mut Memoria, &mut Window, &mut Context<Memoria>)>,
                     cx: &mut Context<Self>| {
             let weak = cx.weak_entity();
             div()
@@ -116,10 +111,10 @@ impl Memoria {
                 .text_color(c(FG()))
                 .cursor_pointer()
                 .hover(|s| s.bg(rgba(FG(), 0.08)))
-                .on_click(move |_, _, cx| {
+                .on_click(move |_, window, cx| {
                     let _ = weak.update(cx, |this, cx| {
                         this.ctx_menu = None;
-                        f(this, cx);
+                        f(this, window, cx);
                     });
                 })
                 .child(label)
@@ -166,19 +161,21 @@ impl Memoria {
                             } else {
                                 "Закрепить"
                             },
-                            Box::new(move |this, cx| this.toggle_pin(&id1, cx)),
+                            Box::new(move |this, _window, cx| this.toggle_pin(&id1, cx)),
                             cx,
                         ))
                         .child(item(
                             "ctx-sticker",
                             "Открыть стикером",
-                            Box::new(move |this, cx| this.open_sticker(id2.clone(), cx)),
+                            Box::new(move |this, window, cx| {
+                                this.open_sticker(id2.clone(), window, cx)
+                            }),
                             cx,
                         ))
                         .child(item(
                             "ctx-delete",
                             "Удалить",
-                            Box::new(move |this, cx| {
+                            Box::new(move |this, _window, cx| {
                                 this.confirm = Some(Confirm::DeleteEntry(id3.clone()));
                                 cx.notify();
                             }),
