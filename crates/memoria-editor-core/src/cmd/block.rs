@@ -246,11 +246,15 @@ pub fn insert_rule(src: &str, sel: Selection) -> Tx {
     );
     let l0 = line_range(src, s);
     let l1 = line_range(src, e.saturating_sub(1).max(s));
+    // `---` directly under a non-empty line parses as a setext H2 underline,
+    // not a rule — keep a blank line above the marker.
+    let needs_blank_above = l0.start > 0 && !src[line_range(src, l0.start - 1)].trim().is_empty();
     let mut tx = Tx::new();
     if l0 == l1 && src[l0.clone()].trim().is_empty() {
         // Empty line: drop the rule there, caret after it.
-        tx.replace(l0.start, l0.end, "---");
-        tx.selection(Selection::caret(l0.start + 3));
+        let text = if needs_blank_above { "\n---" } else { "---" };
+        tx.replace(l0.start, l0.end, text);
+        tx.selection(Selection::caret(l0.start + text.len()));
         return tx;
     }
     // Split the touched lines: `ab|cd` → `ab\n\n---\n\ncd`.
@@ -260,6 +264,8 @@ pub fn insert_rule(src: &str, sel: Selection) -> Tx {
     if !before.is_empty() {
         text.push_str(&before);
         text.push_str("\n\n");
+    } else if needs_blank_above {
+        text.push('\n');
     }
     text.push_str("---");
     let caret = text.len();
