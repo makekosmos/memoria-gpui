@@ -40,7 +40,10 @@ fn main() {
     if target.ends_with("-msvc") {
         // MSVC (native or cargo-xwin): llvm-rc/rc.exe via embed-resource.
         // Icon + VERSIONINFO only — no RT_MANIFEST (gpui-pre owns id=1).
+        // `.manifest_required()` here means "compilation must succeed" (embed-resource
+        // API), not "RC must contain RT_MANIFEST".
         embed_resource::compile(&rc, embed_resource::NONE)
+            .manifest_required()
             .expect("embed Memoria icon and version resources");
         return;
     }
