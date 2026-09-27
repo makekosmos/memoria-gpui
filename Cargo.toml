@@ -20,7 +20,7 @@ serde = { version = "1.0.229", features = ["derive"] }
 # preserve_order: Vue parity depends on JSON.stringify key order — header
 # props, extensions and fingerprinted content must keep insertion order.
 serde_json = { version = "1.0.151", features = ["preserve_order"] }
-uuid = { version = "1.26.1", features = ["v4"] }
+uuid = { version = "1.26.1", features = ["v4", "v5"] }
 ureq = { version = "2.12", default-features = false, features = ["json"] }
 thiserror = "2"
 regex = "1.11"
@@ -32,6 +32,8 @@ sha2 = "0.10.9"
 # engine.lock.json); loopback only, no TLS.
 tungstenite = { version = "0.26", default-features = false, features = ["handshake"] }
 memoria-editor-gpui = { version = "0.1.0", path = "crates/memoria-editor-gpui" }
+unicode-normalization = "0.1.25"
+percent-encoding = "2.3.2"
 
 [dev-dependencies]
 proptest = "1.5"

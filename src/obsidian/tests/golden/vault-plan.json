@@ -1,0 +1,197 @@
+{
+  "result": {
+    "entries": [
+      {
+        "sourcePath": "vault/Atlas.md",
+        "relativePath": "Atlas.md",
+        "title": "Atlas",
+        "typeId": "custom-note",
+        "bodyMarkdown": "\n# Atlas\n\nКорневая заметка vault'а. Ссылки: [[Проекты]], [[daily/2026-09-24|вчерашний день]].\n\n![kosmos-mark](file:///vault/attachments/kosmos-mark.png)\n",
+        "headerProps": {
+          "tags": [
+            "map",
+            "index"
+          ],
+          "aliases": [
+            "Карта"
+          ]
+        },
+        "wikilinks": [
+          "Проекты",
+          "daily/2026-09-24"
+        ],
+        "imageRefs": [
+          "file:///vault/attachments/kosmos-mark.png"
+        ]
+      },
+      {
+        "sourcePath": "vault/daily/2026-09-24.md",
+        "relativePath": "daily/2026-09-24.md",
+        "title": "2026-09-24",
+        "typeId": "custom-note",
+        "bodyMarkdown": "\n- список дел #tag1\n- заметка без заголовков\n",
+        "headerProps": {
+          "source_type_id": "daily"
+        },
+        "wikilinks": [],
+        "imageRefs": []
+      },
+      {
+        "sourcePath": "vault/daily/2026-09-25.md",
+        "relativePath": "daily/2026-09-25.md",
+        "title": "2026-09-25",
+        "typeId": "custom-note",
+        "bodyMarkdown": "\nТекст с **жирным** и `кодом`.\n\n> [!NOTE] Callout\n> тело callout\n",
+        "headerProps": {
+          "mood": "ok",
+          "source_type_id": "daily"
+        },
+        "wikilinks": [],
+        "imageRefs": []
+      },
+      {
+        "sourcePath": "vault/notes/Projects.md",
+        "relativePath": "notes/Projects.md",
+        "title": "Projects",
+        "typeId": "custom-note",
+        "bodyMarkdown": "\n# Проекты\n\n- [[Atlas]]\n- внешняя ссылка: https://example.invalid\n\n```rust\nfn main() {}\n```\n",
+        "headerProps": {
+          "created": "2026-09-01",
+          "status": "active"
+        },
+        "wikilinks": [
+          "Atlas"
+        ],
+        "imageRefs": []
+      }
+    ],
+    "images": [
+      {
+        "id": "image:730fb6c5-da6b-5990-a6d7-16bf2151447a",
+        "title": "kosmos-mark.png",
+        "typeId": "image_obj",
+        "contentJson": {
+          "type": "markdown",
+          "version": 1,
+          "text": "![](file:///vault/attachments/kosmos-mark.png)"
+        },
+        "headerProps": {
+          "image": "file:///vault/attachments/kosmos-mark.png",
+          "file_name": "kosmos-mark.png",
+          "mime_type": "image/png",
+          "size_bytes": 273,
+          "width": 64,
+          "height": 64,
+          "resolution": "64x64",
+          "source_path": "vault/attachments/kosmos-mark.png",
+          "source_vault": "vault",
+          "source_vault_key": "vault",
+          "source_relative_path": "attachments/kosmos-mark.png",
+          "source_relative_path_key": "attachments/kosmos-mark.png",
+          "legacy_image_id": "image:f7de9a0d",
+          "alt_text": "kosmos-mark"
+        }
+      }
+    ],
+    "imageReport": {
+      "resolved": [
+        {
+          "reference": "attachments/kosmos-mark.png",
+          "status": "resolved",
+          "asset": {
+            "path": "vault/attachments/kosmos-mark.png",
+            "relativePath": "attachments/kosmos-mark.png",
+            "name": "kosmos-mark.png",
+            "fileUrl": "file:///vault/attachments/kosmos-mark.png",
+            "mimeType": "image/png",
+            "sizeBytes": 273,
+            "width": 64,
+            "height": 64
+          },
+          "candidates": [
+            {
+              "path": "vault/attachments/kosmos-mark.png",
+              "relativePath": "attachments/kosmos-mark.png",
+              "name": "kosmos-mark.png",
+              "fileUrl": "file:///vault/attachments/kosmos-mark.png",
+              "mimeType": "image/png",
+              "sizeBytes": 273,
+              "width": 64,
+              "height": 64
+            }
+          ]
+        }
+      ],
+      "ambiguous": [],
+      "missing": [],
+      "invalid": [],
+      "collisions": [],
+      "imported": [
+        {
+          "id": "image:730fb6c5-da6b-5990-a6d7-16bf2151447a",
+          "relativePath": "attachments/kosmos-mark.png",
+          "legacyId": "image:f7de9a0d"
+        }
+      ],
+      "reused": [],
+      "collided": [],
+      "skipped": [],
+      "failed": [],
+      "blockingCollisions": [],
+      "invalidImagePaths": [],
+      "canWrite": true
+    }
+  },
+  "relatedPlans": [
+    {
+      "entryId": "note:a700f55d-f82a-5207-b803-61069f5416e6",
+      "plan": {
+        "firstPassHeaderProps": {
+          "tags": [
+            "map",
+            "index"
+          ],
+          "aliases": [
+            "Карта"
+          ]
+        },
+        "secondPassRelatedIds": [],
+        "unresolvedTargets": [
+          "Проекты",
+          "daily/2026-09-24"
+        ]
+      }
+    },
+    {
+      "entryId": "note:a9502dbd-8ebd-5946-8e82-a6f8761b23b7",
+      "plan": {
+        "firstPassHeaderProps": {
+          "source_type_id": "daily"
+        },
+        "secondPassRelatedIds": []
+      }
+    },
+    {
+      "entryId": "note:bc4bc6fc-9b29-584e-bc81-b9b500d8dca5",
+      "plan": {
+        "firstPassHeaderProps": {
+          "mood": "ok",
+          "source_type_id": "daily"
+        },
+        "secondPassRelatedIds": []
+      }
+    },
+    {
+      "entryId": "note:5d6cbfdf-46e7-5768-ab11-a390305514ba",
+      "plan": {
+        "firstPassHeaderProps": {
+          "created": "2026-09-01",
+          "status": "active"
+        },
+        "secondPassRelatedIds": [
+          "note:a700f55d-f82a-5207-b803-61069f5416e6"
+        ]
+      }
+    }
+  ]
+}

@@ -6,7 +6,7 @@
 pub mod bubble_api;
 mod bubble_migrate;
 mod entry_api;
-mod note_type_api;
+pub(crate) mod note_type_api;
 #[cfg(test)]
 mod tests;
 pub mod transport;
