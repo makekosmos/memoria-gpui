@@ -148,15 +148,17 @@ impl Buffer {
         }
         let (ls, le) = self.line_range(byte);
         if byte <= ls {
-            // At a line start: step over the previous line's terminator
-            // (`\r\n` counts as one unit).
+            // At a line start: step over the previous line's terminator —
+            // exactly one (`\r\n` counts as a unit). Consuming a whole run
+            // would make Backspace erase every blank line above at once.
             let tail = self.slice(byte.saturating_sub(4), byte);
-            return byte
-                - tail
-                    .bytes()
-                    .rev()
-                    .take_while(|b| matches!(b, b'\n' | b'\r'))
-                    .count();
+            let back = match tail.as_bytes() {
+                [.., b'\r', b'\n'] => 2,
+                [.., b'\n'] | [.., b'\r'] => 1,
+                // Unicode line separator (NEL/LS/PS/VT/FF) — step its width.
+                _ => tail.chars().last().map_or(0, |c| c.len_utf8()),
+            };
+            return byte - back;
         }
         if byte > le {
             // inside/after line terminator: step over it as one unit
