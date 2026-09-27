@@ -14,20 +14,27 @@ pub fn highlight_ranges(text: &str, query: &str) -> Vec<(usize, usize)> {
     if query.is_empty() {
         return Vec::new();
     }
-    let text_lower = text.to_lowercase();
-    let query_lower = query.to_lowercase();
+    // Lowercase each original char and record, for every lowered char, which
+    // original char produced it. Expanding chars like 'İ'→"i̇" make byte/char
+    // offsets differ between `text` and its lowercase, so match positions are
+    // mapped back through `origin` instead of slicing `text`.
+    let mut lowered: Vec<char> = Vec::with_capacity(text.len());
+    let mut origin: Vec<usize> = Vec::with_capacity(text.len());
+    for (ix, ch) in text.chars().enumerate() {
+        for lc in ch.to_lowercase() {
+            lowered.push(lc);
+            origin.push(ix);
+        }
+    }
+    let needle: Vec<char> = query.to_lowercase().chars().collect();
     let mut ranges = Vec::new();
-    let mut start = 0usize;
-    while let Some(pos) = text_lower[start..].find(&query_lower) {
-        let abs = start + pos;
-        let end = abs + query_lower.len();
-        // byte→char index conversion (Cyrillic-safe).
-        let start_char = text[..abs].chars().count();
-        let end_char = text[..end.min(text.len())].chars().count();
-        ranges.push((start_char, end_char));
-        start = end.max(start + 1);
-        if start >= text_lower.len() {
-            break;
+    let mut i = 0usize;
+    while i + needle.len() <= lowered.len() {
+        if lowered[i..i + needle.len()] == needle[..] {
+            ranges.push((origin[i], origin[i + needle.len() - 1] + 1));
+            i += needle.len();
+        } else {
+            i += 1;
         }
     }
     ranges
@@ -101,6 +108,25 @@ mod tests {
         assert_eq!(highlight_ranges("Привет мир", "Привет"), vec![(0, 6)]);
         assert_eq!(highlight_ranges("aaa", ""), Vec::<(usize, usize)>::new());
         assert_eq!(highlight_ranges("a a a", "a"), vec![(0, 1), (2, 3), (4, 5)]);
+    }
+
+    #[test]
+    fn ranges_lowercase_expansion_does_not_panic() {
+        // 'İ' (U+0130, 2 bytes) lowercases to "i̇" (3 bytes) — byte offsets
+        // into the lowered text are not char boundaries in the original.
+        assert_eq!(highlight_ranges("İstanbul", "i"), vec![(0, 1)]);
+        // Also matches the plain ASCII 'i' in "İzmir".
+        assert_eq!(
+            highlight_ranges("İstanbul İzmir", "i"),
+            vec![(0, 1), (9, 10), (12, 13)]
+        );
+        // A combining-mark expansion still highlights the original char.
+        assert_eq!(highlight_ranges("İxİ", "i̇"), vec![(0, 1), (2, 3)]);
+        // An expanding query char does not false-positive on plain 'i'.
+        assert_eq!(
+            highlight_ranges("istanbul", "İ"),
+            Vec::<(usize, usize)>::new()
+        );
     }
 
     #[test]
