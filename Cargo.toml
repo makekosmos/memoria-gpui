@@ -55,3 +55,25 @@ opt-level = 3
 debug-assertions = false
 overflow-checks = false
 
+[profile.release]
+# debug-assertions MUST stay false: gpui-pre-windows compiles its HLSL
+# shaders via fxc only when build scripts are built without debug
+# assertions (see its build.rs); the debug path is a runtime compile that
+# bakes a Linux cargo-registry path into the exe when cross-compiling.
+debug = false
+debug-assertions = false
+
+# Ensure gpui's build.rs (not just the lib) sees debug_assertions=false so it
+# runs fxc and emits shaders_bytes.rs. Cargo's default release build-override
+# can leave assertions on for build scripts.
+[profile.release.build-override]
+debug-assertions = false
+opt-level = 0
+
+# Unconditional so build.rs can invoke embed_resource::compile unconditionally
+# once its CARGO_CFG_TARGET_OS check passes (target-gated deps would also
+# resolve for a Windows target, but the crate name would still need cfg-gated
+# code paths in build.rs on non-Windows builds).
+[build-dependencies]
+embed-resource = "3.0"
+

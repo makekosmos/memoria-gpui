@@ -30,12 +30,59 @@ Vue Memoria. Приложение читает `engine.lock.json` из `%APPDATA
 
 `MEMORIA_OFFSCREEN=1` паркует окно за пределами экрана (для headless-запусков).
 
+## CI и ночные сборки
+
+GitHub Actions проверяет форматирование, правила версий, Clippy и размер файлов
+(Windows), тесты и release-сборки при push в `main` и в pull request
+(`ci.yml` + `build.yml`). Архивы сборок доступны в Artifacts каждого успешного
+запуска в течение 7 дней.
+
+Каждый день в **00:00 МСК** (`21:00 UTC`) workflow `Build and package` собирает
+артефакты для всех платформ. Ручной запуск: Actions → Build and package →
+Run workflow на основной ветке. `scripts/release.py` берёт версию из
+`Cargo.toml` (правила `X.Y.Z` — те же, что у agenda-gpui; проверка локально:
+`python scripts/test_release.py`, Python 3.11+).
+
+Платформы: **Windows x86_64** (ZIP с EXE + VERSIONINFO/иконка через `build.rs`),
+**Linux x86_64** (tar.gz, сборка на Ubuntu 24.04) и **macOS Apple Silicon**
+(tar.gz с `Memoria.app`, ad-hoc подпись без notarization). `collect`-job
+складывает все архивы вместе с `SHA256SUMS.txt`. GitHub Release не создаётся —
+публикация отложена до решения по умолчанию (см. KOS-156).
+
+## Упаковка в состав Kosmos (KOS-156)
+
+Transitional Windows-инсталлер Kosmos зашивает этот бинарь как компонент
+`resources/components/memoria/Kosmos Memoria.exe` рядом с `components/manager`
+(GPUI Manager) и `components/agenda` (KOS-137). Сборкой управляет
+`cortex/desktop/scripts/build-package-components.mjs`: он берёт checkout этого
+репозитория из `KOSMOS_MEMORIA_GPUI_SRC` (или sibling `../memoria-gpui`),
+проверяет `git rev-parse HEAD` по пину `desktop/component-pins.json` и собирает
+`cargo build --locked --release --target x86_64-pc-windows-msvc` с
+`KOSMOS_MEMORIA_VERSION=<win-версия релиза>` — build.rs штампует VERSIONINFO
+этой версией (без env — версия из Cargo.toml).
+
+Запуск из установленного продукта: launcher-команда «Открыть Memoria (GPUI)»,
+ярлык Start Menu «Kosmos Memoria» и кнопка «Открыть Memoria» в GPUI Manager —
+все три пути резолвят один exe и используют общий `KOSMOS_DATA_DIR`
+(`%APPDATA%\Kosmos` в prod), поэтому Memoria GPUI читает тот же
+`engine.lock.json`, что и Manager. Vue Memoria (`com.kosmos.memoria` .kspkg)
+остаётся fallback и не удаляется.
+
+Linux → MSVC evidence-build (не для публикации):
+
+```bash
+cargo xwin build --release --locked --target x86_64-pc-windows-msvc
+GPUI_FXC_PATH=/path/to/fxc scripts/compile-shaders-xwin.sh
+cargo xwin build --release --locked --target x86_64-pc-windows-msvc
+```
+
 ## Статус
 
-M0: scaffold + parity matrix + fixtures + reference screenshots. UI-реализация
-начинается с M1 — см. PARITY.md.
+M1–M8 merged в `main` (shell, editor, typed objects, diary, stickers,
+Obsidian import/export + task sync); M9 добавляет упаковку в продукт —
+см. PARITY.md (финальный аудит) и раздел «Поставка» выше.
 
-M2 (ветка `kos-149`): `crates/memoria-editor-core` — ядро редактора без GPUI:
+`crates/memoria-editor-core` — ядро редактора без GPUI:
 rope-буфер, pulldown-cmark парсер с офсетами, Live Preview проекция
 (скрытие маркеров по Obsidian-правилу + маппинг visible↔source), команды
 StarterKit/TaskList, undo/redo с группировкой, paste (HTML→markdown),
