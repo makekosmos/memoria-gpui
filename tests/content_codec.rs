@@ -207,3 +207,25 @@ fn tiptap_doc_with_marks_and_images_reads_to_markdown() {
         "**bold** [link](https://example.com)\n\n![pic](https://cdn.test/pic.png)"
     );
 }
+
+#[test]
+fn inline_code_fence_grows_for_inner_backtick_runs() {
+    // KOS-249: `wrapInlineCode` always used `` `` `` — code text containing a
+    // `` `` `` run emitted "`` a``b ``", which re-parses as nested spans and
+    // corrupts the document on the next read.
+    let doc = json!({
+        "type": "doc",
+        "content": [{
+            "type": "paragraph",
+            "content": [
+                { "type": "text", "text": "use " },
+                { "type": "text", "text": "a``b", "marks": [{ "type": "code" }] },
+                { "type": "text", "text": " ok" },
+            ]
+        }],
+    });
+
+    let markdown = tiptap_doc_to_markdown(&doc);
+    assert_eq!(markdown, "use ``` a``b ``` ok");
+    assert_eq!(read_entry_tiptap_doc(&write_entry_markdown(&markdown)), doc);
+}

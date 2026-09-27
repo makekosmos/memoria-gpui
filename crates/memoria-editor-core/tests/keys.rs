@@ -236,3 +236,50 @@ fn tab_in_paragraph_inserts_tab() {
     e.key_tab();
     assert_eq!(e.text(), "a\tb");
 }
+
+// --- Shift+Enter -------------------------------------------------------------
+
+#[test]
+fn shift_enter_in_paragraph_inserts_hard_break() {
+    let mut e = ed("ab", 1);
+    e.key_shift_enter();
+    assert_eq!(e.text(), "a\\\nb");
+    assert_eq!(e.selection().start(), 3);
+}
+
+// KOS-249: inside a fenced code block Shift+Enter used to emit a literal
+// `\` + newline — the `\` stayed in the source as corrupting text. Tiptap
+// maps it to `exitCode` — escape the fence onto a fresh paragraph below.
+#[test]
+fn shift_enter_in_code_exits_block() {
+    let mut e = ed("```\nlet x = 1;\n```", 9);
+    e.key_shift_enter();
+    assert_eq!(e.text(), "```\nlet x = 1;\n```\n");
+    assert_eq!(e.selection().start(), e.text().len());
+}
+
+#[test]
+fn shift_enter_in_code_with_following_text() {
+    let mut e = ed("```\nx\n```\ny", 5);
+    e.key_shift_enter();
+    // The new paragraph needs its own blank line — the existing `y` line is
+    // pushed down so typed text won't merge into it.
+    assert_eq!(e.text(), "```\nx\n```\n\n\ny");
+    assert_eq!(e.selection().start(), 10);
+}
+
+#[test]
+fn shift_enter_in_code_with_blank_line_after() {
+    let mut e = ed("```\nx\n```\n\ny", 5);
+    e.key_shift_enter();
+    assert_eq!(e.text(), "```\nx\n```\n\ny");
+    assert_eq!(e.selection().start(), 10);
+}
+
+#[test]
+fn shift_enter_in_unclosed_fence_closes_it() {
+    let mut e = ed("```\nx", 4);
+    e.key_shift_enter();
+    assert_eq!(e.text(), "```\nx\n```\n\n");
+    assert_eq!(e.selection().start(), e.text().len());
+}

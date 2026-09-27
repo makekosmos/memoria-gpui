@@ -205,12 +205,16 @@ pub(crate) fn render_marked_text(text: &str, marks: &[Value]) -> String {
     rendered
 }
 
-/// `wrapInlineCode`.
+/// `wrapInlineCode` — the delimiter grows past the longest inner backtick
+/// run (same rule as `render_code_fence`); a fixed `` `` `` fence would be
+/// re-parsed as nested spans when the text contains `` `` ``.
 fn wrap_inline_code(text: &str) -> String {
-    if !text.contains('`') {
+    let max_run = text.split(|c| c != '`').map(str::len).max().unwrap_or(0);
+    if max_run == 0 {
         return format!("`{text}`");
     }
-    format!("`` {text} ``")
+    let fence = "`".repeat((max_run + 1).max(2));
+    format!("{fence} {text} {fence}")
 }
 
 /// `escapeMarkdownText` — escapes `\ [ ] * _ ~`.

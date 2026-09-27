@@ -1,7 +1,7 @@
 //! Key behavior — Enter / Backspace / Tab / Shift+Tab matching TipTap
 //! semantics in lists, quotes, headings and code blocks.
 
-use crate::cmd::util::{heading_marker, line_range, list_marker, quote_marker};
+use crate::cmd::util::{code_exit_edit, heading_marker, line_range, list_marker, quote_marker};
 use crate::cursor::Selection;
 use crate::editor::{Editor, Tx};
 use crate::history::EditKind;
@@ -226,10 +226,24 @@ impl Editor {
         self.apply(tx, EditKind::Delete);
     }
 
-    /// Shift+Enter — hard break, serialized `\` + `\n` like Vue.
+    /// Shift+Enter — hard break, serialized `\` + `\n` like Vue. Inside a
+    /// fenced code block Tiptap maps it to `exitCode` instead: escape the
+    /// fence onto a fresh paragraph below rather than emitting a literal
+    /// `\` into the source.
     pub fn key_shift_enter(&mut self) {
         let sel = self.selection();
+        let src = self.text();
         let (s, e) = (sel.start(), sel.end());
+        if let Some(br) =
+            fenced_block_containing(&crate::md::parse::parse(&src), s).filter(|br| e <= br.end)
+        {
+            let (pos, ins, caret) = code_exit_edit(&src, &br);
+            let mut tx = Tx::new();
+            tx.insert(pos, &ins);
+            tx.selection(Selection::caret(caret));
+            self.apply(tx, EditKind::Insert);
+            return;
+        }
         let mut tx = Tx::new();
         tx.replace(s, e, "\\\n");
         tx.selection(Selection::caret(s + 2));

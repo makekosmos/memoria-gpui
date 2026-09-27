@@ -82,14 +82,40 @@ fn first_markdown_image_src(md: &str) -> Option<&str> {
     while i + 1 < bytes.len() {
         if bytes[i] == b'!' && bytes[i + 1] == b'[' {
             if bytes.get(i + 2) == Some(&b'[') {
-                let start = i + 3;
-                let end = md[start..]
-                    .find(|c| ['|', ']'].contains(&c))
-                    .map(|o| start + o)?;
-                let target = md[start..end].trim();
-                if !target.is_empty() {
-                    return Some(target);
+                // `![[target|alias]]` — the target ends at `|` or `]]`; a
+                // `[`, newline, or lone `]` before `]]` leaves the embed
+                // unclosed, so skip it and keep looking for a later image.
+                let mut j = i + 3;
+                let mut target_end = None;
+                let mut close = None;
+                while j < bytes.len() {
+                    match bytes[j] {
+                        b'[' | b'\n' => break,
+                        b'|' if target_end.is_none() => target_end = Some(j),
+                        b']' => {
+                            if bytes.get(j + 1) == Some(&b']') {
+                                close = Some(j + 2);
+                                if target_end.is_none() {
+                                    target_end = Some(j);
+                                }
+                            }
+                            break;
+                        }
+                        _ => {}
+                    }
+                    j += 1;
                 }
+                match (target_end, close) {
+                    (Some(te), Some(c)) => {
+                        let target = md[i + 3..te].trim();
+                        if !target.is_empty() {
+                            return Some(target);
+                        }
+                        i = c;
+                    }
+                    _ => i += 2,
+                }
+                continue;
             } else if let Some(start) = md[i..].find("](").map(|o| i + o + 2) {
                 if let Some(end) = md[start..].find(')') {
                     let src = md[start..start + end]
@@ -145,5 +171,23 @@ mod tests {
     fn empty_means_no_image() {
         let e = image_entry(json!({}), "no images");
         assert_eq!(entry_image_src(&e), None);
+    }
+
+    #[test]
+    fn unclosed_wikilink_does_not_hide_later_images() {
+        // KOS-249: an unclosed `![[` aborted the whole scan (early `?`) or —
+        // worse — treated any later `]` as its terminator, returning garbage
+        // like "unclosed then ![alt" as the image src.
+        let e = image_entry(json!({}), "prefix ![[unclosed then ![alt](real.png)");
+        assert_eq!(entry_image_src(&e).as_deref(), Some("real.png"));
+        let e = image_entry(json!({}), "![[never closed\n\n![a](b.png)");
+        assert_eq!(entry_image_src(&e).as_deref(), Some("b.png"));
+        let e = image_entry(json!({}), "only ![[never closed");
+        assert_eq!(entry_image_src(&e), None);
+        // A lone `]` must not close `![[…` — the terminator is `]]`.
+        let e = image_entry(json!({}), "![[a]b]] tail");
+        assert_eq!(entry_image_src(&e), None);
+        let e = image_entry(json!({}), "![[ok.png]] and ![alt](real.png)");
+        assert_eq!(entry_image_src(&e).as_deref(), Some("ok.png"));
     }
 }
