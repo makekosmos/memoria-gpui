@@ -1,4 +1,4 @@
-//! Regression tests for bugs found in the KOS-190 bug hunt.
+//! Regression tests for bugs found in the KOS-190 / KOS-219 bug hunts.
 
 use memoria_editor_core::cmd::{self, Command};
 use memoria_editor_core::{Editor, Selection};
@@ -30,4 +30,27 @@ fn display_image_src_authority_keeps_path_absolute() {
         cmd::display_image_src("file:relative/p.png"),
         "kosmos-local-image://file/%2Frelative%2Fp.png"
     );
+}
+
+#[test]
+fn link_caret_lands_after_closing_paren() {
+    // KOS-219: caret used to stop two bytes early — inside the destination —
+    // so typing right after "wrap in link" corrupted the URL.
+    let mut e = Editor::new("click");
+    e.set_selection(Selection::new(0, 5));
+    e.command(&Command::Link {
+        dest: "https://x".into(),
+        title: None,
+    });
+    assert_eq!(e.selection().start(), "[click](https://x)".len());
+    e.insert_text("TAIL");
+    assert_eq!(e.text(), "[click](https://x)TAIL");
+
+    let mut e = Editor::new("t");
+    e.set_selection(Selection::new(0, 1));
+    e.command(&Command::Link {
+        dest: "u".into(),
+        title: Some("T".into()),
+    });
+    assert_eq!(e.selection().start(), "[t](u \"T\")".len());
 }

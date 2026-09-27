@@ -12,6 +12,8 @@ struct Rend {
     skip: usize,
     /// per-table: header separator not yet emitted
     table_hdr: Vec<bool>,
+    /// per-open-`tr`: cells seen so far — sizes the `| --- |` delimiter row.
+    row_cells: Vec<usize>,
     cell_open: bool,
 }
 
@@ -143,8 +145,12 @@ impl Rend {
             "tr" => {
                 self.sep(1);
                 self.cell_open = false;
+                self.row_cells.push(0);
             }
             "td" | "th" => {
+                if let Some(n) = self.row_cells.last_mut() {
+                    *n += 1;
+                }
                 if self.cell_open {
                     self.emit(" | ");
                 } else {
@@ -206,8 +212,11 @@ impl Rend {
                 if self.cell_open {
                     self.emit(" |");
                 }
+                let cells = self.row_cells.pop().unwrap_or(0).max(1);
                 if self.table_hdr.last() == Some(&true) {
-                    self.emit("\n| ---");
+                    // GFM delimiter row needs one `---` per header cell or the
+                    // whole table reparses as a paragraph of literal pipes.
+                    self.emit(&format!("\n|{}", " --- |".repeat(cells)));
                     self.sep(1);
                     if let Some(h) = self.table_hdr.last_mut() {
                         *h = false;
@@ -233,6 +242,7 @@ pub fn html_to_markdown(html: &str) -> String {
         pre: false,
         skip: 0,
         table_hdr: Vec::new(),
+        row_cells: Vec::new(),
         cell_open: false,
     };
     for t in tokenize(html) {
