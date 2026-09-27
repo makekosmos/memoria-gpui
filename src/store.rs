@@ -3,6 +3,7 @@
 //! (agenda-gpui `Worker` pattern). Engine change events arrive as
 //! `Reply::Event` so the list can refresh without an app restart.
 
+pub mod app_network_api;
 pub mod bubble_api;
 mod bubble_migrate;
 mod entry_api;
@@ -11,6 +12,7 @@ pub(crate) mod note_type_api;
 mod tests;
 pub mod transport;
 mod trash_api;
+mod worker_extra;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -73,6 +75,20 @@ pub enum Command {
     MigrateDiary {
         local_bubbles_json: Option<serde_json::Value>,
     },
+    /// `bookMetadata.lookupIsbn` — Engine-side Open Library lookup.
+    LookupIsbn(String),
+    /// `bookMetadata.fetchPage` — normalized `{finalUrl, html}` for local
+    /// extraction (`book_metadata_extract` runs in-app, like Vue's DOMParser).
+    FetchBookPage(String),
+    /// `images.dominantColor` — cover spine color for a URL or local path.
+    DominantColor(String),
+    /// `images.storeCover` — persist a dropped cover file via Engine.
+    StoreCover {
+        source_path: String,
+        entry_id: String,
+    },
+    /// `images.fetch` — remote image → Engine-stored local path + color.
+    FetchImage(String),
 }
 
 pub enum Reply {
@@ -101,6 +117,25 @@ pub enum Reply {
     Restored {
         id: String,
         result: Result<DeleteEntryResult, String>,
+    },
+    /// `bookMetadata.lookupIsbn` result — `None` = ISBN not found.
+    BookMetadata(Result<Option<crate::book_metadata::BookMetadata>, String>),
+    /// `bookMetadata.fetchPage` result — page for local extraction.
+    BookMetadataPage(Result<Option<crate::book_metadata::BookMetadataPage>, String>),
+    /// `images.dominantColor` result for the requested source.
+    DominantColor {
+        source: String,
+        result: Result<Option<String>, String>,
+    },
+    /// `images.storeCover` result — the stored local path.
+    CoverStored {
+        entry_id: String,
+        result: Result<String, String>,
+    },
+    /// `images.fetch` result — `(stored_path, dominant color)`.
+    ImageFetched {
+        url: String,
+        result: Result<(String, Option<String>), String>,
     },
     /// Engine push — `Online`/`Offline`/`Changed(payload)`.
     Event(EngineEvent),
@@ -205,41 +240,8 @@ impl Worker {
                         let result = trash.permanent_delete_entry(&id).map_err(err_string);
                         Reply::Deleted { id, result }
                     }
-                    Command::ListBubbles => {
-                        Reply::Bubbles(bubbles.list_bubbles().map_err(err_string))
-                    }
-                    Command::CreateBubble {
-                        input,
-                        kind,
-                        parent_id,
-                        content_json,
-                    } => Reply::BubbleCreated(
-                        bubbles
-                            .create_bubble(&input, kind, parent_id.as_deref(), content_json)
-                            .map_err(err_string),
-                    ),
-                    Command::UpdateBubble { id, patch } => Reply::BubbleUpdated {
-                        result: bubbles.update_bubble(&id, patch).map_err(err_string),
-                        id,
-                    },
-                    Command::DeleteBubble(id) => Reply::BubbleDeleted {
-                        result: bubbles.delete_bubble(&id).map_err(err_string),
-                        id,
-                    },
-                    Command::MigrateBubble {
-                        namespace,
-                        source_id,
-                        bubble,
-                    } => Reply::BubbleMigrated {
-                        result: bubbles
-                            .migrate_bubble(&namespace, &source_id, &bubble)
-                            .map_err(err_string),
-                        source_id,
-                    },
-                    Command::MigrateDiary { local_bubbles_json } => Reply::DiaryMigrated(
-                        bubble_api::migrate_diary(&bubbles, &mut api, local_bubbles_json.as_ref())
-                            .map_err(err_string),
-                    ),
+                    other => worker_extra::dispatch_bubble_or_network(other, &mut api, &bubbles)
+                        .unwrap_or_else(|| unreachable!("unhandled Command")),
                 };
                 if results.send(reply).is_err() {
                     break;

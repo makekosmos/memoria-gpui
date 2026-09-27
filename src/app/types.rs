@@ -32,6 +32,43 @@ impl ConflictStore for DataDirStore {
     }
 }
 
+/// Open property-picker overlay state (Vue `ObjectPropertyPicker` panel).
+/// `options` are precomputed so the overlay render stays `&self`.
+#[derive(Clone, Debug)]
+pub(crate) struct PropPicker {
+    pub entry_id: String,
+    pub field_id: String,
+    pub multiple: bool,
+    pub options: Vec<(String, String)>,
+    pub selected: Vec<String>,
+    pub x: f32,
+    pub y: f32,
+}
+
+/// Cover modal (Vue `typed-object-header__cover-modal`): URL field + file
+/// dropzone. `saving` blocks close while `images.storeCover`/`images.fetch`
+/// is in flight.
+pub(crate) struct CoverModal {
+    pub entry_id: String,
+    pub image_field_id: String,
+    pub url_input: gpui::Entity<gpui_component::input::InputState>,
+    pub saving: bool,
+    pub error: Option<String>,
+}
+
+/// Metadata import modal (Vue `BookMetadataImportModal`): ISBN/URL source,
+/// loading → preview rows with per-field checkboxes → apply.
+pub(crate) struct MetadataModal {
+    pub entry_id: String,
+    pub source_input: gpui::Entity<gpui_component::input::InputState>,
+    pub loading: bool,
+    pub error: Option<String>,
+    pub metadata: Option<memoria_gpui::book_metadata::BookMetadata>,
+    pub selected: Vec<String>,
+    /// Set while a `fetchPage` result awaits its `lookupIsbn` enrichment.
+    pub enrich_isbn: Option<String>,
+}
+
 /// Pending destructive action shown by the confirm dialog (Vue `confirm()`).
 #[derive(Clone, Debug)]
 pub(crate) enum Confirm {

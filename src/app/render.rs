@@ -81,8 +81,11 @@ impl Render for Memoria {
             .when(!self.zen, |d| d.child(self.render_sidebar(cx)))
             .child(content)
             .children(self.render_search_overlay(window, cx))
-            .children(self.render_ctx_menu(cx))
+            .children(self.render_ctx_menu(window, cx))
             .children(self.render_kind_menu(cx))
+            .children(self.render_prop_picker(window, cx))
+            .children(self.render_cover_modal(cx))
+            .children(self.render_metadata_modal(cx))
             .children(self.render_confirm(cx))
             .child(self.render_toasts(cx))
     }

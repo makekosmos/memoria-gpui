@@ -70,6 +70,16 @@ impl Memoria {
             | Reply::BubbleMigrated { .. }
             | Reply::DiaryMigrated(_)) => self.on_bubble_reply(r, cx),
             Reply::Event(event) => self.on_engine_event(event, cx),
+            // App network ops — typed-header metadata/cover replies.
+            Reply::BookMetadata(result) => self.on_book_metadata(result, cx),
+            Reply::BookMetadataPage(result) => self.on_book_metadata_page(result, cx),
+            Reply::DominantColor { source, result } => {
+                if let Ok(color) = result {
+                    self.spine_colors.insert(source, color);
+                }
+            }
+            Reply::CoverStored { entry_id, result } => self.on_cover_stored(entry_id, result, cx),
+            Reply::ImageFetched { url, result } => self.on_image_fetched(url, result, cx),
         }
         cx.notify();
     }

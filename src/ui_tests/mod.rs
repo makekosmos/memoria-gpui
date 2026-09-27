@@ -216,3 +216,7 @@ fn pin_via_context_menu(cx: &mut TestAppContext) {
 mod diary;
 mod extra;
 mod sticker;
+#[cfg(test)]
+mod typed;
+#[cfg(test)]
+mod typed_book;

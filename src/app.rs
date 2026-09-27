@@ -3,11 +3,14 @@
 //! settings + trash, conflict banner and toasts. Note routes embed the M3
 //! `MemoriaEditor` (input, IME, code & images) with autosave + live refresh.
 mod backend;
+mod book;
 mod chrome;
+mod chrome_keys;
 mod confirm;
 mod conflict;
 mod conflict_banner;
 mod conflict_ops;
+mod cover_modal;
 mod demo;
 mod diary;
 mod diary_blocks;
@@ -21,8 +24,14 @@ mod everything;
 mod highlight;
 mod image;
 mod menus;
+mod metadata_apply;
+mod metadata_modal;
+mod modal;
 mod note;
 mod objects;
+mod prop_edit;
+mod prop_field;
+mod prop_picker;
 mod refresh;
 mod render;
 mod search;
@@ -32,9 +41,10 @@ mod sidebar;
 mod sticker;
 mod toasts;
 mod trash;
+mod typed_header;
 mod types;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use gpui::{Context, Entity, FocusHandle, Subscription, WindowHandle};
@@ -48,7 +58,9 @@ use memoria_gpui::nav_history::NavHistory;
 use memoria_gpui::routes::Route;
 use memoria_gpui::store::{Command, Engine, Worker};
 
-use types::{Confirm, ConflictOp, CtxMenu, DataDirStore, Toast};
+use types::{
+    Confirm, ConflictOp, CoverModal, CtxMenu, DataDirStore, MetadataModal, PropPicker, Toast,
+};
 
 mod dispatch;
 mod doc;
@@ -89,6 +101,19 @@ pub struct Memoria {
     pub(crate) pending_copy_save: Option<String>,
     pub(crate) confirm: Option<Confirm>,
     pub(crate) ctx_menu: Option<CtxMenu>,
+    // Typed-header state (M5): per-field text inputs live for the currently
+    // open entry (`header_entry`); picker/modals are transient overlays.
+    pub(crate) header_entry: String,
+    pub(crate) header_inputs: HashMap<String, Entity<InputState>>,
+    pub(crate) prop_picker: Option<PropPicker>,
+    pub(crate) cover_modal: Option<CoverModal>,
+    pub(crate) metadata_modal: Option<MetadataModal>,
+    // Engine-fetched image cache: remote URL → stored local path, and the
+    // dominant color per resolved image src (`images.dominantColor`).
+    pub(crate) image_cache: HashMap<String, String>,
+    pub(crate) image_pending: HashSet<String>,
+    pub(crate) spine_colors: HashMap<String, Option<String>>,
+    pub(crate) spine_pending: HashSet<String>,
     pub(crate) root_focus: FocusHandle,
     pub(crate) focused_once: bool,
     /// Unsaved edits in the note surface — remote refreshes must not clobber.
@@ -194,6 +219,15 @@ impl Memoria {
             pending_copy_save: None,
             confirm: None,
             ctx_menu: None,
+            header_entry: String::new(),
+            header_inputs: HashMap::new(),
+            prop_picker: None,
+            cover_modal: None,
+            metadata_modal: None,
+            image_cache: HashMap::new(),
+            image_pending: HashSet::new(),
+            spine_colors: HashMap::new(),
+            spine_pending: HashSet::new(),
             root_focus: cx.focus_handle(),
             focused_once: false,
             dirty: false,

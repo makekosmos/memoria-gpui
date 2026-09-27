@@ -34,6 +34,8 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 memoria-editor-gpui = { version = "0.1.0", path = "crates/memoria-editor-gpui" }
 unicode-normalization = "0.1.25"
 percent-encoding = "2.3.2"
+scraper = "0.24"
+url = "2.5"
 
 [dev-dependencies]
 proptest = "1.5"
