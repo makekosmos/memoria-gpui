@@ -175,3 +175,36 @@ fn related_plan_waits_for_second_pass() {
     );
     assert_eq!(plan.second_pass_related_ids, ["entry-b", "entry-existing"]);
 }
+
+#[test]
+fn lone_quote_scalars_do_not_panic_the_import() {
+    // Hand-written YAML can carry a dangling quote. `parseLooseScalar` →
+    // `unquoteLooseScalar` treats `"`/`'` as a 1-char quoted string; JS
+    // `slice(1, -1)` clamps to `""` — the port must not slice [1..0).
+    for content in [
+        "---\nkey: \"\n---\nbody",
+        "---\nkey: '\n---\nbody",
+        "---\ntags:\n  - \"\n---\nbody",
+        "---\nobj:\n  inner: '\n---\nbody",
+        "---\nkey: [\"]\n---\nbody",
+    ] {
+        let drafts = create_obsidian_vault_import_drafts(
+            &[md("n.md", content)],
+            &[],
+            &[custom_note_type()],
+            "note_obj",
+        );
+        assert_eq!(drafts.len(), 1, "{content:?}");
+    }
+    // A lone quote scalar imports as the empty string (JS slice semantics).
+    let drafts = create_obsidian_vault_import_drafts(
+        &[md("n.md", "---\ntitle: \"\nsummary: '\n---\nbody")],
+        &[],
+        &[custom_note_type()],
+        "note_obj",
+    );
+    let draft = &drafts[0];
+    // empty title falls back to the filename stem
+    assert_eq!(draft.draft.title, "n");
+    assert_eq!(draft.draft.header_props["summary"], json!(""));
+}

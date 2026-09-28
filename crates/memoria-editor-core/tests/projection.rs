@@ -271,3 +271,25 @@ fn bare_url_autolink() {
         .expect("bare url should linkify");
     assert_eq!(&p.text[s.vis.clone()], "https://a.b/c?d=1");
 }
+
+#[test]
+fn www_autolink_requires_dotted_domain() {
+    // GFM/linkify: `www.` alone is not a link — the domain after it must
+    // contain a `.` before any path/query. `www.foo` stays plain text while
+    // `www.foo.com` and `www.foo.com/x` link.
+    for (src, should_link) in [
+        ("see www.foo now", false),
+        ("see www.foo/bar now", false),
+        ("see www.foo?x.y now", false),
+        ("see www.foo.com now", true),
+        ("see www.foo.com/x now", true),
+    ] {
+        let doc = parse(src);
+        let p = project(&doc, src, Selection::caret(0));
+        let linked = p
+            .spans
+            .iter()
+            .any(|s| matches!(s.payload, Payload::Link { .. }));
+        assert_eq!(linked, should_link, "{src}");
+    }
+}
