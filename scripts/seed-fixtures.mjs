@@ -1,14 +1,15 @@
 #!/usr/bin/env node
-// Seed fixtures/ark-snapshot.json into a running Kosmos Engine.
+// Seed fixtures/ark-snapshot.json into a running Mundus Engine.
 //
 // Usage:
 //   node scripts/seed-fixtures.mjs [--data-dir <dir>] [--snapshot <file>]
 //
-// Engine discovery: <data-dir>/engine.lock.json (KOSMOS_DATA_DIR env or
-// --data-dir; default ~/.config/Kosmos). Speaks Engine `/v1/rpc` as a
+// Engine discovery: <data-dir>/engine.lock.json — first candidate holding the
+// lock wins: --data-dir, MUNDUS_DATA_DIR, KOSMOS_DATA_DIR (legacy),
+// ~/.config/Mundus, ~/.config/Kosmos (legacy). Speaks Engine `/v1/rpc` as a
 // desktop-host client — the same path Host E2E helpers use — so no app grant
 // is required and all object types in the snapshot are writable.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { randomUUID } from "node:crypto";
@@ -18,10 +19,18 @@ const opt = (name) => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : undefined;
 };
+const configBase = process.env.XDG_CONFIG_HOME || `${process.env.HOME}/.config`;
+// MIGRATION(KOS-267): drop the KOSMOS_* candidates after 2026-11-01.
+const candidates = [
+  opt("--data-dir"),
+  process.env.MUNDUS_DATA_DIR,
+  process.env.KOSMOS_DATA_DIR,
+  path.join(configBase, "Mundus"),
+  path.join(configBase, "Kosmos"),
+].filter(Boolean);
 const dataDir =
-  opt("--data-dir") ||
-  process.env.KOSMOS_DATA_DIR ||
-  path.join(process.env.XDG_CONFIG_HOME || `${process.env.HOME}/.config`, "Kosmos");
+  candidates.find((dir) => existsSync(path.join(dir, "engine.lock.json"))) ??
+  candidates[0];
 const snapshotPath =
   opt("--snapshot") ||
   path.join(path.dirname(new URL(import.meta.url).pathname), "..", "fixtures", "ark-snapshot.json");

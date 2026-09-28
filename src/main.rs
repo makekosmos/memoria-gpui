@@ -1,4 +1,4 @@
-// Memoria GPUI — note data is owned by Kosmos Engine.
+// Memoria GPUI — note data is owned by Mundus Engine.
 #![windows_subsystem = "windows"]
 mod a11y;
 mod app;

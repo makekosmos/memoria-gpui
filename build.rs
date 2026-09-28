@@ -10,10 +10,12 @@
 //! agenda-gpui's gpui-pre patch notes). Keep `windows/app.manifest` in-tree
 //! as the documented product manifest; gpui's embedded copy covers runtime.
 //!
-//! `KOSMOS_MEMORIA_VERSION` (X.Y.Z) overrides the stamped version: the Cortex
+//! `MUNDUS_MEMORIA_VERSION` (X.Y.Z) overrides the stamped version: the Cortex
 //! component build sets it to the desktop release version so the packaged
-//! `Kosmos Memoria.exe` reports the same version as the installer. Falls back
+//! `Mundus Memoria.exe` reports the same version as the installer. Falls back
 //! to `CARGO_PKG_VERSION` for standalone builds.
+// MIGRATION(KOS-267): drop the `KOSMOS_MEMORIA_VERSION` fallback after
+// 2026-11-01 once the packaging pipeline only sets `MUNDUS_` names.
 
 use std::env;
 use std::path::{Path, PathBuf};
@@ -30,6 +32,7 @@ fn main() {
         "cargo:rerun-if-changed={}",
         windows_dir.join("app.ico").display()
     );
+    println!("cargo:rerun-if-env-changed=MUNDUS_MEMORIA_VERSION");
     println!("cargo:rerun-if-env-changed=KOSMOS_MEMORIA_VERSION");
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR"));
@@ -99,12 +102,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName", "Kazui"
-            VALUE "FileDescription", "Kosmos Memoria"
+            VALUE "FileDescription", "Mundus Memoria"
             VALUE "FileVersion", "{version}"
-            VALUE "InternalName", "Kosmos Memoria.exe"
+            VALUE "InternalName", "Mundus Memoria.exe"
             VALUE "LegalCopyright", "Copyright (C) Kazui"
-            VALUE "OriginalFilename", "Kosmos Memoria.exe"
-            VALUE "ProductName", "Kosmos Memoria"
+            VALUE "OriginalFilename", "Mundus Memoria.exe"
+            VALUE "ProductName", "Mundus Memoria"
             VALUE "ProductVersion", "{version}"
         END
     END
@@ -118,9 +121,9 @@ END
 }
 
 fn memoria_version() -> [u32; 3] {
-    let raw = env::var("KOSMOS_MEMORIA_VERSION")
-        .ok()
-        .filter(|v| !v.trim().is_empty())
+    let raw = ["MUNDUS_MEMORIA_VERSION", "KOSMOS_MEMORIA_VERSION"]
+        .iter()
+        .find_map(|key| env::var(key).ok().filter(|v| !v.trim().is_empty()))
         .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string());
     let mut parts = raw.trim().split('.');
     let mut version = [0u32; 3];

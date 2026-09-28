@@ -6,9 +6,9 @@
 //! GPUI app, so the Engine data dir is the equivalent per-user store (the
 //! transport already reads `engine.lock.json` from it):
 //!
-//!   <Kosmos data dir>/memoria-settings.json   — authoritative prefs
-//!   <Kosmos data dir>/eden-settings.json      — legacy read fallback
-//!   <Kosmos data dir>/memoria-local-state.json — localStorage-analog blob
+//!   <Engine data dir>/memoria-settings.json   — authoritative prefs
+//!   <Engine data dir>/eden-settings.json      — legacy read fallback
+//!   <Engine data dir>/memoria-local-state.json — localStorage-analog blob
 //!     { preferences, pinned_entry_ids, sidebar_collapsed }
 //!
 //! Load order mirrors `hydrate()`: local blob first (instant), then the

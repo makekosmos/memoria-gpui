@@ -37,7 +37,7 @@ GPUI parity tests.
 
 ## Seed into a clean Engine
 
-    KOSMOS_DATA_DIR=<engine data dir> node scripts/seed-fixtures.mjs
+    MUNDUS_DATA_DIR=<engine data dir> node scripts/seed-fixtures.mjs
 
 Reads `<data-dir>/engine.lock.json`, replays `upsert_object` /
 `upsert_object_link` over `http://127.0.0.1:<port>/v1/rpc` as a

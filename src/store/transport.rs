@@ -14,6 +14,7 @@ use thiserror::Error;
 use crate::model::ark::ensure_list;
 
 mod bridge;
+mod discovery;
 mod events;
 pub use bridge::*;
 
@@ -32,13 +33,13 @@ const RECONNECT_DELAY: Duration = Duration::from_secs(1);
 /// Engine RPC failure classes. `Display` strings are user-facing Russian.
 #[derive(Debug, Error)]
 pub enum EngineError {
-    #[error("Engine не запущен. Запустите Kosmos и обновите список.")]
+    #[error("Engine не запущен. Запустите Mundus и обновите список.")]
     LockMissing,
-    #[error("Не найдена папка данных Kosmos")]
+    #[error("Не найдена папка данных Mundus")]
     DataDirMissing,
     #[error("Некорректный файл состояния Engine")]
     LockInvalid,
-    #[error("Несовместимое состояние Engine. Обновите Kosmos.")]
+    #[error("Несовместимое состояние Engine. Обновите Mundus.")]
     LockIncompatible,
     #[error("Нет подтверждения от Engine. Обновите список перед повтором.")]
     Unreachable,
@@ -114,21 +115,10 @@ pub enum EngineEvent {
     Online,
 }
 
-/// `runtime/src/lock_file.rs::kosmos_data_dir` — `KOSMOS_DATA_DIR` override,
-/// then `%APPDATA%/Kosmos` (Windows) or `$XDG_CONFIG_HOME/Kosmos` /
-/// `~/.config/Kosmos` (all unix, incl. macOS).
+/// `MUNDUS_DATA_DIR` → `KOSMOS_DATA_DIR` (legacy) → `<config>/Mundus` →
+/// `<config>/Kosmos` (legacy); the first dir holding `engine.lock.json` wins.
 fn data_dir() -> Result<PathBuf, EngineError> {
-    if let Some(path) = std::env::var_os("KOSMOS_DATA_DIR").filter(|v| !v.is_empty()) {
-        return Ok(PathBuf::from(path));
-    }
-    #[cfg(windows)]
-    let base = std::env::var_os("APPDATA").map(PathBuf::from);
-    #[cfg(unix)]
-    let base = std::env::var_os("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|v| PathBuf::from(v).join(".config")));
-    base.map(|v| v.join("Kosmos"))
-        .ok_or(EngineError::DataDirMissing)
+    discovery::data_dir()
 }
 
 impl Engine {
