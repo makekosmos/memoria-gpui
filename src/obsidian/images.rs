@@ -93,11 +93,15 @@ pub fn title_from_path(relative_path: &str) -> String {
     }
 }
 
-/// `stableIdFromPath` — FNV-1a over UTF-16 code units (JS `charCodeAt(0)`
-/// semantics: astral chars hash by high surrogate).
+/// `stableIdFromPath` — FNV-1a with JS `for (const ch of s) hash ^=
+/// ch.charCodeAt(0)` semantics: `for..of` iterates code points but
+/// `charCodeAt(0)` reads the FIRST UTF-16 code unit, so astral characters
+/// hash only their high surrogate (same rule as `sticker_window_key_for`).
 pub fn stable_id_from_path(value: &str) -> String {
     let mut hash: u32 = 0x811c9dc5;
-    for unit in normalize_path(value).encode_utf16() {
+    let mut buf = [0u16; 2];
+    for ch in normalize_path(value).chars() {
+        let unit = ch.encode_utf16(&mut buf)[0];
         hash = (hash ^ unit as u32).wrapping_mul(0x01000193);
     }
     format!("{hash:08x}")

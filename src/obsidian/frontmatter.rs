@@ -288,7 +288,8 @@ fn split_inline_yaml_array(value: &str) -> Vec<String> {
 }
 
 fn unquote_loose_scalar(value: &str) -> String {
-    let inner = &value[1..value.len() - 1];
+    // JS `value.slice(1, -1)` clamps — a lone `"`/`'` yields `""`, not a panic.
+    let inner = value.get(1..value.len().saturating_sub(1)).unwrap_or("");
     if !value.starts_with('"') {
         return inner.to_string();
     }

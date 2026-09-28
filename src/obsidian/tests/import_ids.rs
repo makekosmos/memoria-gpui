@@ -252,3 +252,22 @@ fn duplicate_existing_source_metadata_blocks() {
         .any(|c| c.kind == "existing-source-duplicate"));
     assert!(!imported.image_report.can_write);
 }
+
+#[test]
+fn stable_id_hashes_utf16_high_surrogate_only_for_astral() {
+    // Vue `for (const ch of s) hash ^= ch.charCodeAt(0)` iterates code points
+    // but reads the FIRST UTF-16 unit — 🚀 (U+1F680 → pair D83D DE80)
+    // contributes only D83D, matching `sticker_window_key_for`'s rule.
+    let mut h: u32 = 0x811c9dc5;
+    for unit in [0xD83Du32, '.' as u32, 'p' as u32, 'n' as u32, 'g' as u32] {
+        h = (h ^ unit).wrapping_mul(0x01000193);
+    }
+    assert_eq!(stable_id_from_path("🚀.png"), format!("{h:08x}"));
+    assert_eq!(legacy_image_id("🚀.png"), format!("image:{h:08x}"));
+    // Hashing both surrogate units would produce a different (wrong) id.
+    let mut wrong = 0x811c9dc5u32;
+    for unit in "🚀.png".encode_utf16() {
+        wrong = (wrong ^ unit as u32).wrapping_mul(0x01000193);
+    }
+    assert_ne!(stable_id_from_path("🚀.png"), format!("{wrong:08x}"));
+}

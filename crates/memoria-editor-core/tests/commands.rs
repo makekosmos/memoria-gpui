@@ -57,6 +57,11 @@ fn italic_does_not_strip_strong() {
     // `***abc***` carries an italic layer — toggling removes exactly that
     // layer, keeping the strong pair.
     assert_eq!(run("***abc***", 0, 9, &Command::Italic), "**abc**");
+    // Same from inside the run — the odd `*` edges strip one layer.
+    assert_eq!(run("***abc***", 3, 6, &Command::Italic), "**abc**");
+    assert_eq!(run("___abc___", 3, 6, &Command::Italic), "__abc__");
+    // Mixed run parity (one even edge) still wraps instead.
+    assert_eq!(run("**a***", 2, 3, &Command::Italic), "***a****");
     // Plain `*abc*` still unwraps.
     assert_eq!(run("*abc*", 0, 5, &Command::Italic), "abc");
 }

@@ -67,7 +67,6 @@ fn url_len(text: &str) -> Option<usize> {
     if !first.is_alphanumeric() {
         return None;
     }
-    // GFM: a www. link needs a dot in the domain part.
     let len = scheme_len
         + rest
             .char_indices()
@@ -75,11 +74,16 @@ fn url_len(text: &str) -> Option<usize> {
             .map(|(i, c)| i + c.len_utf8())
             .last()
             .unwrap_or(0);
-    if is_www && !text[..len].contains('.') {
-        return None;
+    let host = &text[scheme_len..len];
+    // GFM: a www. link needs a dot in the domain part (before any path or
+    // query — checking `text[..len]` would always see the `www.` dots).
+    if is_www {
+        let domain = host.split(['/', '?', '#']).next().unwrap_or("");
+        if !domain.contains('.') {
+            return None;
+        }
     }
     // Require at least `x.y` or a path after the scheme for usefulness.
-    let host = &text[scheme_len..len];
     if !is_www && !host.contains('.') && !host.contains('/') {
         return None;
     }

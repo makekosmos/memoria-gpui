@@ -132,17 +132,17 @@ fn edge_runs_odd(seg: &str, d: &str) -> bool {
         && seg.chars().rev().take_while(|&ch| ch == c).count() % 2 == 1
 }
 
-/// For italic single-char delimiters, the matched `*`/`_` must not be part
-/// of a longer `**`/`__` run (that's a strong delimiter, not emphasis).
+/// For italic single-char delimiters, the hugging `*`/`_` runs on both edges
+/// must be odd-length: `*x*`/`***x***` carry an em layer that stripping one
+/// `*` removes (`***x***` → `**x**`), while an even run (`**x**`) is a strong
+/// pair — stripping one `*` would silently turn bold into italic, so the
+/// toggle must wrap instead (`***x***`). Multi-char delimiters always fit.
 fn delim_fits(kind: Inline, src: &str, s: usize, e: usize, n: usize) -> bool {
     if kind != Inline::Italic {
         return true;
     }
-    let b = src.as_bytes();
-    let dc = b[s - n]; // the delimiter char itself
-    let left_ext = s > n && b[s - n - 1] == dc;
-    let right_ext = e + n < b.len() && b[e + n] == dc;
-    !left_ext && !right_ext
+    let dc = src.as_bytes()[s - n]; // the delimiter char itself
+    run_of(src, s, dc, true) % 2 == 1 && run_of(src, e, dc, false) % 2 == 1
 }
 
 /// Run length of `byte` at `pos` looking backward (`before`) or forward.
