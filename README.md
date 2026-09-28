@@ -45,9 +45,10 @@ Run workflow на основной ветке. `scripts/release.py` берёт �
 
 Платформы: **Windows x86_64** (ZIP с EXE + VERSIONINFO/иконка через `build.rs`),
 **Linux x86_64** (tar.gz, сборка на Ubuntu 24.04) и **macOS Apple Silicon**
-(tar.gz с `Memoria.app`, ad-hoc подпись без notarization). `collect`-job
-складывает все архивы вместе с `SHA256SUMS.txt`. GitHub Release не создаётся —
-публикация отложена до решения по умолчанию (см. KOS-156).
+(tar.gz с `Memoria.app`, ad-hoc подпись без notarization). `publish`-job
+(только cron/dispatch на main) коммитит версию, ставит тег `vX.Y.Z` и публикует
+GitHub Release со всеми архивами и `SHA256SUMS.txt` — оттуда Memoria ставит
+магазин Kosmos (KOS-265).
 
 ## Упаковка в состав Kosmos (KOS-156)
 

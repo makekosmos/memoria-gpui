@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# DORMANT: no workflow invokes this — build.yml produces artifacts only and
-# KOS-156 policy forbids publishing GitHub Releases without Jack's OK.
-# Kept (and covered by scripts/test_release.py) for the future publish
-# decision; wiring it up pushes a version commit + v* tag to main.
+# Invoked by build.yml's publish job (KOS-265: Memoria ships through the Store
+# from GitHub Releases, which lifts the KOS-156 artifacts-only gate). Pushes the
+# version commit + v* tag to main.
 #
 # Called only after every platform has built SOURCE_SHA with RELEASE_VERSION.
 set -euo pipefail
