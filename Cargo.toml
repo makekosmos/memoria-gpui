@@ -14,7 +14,7 @@ members = ["crates/*"]
 # `use gpui::...` keeps working through this alias.
 gpui = { package = "gpui-kit", version = "=0.6.2" }
 gpui-component = "=0.6.2"
-# Shared Kosmos GPUI visual core (theme/palettes). Same pin as agenda-gpui.
+# Shared Mundus GPUI visual core (theme/palettes). Same pin as agenda-gpui.
 imago-gpui = { git = "https://github.com/makekosmos/imago.git", rev = "300fe3717cb68f1f653c39310fffb0d0b8b8ba6e" }
 serde = { version = "1.0.229", features = ["derive"] }
 # preserve_order: Vue parity depends on JSON.stringify key order — header

@@ -43,7 +43,7 @@ test("KOS-147 memoria reference screenshots", async () => {
   test.skip(!fs.existsSync(SNAPSHOT), `fixture snapshot missing: ${SNAPSHOT}`);
   fs.mkdirSync(SHOTS, { recursive: true });
 
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "kosmos-host-e2e-memoria-shots-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "mundus-host-e2e-memoria-shots-"));
   const dataDir = path.join(root, "engine");
   const userData = path.join(root, "host-user-data");
   // No KOSMOS_HEADLESS/KOSMOS_TEST_MODE: headless host windows are created

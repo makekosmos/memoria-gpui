@@ -16,7 +16,7 @@ Milestone labels follow the KOS-146 epic as actually landed (M9 audit update):
 | M6 | Diary bubbles — timeline, calendar, threads, tags | KOS-153 (merged, PR #8) |
 | M7 | Stickers — floating note windows | KOS-154 (merged, PR #5) |
 | M8 | Obsidian vault import/export + Agenda task sync | KOS-155 (merged, PR #6) |
-| M9 | Packaging into Kosmos + final parity audit | KOS-156 (this change) |
+| M9 | Packaging into Mundus + final parity audit | KOS-156 (this change) |
 
 Status values: `DONE` — ported, parity verified (Rust tests / `ui_tests` /
 reference screenshots in `reference/screens/`); `PARTIAL` — ported with a
@@ -137,7 +137,7 @@ bare `TODO` rows; every sibling milestone (M1–M8) has merged to main.
 | Сохранение через общий backend, 1 save на autosave-цикл | `edenStoreSaveActions` | PASS | `DocEvent::Save` → `Backend::send`; `Reply::Saved` несёт entry id → routing к нужному doc; `ui_tests::sticker::sticker_window_shares_document_and_dedupes_save` |
 | Компактный вид: мини-титлбар, без сайдбара, title editable | `StickerNoteView.vue` | PASS | titlebar pin/close, `titlebar-open-sticker` button в основном окне (zen/route/`can_open_in_sticker`-gated) |
 | Entry points: titlebar + context menu «Открыть стикером» | `NoteView`/`EntryListItem` | PASS | `chrome.rs` button + `menus.rs` ctx item |
-| `useDockedWidget` — host `kepler.window.open` docking | `useDockedWidget.ts` | GAP — **accept** | kosmos host недоступен в GPUI shell; `WindowKind::Floating` — ближайший нативный аналог |
+| `useDockedWidget` — host `kepler.window.open` docking | `useDockedWidget.ts` | GAP — **accept** | Mundus host недоступен в GPUI shell; `WindowKind::Floating` — ближайший нативный аналог |
 | Runtime always-on-top toggle (pin button) | `setAlwaysOnTop` host API | GAP — **accept** | нет runtime level API в GPUI; pin — индикатор. На Wayland always-on-top для обычных окон вообще не гарантируется композитором |
 | In-sticker navigation (по ссылкам в редакторе) | `StickerNoteView` `handleNavigate` | GAP — **follow-up** | editor-level gap (нет `Navigate` event в `MemoriaEditor`), не sticker-specific — link navigation в редакторе в целом |
 | Window position persistence | — | n/a | в Vue нет — out of scope |
@@ -148,11 +148,11 @@ Product contour mirrors KOS-137/agenda-gpui:
 
 | Item | Status | Notes |
 |---|---|---|
-| `build.rs` Windows resources (icon + VERSIONINFO) | DONE | Icon/VERSIONINFO via `embed-resource`; **no** RT_MANIFEST id=1 (gpui-pre already embeds Common Controls v6 + PerMonitorV2 — duplicate → CVT1100). `windows/app.manifest` kept in-tree as docs. `KOSMOS_MEMORIA_VERSION` stamps FileVersion/ProductVersion (cortex sets desktop release version; fallback = `Cargo.toml`) |
+| `build.rs` Windows resources (icon + VERSIONINFO) | DONE | Icon/VERSIONINFO via `embed-resource`; **no** RT_MANIFEST id=1 (gpui-pre already embeds Common Controls v6 + PerMonitorV2 — duplicate → CVT1100). `windows/app.manifest` kept in-tree as docs. `MUNDUS_MEMORIA_VERSION` stamps FileVersion/ProductVersion (cortex sets desktop release version; fallback = `Cargo.toml`) |
 | Release tooling (`scripts/release.py`, `publish-version.sh`, `test_release.py`) | DONE | same rules as agenda-gpui; `python scripts/test_release.py` green |
 | Nightly workflow `.github/workflows/build.yml` | DONE | ubuntu/windows/macos matrix → `dist/` artifacts + `SHA256SUMS.txt` (`collect` job); **no GitHub Release** — publish held for Jack's default-launch decision |
 | cortex component pin `memoria_gpui` | DONE | `desktop/component-pins.json`, verified by `build-package-components.mjs` |
-| Packaged path `resources/components/memoria/Kosmos Memoria.exe` | DONE | staged next to `components/{manager,agenda}`; Start Menu shortcut + launcher command + Manager About entry; all paths pin `KOSMOS_DATA_DIR` → shared `engine.lock.json` |
+| Packaged path `resources/components/memoria/Mundus Memoria.exe` | DONE | staged next to `components/{manager,agenda}`; Start Menu shortcut + launcher command + Manager About entry; all paths pin `MUNDUS_DATA_DIR` → shared `engine.lock.json` |
 | Vue Memoria `.kspkg` fallback | Kept | `com.kosmos.memoria` package remains installable; GPUI is an additional component, not a replacement |
 | Default launch switch (Vue → GPUI) | NOT_DONE | Jack decision — GPUI is opt-in via the three launch paths above |
 | Windows installed smoke (product) | NOT_RUN | env-blocked: no Windows host on this box — Jack smokes the epic once at the end |

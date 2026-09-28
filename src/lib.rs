@@ -4,6 +4,7 @@
 pub mod book_languages;
 pub mod book_metadata;
 pub mod book_metadata_extract;
+pub mod brand;
 pub mod char_count;
 pub mod command_bus;
 pub mod conflict_store;

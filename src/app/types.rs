@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use memoria_gpui::conflict_store::ConflictStore;
 
 pub(crate) const ENGINE_OFFLINE: &str =
-    "Engine не запущен. Запустите Kosmos — список обновится автоматически.";
+    "Engine не запущен. Запустите Mundus — список обновится автоматически.";
 pub(crate) const TOAST_TTL: std::time::Duration = std::time::Duration::from_millis(3500);
 pub(crate) const SEARCH_DEBOUNCE: std::time::Duration = std::time::Duration::from_millis(300);
 

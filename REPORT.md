@@ -35,7 +35,7 @@ Vue source of truth: `src/lib/sticker.ts`, `src/views/StickerNoteView.vue`,
 
 ## GAPs (documented in PARITY.md «Стикеры»)
 
-- `useDockedWidget`/host `kepler.window.open` docking needs the kosmos host —
+- `useDockedWidget`/host `kepler.window.open` docking needs the Mundus host —
   unavailable in the GPUI shell; `WindowKind::Floating` + keyed reuse instead.
 - Runtime always-on-top toggle (Vue pin button calls host `setAlwaysOnTop`) —
   no runtime window-level API in GPUI; pin renders as an indicator. On
