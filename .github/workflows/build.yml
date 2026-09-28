@@ -132,28 +132,43 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  collect:
+  publish:
     needs: [prepare, build]
-    if: needs.prepare.outputs.release != 'false'
+    if: needs.prepare.outputs.release == 'true'
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     env:
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      SOURCE_SHA: ${{ needs.prepare.outputs.sha }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      GH_TOKEN: ${{ github.token }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
       - uses: actions/download-artifact@v8
         with:
           pattern: memoria-*
           merge-multiple: true
           path: dist
-      - name: Checksums
+      - name: Commit version and tag the tested source
+        run: bash scripts/publish-version.sh
+      - name: Publish all platforms together
         run: |
+          tag="v$RELEASE_VERSION"
           cd dist
           sha256sum *.zip *.tar.gz > SHA256SUMS.txt
           cat SHA256SUMS.txt
-      - uses: actions/upload-artifact@v7
-        with:
-          # KOS-156: artifacts stay workflow-only — no GitHub Release until the
-          # default-launch decision lands (Jack gate).
-          name: memoria-dist${{ env.RELEASE_VERSION != '' && format('-{0}', env.RELEASE_VERSION) || '' }}
-          path: dist/
-          if-no-files-found: error
-          retention-days: 7
+          cd ..
+          if gh release view "$tag" --json isDraft > release-state.json; then
+            python -c 'import json; assert json.load(open("release-state.json"))["isDraft"], "Release already published"'
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* --verify-tag --draft --title "Memoria $tag" --generate-notes
+          fi
+          gh release edit "$tag" --draft=false --latest
