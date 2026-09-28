@@ -1,0 +1,12 @@
+# Golden fixtures are byte-compared against encoder output in tests
+# (`assert_eq!(format!("{encoded}\n"), include_str!(...))`). The canonical
+# bytes are what JSON.stringify produced — LF line endings — so these paths
+# must materialize with LF on every OS. Without this, core.autocrlf rewrites
+# them to CRLF on Windows checkouts: parsing still succeeds but the blob's
+# trailing byte differs, so the round-trip assertions fail on Windows only.
+fixtures/** text eol=lf
+src/obsidian/tests/golden/** text eol=lf
+
+# Binary payloads must never be EOL-normalized.
+*.png binary
+*.ico binary
