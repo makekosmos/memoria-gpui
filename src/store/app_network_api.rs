@@ -28,7 +28,12 @@ pub fn lookup_isbn<B: ArkBridge>(
     }
     serde_json::from_value::<BookMetadata>(raw)
         .map(Some)
-        .map_err(|_| EngineError::Malformed)
+        .map_err(|_| {
+            EngineError::local(
+                crate::store::transport::ErrorKind::Malformed,
+                "malformed response",
+            )
+        })
 }
 
 /// `bookMetadata.fetchPage` → `{finalUrl, html}`; the app extracts metadata
@@ -45,7 +50,10 @@ pub fn fetch_book_page<B: ArkBridge>(
         str_field(&raw, "finalUrl"),
         raw.get("html").and_then(Value::as_str),
     ) else {
-        return Err(EngineError::Malformed);
+        return Err(EngineError::local(
+            crate::store::transport::ErrorKind::Malformed,
+            "malformed response",
+        ));
     };
     Ok(Some(BookMetadataPage {
         final_url,
@@ -70,7 +78,10 @@ pub fn store_cover<B: ArkBridge>(
     entry_id: &str,
 ) -> Result<String, EngineError> {
     let raw = bridge.image_store_cover(source_path, entry_id)?;
-    str_field(&raw, "path").ok_or(EngineError::Malformed)
+    str_field(&raw, "path").ok_or(EngineError::local(
+        crate::store::transport::ErrorKind::Malformed,
+        "malformed response",
+    ))
 }
 
 /// `images.fetch` → `(stored_path, color)` — Engine downloads the remote
@@ -80,6 +91,9 @@ pub fn fetch_image<B: ArkBridge>(
     url: &str,
 ) -> Result<(String, Option<String>), EngineError> {
     let raw = bridge.image_fetch(url.trim())?;
-    let path = str_field(&raw, "path").ok_or(EngineError::Malformed)?;
+    let path = str_field(&raw, "path").ok_or(EngineError::local(
+        crate::store::transport::ErrorKind::Malformed,
+        "malformed response",
+    ))?;
     Ok((path, str_field(&raw, "color")))
 }

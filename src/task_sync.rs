@@ -83,8 +83,12 @@ pub fn get_task<B: ArkBridge>(
     if value.is_null() {
         return Ok(None);
     }
-    let record: ArkObjectRecord =
-        serde_json::from_value(value).map_err(|_| EngineError::Malformed)?;
+    let record: ArkObjectRecord = serde_json::from_value(value).map_err(|_| {
+        EngineError::local(
+            crate::store::transport::ErrorKind::Malformed,
+            "malformed response",
+        )
+    })?;
     if record.type_id != EDEN_TASK_OBJECT_TYPE_ID || is_deleted(&record) {
         return Ok(None);
     }

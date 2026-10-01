@@ -50,7 +50,7 @@ impl ArkBridge for FakeBridge {
                 self.object_types.lock().unwrap().insert(id, object_type);
                 Ok(Value::Null)
             }
-            _ => Err(EngineError::Rpc(format!("unexpected op {operation}"))),
+            _ => Err(EngineError::engine(&format!("unexpected op {operation}"))),
         }
     }
 }

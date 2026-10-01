@@ -78,7 +78,10 @@ fn read_string<'a>(value: &'a Value, key: &str) -> Result<&'a str, EngineError> 
     value
         .get(key)
         .and_then(Value::as_str)
-        .ok_or(EngineError::Malformed)
+        .ok_or(EngineError::local(
+            crate::store::transport::ErrorKind::Malformed,
+            "malformed response",
+        ))
 }
 
 /// `filesystem.vault.*` client. One instance per app process; grants are
@@ -100,8 +103,12 @@ impl<B: ArkBridge> EngineVault<B> {
         let data = self
             .bridge
             .rpc("filesystem.vault.open", json!({ "path": dir }))?;
-        let response: OpenVaultResponse =
-            serde_json::from_value(data).map_err(|_| EngineError::Malformed)?;
+        let response: OpenVaultResponse = serde_json::from_value(data).map_err(|_| {
+            EngineError::local(
+                crate::store::transport::ErrorKind::Malformed,
+                "malformed response",
+            )
+        })?;
         let vault_key = response.vault_key.clone();
         let files = response
             .files
@@ -162,7 +169,10 @@ impl<B: ArkBridge> EngineVault<B> {
             "filesystem.vault.read",
             json!({ "rootId": root_id, "path": path }),
         )?;
-        decode_base64(read_string(&data, "bytesBase64")?).ok_or(EngineError::Malformed)
+        decode_base64(read_string(&data, "bytesBase64")?).ok_or(EngineError::local(
+            crate::store::transport::ErrorKind::Malformed,
+            "malformed response",
+        ))
     }
 
     /// `filesystem.vault.export` — write/copy the planned files under a
@@ -176,12 +186,15 @@ impl<B: ArkBridge> EngineVault<B> {
             "filesystem.vault.export",
             json!({
                 "rootId": root_id,
-                "files": serde_json::to_value(files).map_err(|_| EngineError::Malformed)?,
+                "files": serde_json::to_value(files).map_err(|_| EngineError::local(crate::store::transport::ErrorKind::Malformed, "malformed response"))?,
             }),
         )?;
         data.get("exportedCount")
             .and_then(Value::as_u64)
-            .ok_or(EngineError::Malformed)
+            .ok_or(EngineError::local(
+                crate::store::transport::ErrorKind::Malformed,
+                "malformed response",
+            ))
     }
 
     /// `filesystem.vault.close` — release the root grant.

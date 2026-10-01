@@ -3573,6 +3573,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "imago-gpui"
+version = "0.1.0"
+source = "git+https://github.com/makekosmos/imago.git?rev=b9dd284e70a56a151b525626c3b2463679cb8c9a#b9dd284e70a56a151b525626c3b2463679cb8c9a"
+dependencies = [
+ "gpui-base",
+ "gpui-component",
+ "gpui-kit",
+]
+
+[[package]]
 name = "imgref"
 version = "1.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4197,7 +4207,7 @@ version = "0.1.0"
 dependencies = [
  "gpui-component",
  "gpui-kit",
- "imago-gpui",
+ "imago-gpui 0.1.0 (git+https://github.com/makekosmos/imago.git?rev=300fe3717cb68f1f653c39310fffb0d0b8b8ba6e)",
  "memoria-editor-core",
  "ropey 2.0.0-beta.1",
  "tree-sitter",
@@ -4218,8 +4228,9 @@ dependencies = [
  "embed-resource",
  "gpui-component",
  "gpui-kit",
- "imago-gpui",
+ "imago-gpui 0.1.0 (git+https://github.com/makekosmos/imago.git?rev=300fe3717cb68f1f653c39310fffb0d0b8b8ba6e)",
  "memoria-editor-gpui",
+ "mundus-gpui-kit",
  "percent-encoding",
  "proptest",
  "regex",
@@ -4228,8 +4239,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "tempfile",
- "thiserror 2.0.21",
- "tungstenite",
+ "tungstenite 0.26.2",
  "unicode-normalization",
  "ureq",
  "url",
@@ -4320,6 +4330,21 @@ name = "multiversion_no_op"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
+
+[[package]]
+name = "mundus-gpui-kit"
+version = "0.2.0"
+source = "git+https://github.com/makekosmos/kosmos-gpui-kit?rev=bafc57a3bc005d3fa2bdb4676b237a95c9d47b5c#bafc57a3bc005d3fa2bdb4676b237a95c9d47b5c"
+dependencies = [
+ "gpui-component",
+ "gpui-kit",
+ "imago-gpui 0.1.0 (git+https://github.com/makekosmos/imago.git?rev=b9dd284e70a56a151b525626c3b2463679cb8c9a)",
+ "serde",
+ "serde_json",
+ "tungstenite 0.24.0",
+ "ureq",
+ "uuid",
+]
 
 [[package]]
 name = "naga"
@@ -7896,6 +7921,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
 dependencies = [
  "core_maths",
+]
+
+[[package]]
+name = "tungstenite"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18e5b8366ee7a95b16d32197d0b2604b43a0be89dc5fac9f8e96ccafbaedda8a"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "data-encoding",
+ "http",
+ "httparse",
+ "log",
+ "rand 0.8.8",
+ "sha1",
+ "thiserror 1.0.69",
+ "utf-8",
 ]
 
 [[package]]

@@ -262,6 +262,10 @@ impl Drop for Worker {
     }
 }
 
+/// Engine errors reach the UI as Russian user text (`message()`); the raw
+/// wire code stays in the app log — KOS-295 showed the code is the only
+/// thing that lets a rejection be diagnosed after the fact.
 fn err_string(error: EngineError) -> String {
-    error.to_string()
+    eprintln!("[memoria] engine error: {error}");
+    error.message()
 }

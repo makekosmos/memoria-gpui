@@ -191,7 +191,10 @@ impl<B: ArkBridge> BubbleApi<B> {
 }
 
 pub(crate) fn engine_err(message: &str) -> EngineError {
-    EngineError::Rpc(message.to_string())
+    EngineError::local(
+        crate::store::transport::ErrorKind::Unavailable,
+        message.to_string(),
+    )
 }
 
 /// `isBubbleObject` — recognized type, `entry_kind === "bubble"`, not deleted.

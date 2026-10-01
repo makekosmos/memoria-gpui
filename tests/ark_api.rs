@@ -2,7 +2,7 @@
 //! `createEntryApi`/`createNoteTypeApi`/`createTrashStorageApi` exercised
 //! through an in-memory `ArkBridge` (the Vue `ark` request fn seam).
 
-use memoria_gpui::store::transport::{ArkBridge, EngineError};
+use memoria_gpui::store::transport::{ArkBridge, EngineError, ErrorKind};
 use memoria_gpui::store::{EntryApi, NoteTypeApi, TrashStorageApi, MEMORIA_NOTE_TYPE_PROP};
 use memoria_gpui::system_types_data::SYSTEM_TYPE_IMAGE;
 use serde_json::{json, Value};
@@ -227,7 +227,7 @@ fn list_entries_merges_full_records_on_partial_summary_failure() {
                     "deletedAt": null,
                 }] }))
             } else {
-                Err(EngineError::Unreachable)
+                Err(EngineError::local(ErrorKind::Transport, "unreachable"))
             }
         }
         "list_objects_by_type" => {
