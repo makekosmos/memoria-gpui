@@ -226,8 +226,12 @@ impl<B: ArkBridge> NoteTypeApi<B> {
         if record.is_null() {
             return Ok(false);
         }
-        let record: ArkObjectRecord =
-            serde_json::from_value(record).map_err(|_| EngineError::Malformed)?;
+        let record: ArkObjectRecord = serde_json::from_value(record).map_err(|_| {
+            EngineError::local(
+                crate::store::transport::ErrorKind::Malformed,
+                "malformed response",
+            )
+        })?;
         self.bridge.delete_object(&record.id)?;
         Ok(true)
     }

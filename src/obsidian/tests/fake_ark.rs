@@ -89,7 +89,7 @@ impl ArkBridge for FakeArk {
                 let object = params.get("object").cloned().unwrap_or(params.clone());
                 let id = object.get("id").and_then(Value::as_str).unwrap_or("");
                 if self.state.borrow().fail_object_ids.iter().any(|f| f == id) {
-                    return Err(EngineError::Rpc("injected upsert failure".into()));
+                    return Err(EngineError::engine("injected upsert failure"));
                 }
                 self.put_object(object);
                 Ok(Value::Null)
@@ -110,7 +110,7 @@ impl ArkBridge for FakeArk {
             "upsert_object_link" => {
                 if self.state.borrow().fail_next_upsert_link {
                     self.state.borrow_mut().fail_next_upsert_link = false;
-                    return Err(EngineError::Rpc("syncRelatedLinks failed".into()));
+                    return Err(EngineError::engine("syncRelatedLinks failed"));
                 }
                 let link = params.get("object_link").cloned().unwrap_or(params.clone());
                 let id = link
@@ -156,7 +156,7 @@ impl ArkBridge for FakeArk {
                 self.state.borrow_mut().closed_roots.push(root.to_string());
                 Ok(Value::Null)
             }
-            _ => Err(EngineError::Rpc(format!("unexpected op {operation}"))),
+            _ => Err(EngineError::engine(&format!("unexpected op {operation}"))),
         }
     }
 }

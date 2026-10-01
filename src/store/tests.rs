@@ -9,7 +9,7 @@ use std::sync::mpsc;
 
 use serde_json::{json, Value};
 
-use super::transport::{ArkBridge, Engine, EngineError};
+use super::transport::{ArkBridge, Engine, ErrorKind};
 
 fn token() -> String {
     "a".repeat(64)
@@ -151,7 +151,12 @@ fn rpc_ok_false_maps_to_typed_error() {
     let error = engine_at(dir.path())
         .list_objects("com.kosmos.note")
         .unwrap_err();
-    assert!(matches!(error, EngineError::Rpc(ref t) if t == "denied"));
+    // The raw wire code stays in `detail` (it lands in the app log via
+    // `Display`); the user sees only the class text.
+    assert_eq!(error.detail, "denied");
+    assert_eq!(error.kind, ErrorKind::Unavailable);
+    assert_eq!(error.message(), "Engine временно недоступен. Повторите попытку.");
+    assert!(!error.message().contains("denied"));
 }
 
 #[test]
@@ -165,7 +170,8 @@ fn rpc_object_conflict_maps_to_conflict() {
     let error = engine_at(dir.path())
         .upsert_object(json!({ "id": "n1" }))
         .unwrap_err();
-    assert!(matches!(error, EngineError::Conflict(_)));
+    assert_eq!(error.kind, ErrorKind::Conflict);
+    assert_eq!(error.detail, "object_conflict:version");
 }
 
 #[test]
@@ -174,9 +180,9 @@ fn http_5xx_is_rejected_not_success() {
     let error = engine_at(dir.path())
         .list_objects("com.kosmos.note")
         .unwrap_err();
-    assert!(matches!(
-        error,
-        EngineError::Rejected | EngineError::Rpc(_) | EngineError::Malformed
+    assert!(!matches!(
+        error.kind,
+        ErrorKind::NotRunning | ErrorKind::NotCompatible
     ));
 }
 
@@ -186,7 +192,7 @@ fn malformed_body_is_not_success() {
     let error = engine_at(dir.path())
         .list_objects("com.kosmos.note")
         .unwrap_err();
-    assert!(matches!(error, EngineError::Malformed));
+    assert_eq!(error.kind, ErrorKind::Malformed);
 }
 
 #[test]
@@ -207,8 +213,8 @@ fn timeout_is_typed() {
         .unwrap_err();
     std::env::remove_var("MEMORIA_RPC_TIMEOUT_MS");
     assert!(matches!(
-        error,
-        EngineError::Timeout | EngineError::Unreachable
+        error.kind,
+        ErrorKind::Timeout | ErrorKind::Transport
     ));
 }
 
@@ -216,7 +222,7 @@ fn timeout_is_typed() {
 fn lock_missing_is_typed() {
     let dir = tempdir();
     let error = engine_at(dir.path()).list_objects("x".into()).unwrap_err();
-    assert!(matches!(error, EngineError::LockMissing));
+    assert_eq!(error.kind, ErrorKind::NotRunning);
 }
 
 #[test]
@@ -234,7 +240,7 @@ fn lock_incompatible_api_major() {
     )
     .unwrap();
     let error = engine_at(dir.path()).list_objects("x".into()).unwrap_err();
-    assert!(matches!(error, EngineError::LockIncompatible));
+    assert_eq!(error.kind, ErrorKind::NotCompatible);
 }
 
 #[test]
@@ -252,7 +258,7 @@ fn lock_bad_token_is_incompatible() {
     )
     .unwrap();
     let error = engine_at(dir.path()).list_objects("x".into()).unwrap_err();
-    assert!(matches!(error, EngineError::LockIncompatible));
+    assert_eq!(error.kind, ErrorKind::NotCompatible);
 }
 
 #[test]
@@ -260,7 +266,7 @@ fn lock_invalid_json_is_typed() {
     let dir = tempdir();
     std::fs::write(dir.path().join("engine.lock.json"), "{nope").unwrap();
     let error = engine_at(dir.path()).list_objects("x".into()).unwrap_err();
-    assert!(matches!(error, EngineError::LockInvalid));
+    assert_eq!(error.kind, ErrorKind::NotCompatible);
 }
 
 #[test]

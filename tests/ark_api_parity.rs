@@ -1,7 +1,7 @@
 //! Review-fix regressions — wired-path divergences found by the M1 parity
 //! review, exercised through the same `ArkBridge` fake as `ark_api.rs`.
 
-use memoria_gpui::store::transport::{ArkBridge, EngineError};
+use memoria_gpui::store::transport::{ArkBridge, EngineError, ErrorKind};
 use memoria_gpui::store::{EntryApi, NoteTypeApi, TrashStorageApi};
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
@@ -120,7 +120,7 @@ fn save_entry_propagates_malformed_type_schema() {
     e.type_id = Some("weird_obj".into());
     e.header_props_json = Some("{}".into());
 
-    assert!(matches!(api.save_entry(&e), Err(EngineError::Malformed)));
+    assert!(api.save_entry(&e).unwrap_err().kind == ErrorKind::Malformed);
 }
 
 #[test]
@@ -161,14 +161,12 @@ fn list_all_entries_propagates_link_failures() {
     let bridge = FakeArk::new(|op, _| match op {
         "list_object_types" => Ok(json!([])),
         "list_objects_by_type" => Ok(json!([record("note-a", "com.kosmos.note")])),
-        "list_object_links" => Err(EngineError::Unreachable),
+        "list_object_links" => Err(EngineError::local(ErrorKind::Transport, "unreachable")),
         _ => panic!("unexpected operation {op}"),
     });
     let mut api = EntryApi::new(bridge);
-    assert!(matches!(
-        api.list_all_entries(),
-        Err(EngineError::Unreachable)
-    ));
+    let error = api.list_all_entries().unwrap_err();
+    assert_eq!(error.kind, ErrorKind::Transport);
 }
 
 #[test]

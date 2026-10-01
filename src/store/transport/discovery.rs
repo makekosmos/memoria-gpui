@@ -47,7 +47,12 @@ pub(super) fn resolve(get: &dyn Fn(&str) -> Option<PathBuf>) -> Result<PathBuf, 
         .find(|dir| dir.join("engine.lock.json").is_file())
         .cloned()
         .or_else(|| dirs.into_iter().next())
-        .ok_or(EngineError::DataDirMissing)
+        .ok_or_else(|| {
+            EngineError::local(
+                super::ErrorKind::NotRunning,
+                "no data dir candidate resolves",
+            )
+        })
 }
 
 pub(super) fn data_dir() -> Result<PathBuf, EngineError> {
@@ -160,6 +165,12 @@ mod tests {
     #[test]
     fn no_candidates_is_an_error() {
         let env = fake_env(vec![]);
-        assert!(matches!(resolve(&env), Err(EngineError::DataDirMissing)));
+        assert!(matches!(
+            resolve(&env),
+            Err(EngineError {
+                kind: crate::store::transport::ErrorKind::NotRunning,
+                ..
+            })
+        ));
     }
 }

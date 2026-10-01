@@ -33,8 +33,14 @@ impl<B: ArkBridge> EntryApi<B> {
                 )))
             }
         };
-        crate::note_type_schemas::parse_note_type_definition(&note_type.schema_json)
-            .map_err(|_| EngineError::Malformed)?;
+        crate::note_type_schemas::parse_note_type_definition(&note_type.schema_json).map_err(
+            |_| {
+                EngineError::local(
+                    crate::store::transport::ErrorKind::Malformed,
+                    "malformed response",
+                )
+            },
+        )?;
         if validate_header_props(Some(&note_type), &parsed).is_err() {
             return Ok(Some(SaveFail::invalid_type(
                 "Структура верхушки заметки больше не соответствует типу",

@@ -9,7 +9,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::time::Duration;
-use thiserror::Error;
 
 use crate::model::ark::ensure_list;
 
@@ -17,6 +16,10 @@ mod bridge;
 mod discovery;
 mod events;
 pub use bridge::*;
+// Engine error classes are shared across the GPUI apps — the kit owns the
+// type; `Display` is the log form (`kind: raw wire code`), `message()` is
+// the Russian user text (KOS-298).
+pub use mundus_gpui_kit::engine_error::{EngineError, ErrorKind};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
 /// Test seam: `MEMORIA_RPC_TIMEOUT_MS` shortens the request deadline.
@@ -29,31 +32,6 @@ fn rpc_timeout() -> Duration {
 }
 const RETRY_BACKOFF: Duration = Duration::from_millis(300);
 const RECONNECT_DELAY: Duration = Duration::from_secs(1);
-
-/// Engine RPC failure classes. `Display` strings are user-facing Russian.
-#[derive(Debug, Error)]
-pub enum EngineError {
-    #[error("Engine не запущен. Запустите Mundus и обновите список.")]
-    LockMissing,
-    #[error("Не найдена папка данных Mundus")]
-    DataDirMissing,
-    #[error("Некорректный файл состояния Engine")]
-    LockInvalid,
-    #[error("Несовместимое состояние Engine. Обновите Mundus.")]
-    LockIncompatible,
-    #[error("Нет подтверждения от Engine. Обновите список перед повтором.")]
-    Unreachable,
-    #[error("Engine не ответил вовремя. Попробуйте ещё раз.")]
-    Timeout,
-    #[error("Engine отклонил операцию. Изменение не подтверждено.")]
-    Rejected,
-    #[error("Engine отклонил операцию: {0}")]
-    Rpc(String),
-    #[error("Конфликт версий: объект уже изменён в Engine ({0})")]
-    Conflict(String),
-    #[error("Некорректный ответ Engine")]
-    Malformed,
-}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct EngineLock {
@@ -89,7 +67,10 @@ impl EngineLock {
             || self.auth_token.len() != 64
             || !self.auth_token.bytes().all(|v| v.is_ascii_hexdigit())
         {
-            return Err(EngineError::LockIncompatible);
+            return Err(EngineError::local(
+                ErrorKind::NotCompatible,
+                "engine.lock.json: incompatible format",
+            ));
         }
         Ok(())
     }
@@ -133,10 +114,18 @@ impl Engine {
     /// restarted under a new token/port).
     pub fn lock(&self) -> Result<EngineLock, EngineError> {
         let directory = self.data_dir.clone().map(Ok).unwrap_or_else(data_dir)?;
-        let bytes = std::fs::read(directory.join("engine.lock.json"))
-            .map_err(|_| EngineError::LockMissing)?;
-        let lock: EngineLock =
-            serde_json::from_slice(&bytes).map_err(|_| EngineError::LockInvalid)?;
+        let bytes = std::fs::read(directory.join("engine.lock.json")).map_err(|e| {
+            EngineError::local(
+                ErrorKind::NotRunning,
+                format!("engine.lock.json unreadable: {e}"),
+            )
+        })?;
+        let lock: EngineLock = serde_json::from_slice(&bytes).map_err(|e| {
+            EngineError::local(
+                ErrorKind::NotCompatible,
+                format!("engine.lock.json malformed: {e}"),
+            )
+        })?;
         lock.validate()?;
         Ok(lock)
     }
@@ -146,7 +135,10 @@ impl Engine {
     pub fn rpc(&self, operation: &str, mut params: Value) -> Result<Value, EngineError> {
         let lock = self.lock()?;
         if !params.is_object() {
-            return Err(EngineError::Rejected);
+            return Err(EngineError::local(
+                ErrorKind::InvalidRequest,
+                "local: params not an object",
+            ));
         }
         params["operation"] = json!(operation);
         params["_req_id"] = json!(uuid::Uuid::new_v4().to_string());
@@ -179,17 +171,23 @@ impl Engine {
             Err(error) => return Err(classify_transport(error)),
         };
         let status = response.status();
-        let value: Value = response.into_json().map_err(|_| EngineError::Malformed)?;
+        let value: Value = response.into_json().map_err(|e| {
+            EngineError::local(ErrorKind::Malformed, format!("response not json: {e}"))
+        })?;
         Self::decode_envelope(status, value)
     }
 
     /// Envelope semantics from `kepler-task-sync`'s `ark()` shim: no `ok` key →
-    /// payload itself; `ok:false` → error (`object_conflict:*` → Conflict).
+    /// payload itself; `ok:false` → error classified from the wire code
+    /// (`object_conflict:*` → Conflict via `ErrorKind::from_engine_code`).
     fn decode_envelope(status: u16, value: Value) -> Result<Value, EngineError> {
         match value.get("ok") {
             Some(Value::Bool(true)) => Ok(value.get("data").cloned().unwrap_or(Value::Null)),
-            Some(Value::Bool(false)) => Err(classify_rpc_error(&error_text(&value))),
-            _ if status >= 400 => Err(EngineError::Rpc(format!("HTTP {status}"))),
+            Some(Value::Bool(false)) => Err(EngineError::engine(&error_text(&value))),
+            _ if status >= 400 => Err(EngineError::local(
+                ErrorKind::Unavailable,
+                format!("HTTP {status}"),
+            )),
             _ => Ok(value),
         }
     }
@@ -202,16 +200,6 @@ fn error_text(value: &Value) -> String {
         .and_then(Value::as_str)
         .unwrap_or("unknown")
         .to_string()
-}
-
-/// `object_conflict:*` upstream failures surface as a typed conflict so the
-/// save path can record a `stale-save` conflict instead of a hard failure.
-fn classify_rpc_error(text: &str) -> EngineError {
-    if text.starts_with("object_conflict:") {
-        EngineError::Conflict(text.to_string())
-    } else {
-        EngineError::Rpc(text.to_string())
-    }
 }
 
 fn is_retryable(error: &ureq::Error) -> bool {
@@ -227,15 +215,17 @@ fn is_retryable(error: &ureq::Error) -> bool {
 fn classify_transport(error: ureq::Error) -> EngineError {
     match error {
         ureq::Error::Status(_, response) => {
+            // Engine reports handled failures as non-2xx `{ok:false,error}` —
+            // keep the real code; an unparseable body stays `unavailable`.
             let text = response
                 .into_json::<Value>()
                 .ok()
                 .map(|v| error_text(&v))
                 .unwrap_or_default();
             if text.is_empty() {
-                EngineError::Rejected
+                EngineError::engine("unavailable")
             } else {
-                classify_rpc_error(&text)
+                EngineError::engine(&text)
             }
         }
         ureq::Error::Transport(transport) => {
@@ -244,9 +234,9 @@ fn classify_transport(error: ureq::Error) -> EngineError {
                     .and_then(|s| s.downcast_ref::<std::io::Error>())
                     .is_some_and(|e| e.kind() == std::io::ErrorKind::TimedOut);
             if timed_out {
-                EngineError::Timeout
+                EngineError::local(ErrorKind::Timeout, transport.to_string())
             } else {
-                EngineError::Unreachable
+                EngineError::local(ErrorKind::Transport, transport.to_string())
             }
         }
     }

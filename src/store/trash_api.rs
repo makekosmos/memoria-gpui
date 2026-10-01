@@ -97,8 +97,12 @@ impl<B: ArkBridge> TrashStorageApi<B> {
                 ..Default::default()
             });
         }
-        let object: ArkObjectRecord =
-            serde_json::from_value(existing).map_err(|_| EngineError::Malformed)?;
+        let object: ArkObjectRecord = serde_json::from_value(existing).map_err(|_| {
+            EngineError::local(
+                crate::store::transport::ErrorKind::Malformed,
+                "malformed response",
+            )
+        })?;
         // `JSON.stringify` drops `undefined` values — emit the props/content
         // keys only when the record actually carries them.
         let mut object_param = serde_json::Map::new();
