@@ -18,7 +18,7 @@ gpui-component = "=0.6.2"
 imago-gpui = { git = "https://github.com/makekosmos/imago.git", rev = "300fe3717cb68f1f653c39310fffb0d0b8b8ba6e" }
 # Shared Engine error classes (`engine_error`) — typed wire codes + Russian
 # user text, owned by the kit so the apps don't keep three copies (KOS-298).
-mundus-gpui-kit = { git = "https://github.com/makekosmos/kosmos-gpui-kit", rev = "56aad7a931addfcbda5d0e0646eb25f24c2d95d9" }
+mundus-gpui-kit = { git = "https://github.com/makekosmos/kosmos-gpui-kit", rev = "bafc57a3bc005d3fa2bdb4676b237a95c9d47b5c" }
 serde = { version = "1.0.229", features = ["derive"] }
 # preserve_order: Vue parity depends on JSON.stringify key order — header
 # props, extensions and fingerprinted content must keep insertion order.

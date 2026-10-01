@@ -154,8 +154,13 @@ fn rpc_ok_false_maps_to_typed_error() {
     // The raw wire code stays in `detail` (it lands in the app log via
     // `Display`); the user sees only the class text.
     assert_eq!(error.detail, "denied");
-    assert_eq!(error.kind, ErrorKind::Unavailable);
-    assert_eq!(error.message(), "Engine временно недоступен. Повторите попытку.");
+    // "denied" is not a documented Engine class — Unknown, and its user
+    // text must not claim "temporarily unavailable" (that would be a lie).
+    assert_eq!(error.kind, ErrorKind::Unknown);
+    assert_eq!(
+        error.message(),
+        "Engine сообщил о неизвестной ошибке. Подробности записаны в журнал приложения."
+    );
     assert!(!error.message().contains("denied"));
 }
 
