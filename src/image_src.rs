@@ -33,22 +33,6 @@ pub fn entry_image_src(e: &Entry) -> Option<String> {
     }
 }
 
-/// Thumbnail src for object rows — `presentation.imageFieldId` header prop.
-/// Relation-to-image resolution (TypeObjectsView `resolveObjectImageSrc`)
-/// needs the collection map; that lookup is M5 — non-string values yield
-/// no thumbnail here.
-pub fn entry_thumbnail_src(e: &Entry, image_field_id: Option<&str>) -> Option<String> {
-    let fid = image_field_id?;
-    let props = parse_entry_header_props(e);
-    props
-        .get(fid)
-        .and_then(|v| v.as_str())
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .map(str::to_string)
-        .or_else(|| entry_image_src(e))
-}
-
 /// `^[a-z][a-z0-9+.-]*:` scheme / drive letter / UNC — ImageObjectView.vue.
 fn looks_resolvable(s: &str) -> bool {
     let bytes = s.as_bytes();

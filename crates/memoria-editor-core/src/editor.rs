@@ -149,13 +149,6 @@ impl Editor {
         )
     }
 
-    /// Same, for an arbitrary selection — renderer/caret helpers.
-    pub fn project_at(&self, sel: Selection) -> Projection {
-        let src = self.buf.text();
-        let doc = parse(&src);
-        project(&doc, &src, sel)
-    }
-
     /// Serialize = the source markdown, byte-identical (source of truth).
     pub fn serialize(&self) -> String {
         self.buf.text()

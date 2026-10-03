@@ -69,12 +69,6 @@ impl MemoriaEditor {
         }
     }
 
-    pub fn close_lang_picker(&mut self, cx: &mut Context<Self>) {
-        if self.picker.take().is_some() {
-            cx.notify();
-        }
-    }
-
     /// Picker key input (called from the capture-phase key listener).
     /// Returns true when the key was consumed.
     pub(crate) fn picker_key(

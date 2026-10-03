@@ -63,11 +63,6 @@ pub fn parse_definition(schema_json: &str) -> Result<NoteTypeDefinition, String>
     parse_note_type_definition(schema_json)
 }
 
-/// `parseHeaderTemplate` re-export for store code.
-pub fn parse_header_template_of(json: &str) -> Result<crate::model::HeaderTemplate, String> {
-    parse_header_template(json)
-}
-
 /// `normalizeSlug`.
 pub fn normalize_slug(input: &str) -> String {
     let mut out = String::with_capacity(input.len());

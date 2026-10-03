@@ -24,11 +24,6 @@ fn has_flag(source: &Value) -> bool {
     }
 }
 
-fn strip_flag(mut header_props: Map<String, Value>) -> Map<String, Value> {
-    header_props.shift_remove(UNTITLED_ENTRY_TITLE_FLAG);
-    header_props
-}
-
 /// `createUntitledEntryHeaderProps`.
 pub fn create_untitled_entry_header_props() -> Map<String, Value> {
     let mut map = Map::new();
@@ -50,46 +45,4 @@ pub fn get_entry_display_title(title: Option<&str>, source: Option<&Value>) -> S
         return UNTITLED_ENTRY_PLACEHOLDER.to_string();
     }
     normalized.to_string()
-}
-
-/// `getEditableEntryTitle`.
-pub fn get_editable_entry_title(title: Option<&str>, source: Option<&Value>) -> String {
-    if is_generated_untitle(title, source) {
-        return String::new();
-    }
-    title.unwrap_or_default().to_string()
-}
-
-/// `resolveStoredEntryTitle`.
-pub fn resolve_stored_entry_title(
-    edited_title: &str,
-    persisted_title: &str,
-    persisted_source: Option<&Value>,
-) -> String {
-    let normalized = edited_title.trim();
-    if !normalized.is_empty() {
-        return normalized.to_string();
-    }
-    if is_generated_untitle(Some(persisted_title), persisted_source) {
-        return persisted_title.to_string();
-    }
-    normalized.to_string()
-}
-
-/// `syncUntitledEntryTitleFlag`.
-pub fn sync_untitled_entry_title_flag(
-    header_props: Map<String, Value>,
-    edited_title: &str,
-    persisted_title: &str,
-    persisted_source: Option<&Value>,
-) -> Map<String, Value> {
-    if !edited_title.trim().is_empty() {
-        return strip_flag(header_props);
-    }
-    if is_generated_untitle(Some(persisted_title), persisted_source) {
-        let mut out = strip_flag(header_props);
-        out.insert(UNTITLED_ENTRY_TITLE_FLAG.into(), Value::Bool(true));
-        return out;
-    }
-    strip_flag(header_props)
 }

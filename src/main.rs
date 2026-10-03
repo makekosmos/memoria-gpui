@@ -2,7 +2,6 @@
 #![windows_subsystem = "windows"]
 mod a11y;
 mod app;
-mod pages;
 mod theme;
 
 #[cfg(test)]

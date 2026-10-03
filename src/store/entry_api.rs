@@ -4,7 +4,6 @@
 use serde_json::{json, Value};
 
 use crate::header_props::validate_header_props;
-use crate::live_list_filter::should_include_type_in_eden_list_for_live_update;
 use crate::mapping::{
     ark_timestamp_to_millis, js_truthy, map_ark_object_summary_to_entry, map_ark_object_to_entry,
     map_entry_to_ark_object, millis_to_ark_timestamp, normalize_entry, parse_header_props_json,
@@ -188,39 +187,6 @@ impl<B: ArkBridge> EntryApi<B> {
                 .collect()
         };
         Ok(Some(map_ark_object_to_entry(&object, &links, None)))
-    }
-
-    /// `loadListableEntry`.
-    pub fn load_listable_entry(
-        &mut self,
-        id: &str,
-        type_id_hint: Option<&str>,
-        visible_type_ids: &[String],
-    ) -> Result<Option<Entry>, EngineError> {
-        if let Some(hint) = type_id_hint {
-            if hint != crate::mapping::SYSTEM_TYPE_COLLECTION_ID
-                && !should_include_type_in_eden_list_for_live_update(
-                    hint,
-                    &Value::Object(Default::default()),
-                    visible_type_ids,
-                )
-            {
-                return Ok(None);
-            }
-        }
-        let Some(entry) = self.load_entry(id, false)? else {
-            return Ok(None);
-        };
-        if entry.deleted_at.map(|v| v != 0).unwrap_or(false) {
-            return Ok(None);
-        }
-        let props = parse_header_props_json(entry.header_props_json.as_deref());
-        let listable = should_include_type_in_eden_list_for_live_update(
-            entry.type_id.as_deref().unwrap_or(""),
-            &Value::Object(props),
-            visible_type_ids,
-        );
-        Ok(listable.then_some(entry))
     }
 
     /// `listEntries` — summaries filtered like the Vue list view.

@@ -4,8 +4,7 @@
 //! `self.title_input` are per-frame mirrors of the *current* doc for the
 //! existing render code.
 use gpui::{prelude::*, Context, Entity, Window};
-use gpui_component::input::InputState;
-use memoria_editor_gpui::{EditorEvent, MemoriaEditor};
+use memoria_editor_gpui::EditorEvent;
 use memoria_gpui::content;
 use memoria_gpui::store::Command;
 
@@ -106,30 +105,6 @@ impl Memoria {
         self.editor = Some(editor);
         self.title_input = Some(title);
         doc.update(cx, |doc, cx| doc.apply_pending(window, cx));
-    }
-
-    /// The doc's title binding for this window (kept on `self.title_input`
-    /// for the legacy call sites — see `sync_editor_entities`).
-    #[allow(dead_code)]
-    pub(crate) fn title_state(
-        &mut self,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> Option<Entity<InputState>> {
-        let doc = self.current_doc(window, cx)?;
-        Some(doc.update(cx, |d, cx| d.title_for(window, cx)))
-    }
-
-    /// The doc's shared `MemoriaEditor` (kept on `self.editor` for the
-    /// legacy call sites — see `sync_editor_entities`).
-    #[allow(dead_code)]
-    pub(crate) fn editor_state(
-        &mut self,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> Option<Entity<MemoriaEditor>> {
-        let doc = self.current_doc(window, cx)?;
-        Some(doc.read(cx).editor.clone())
     }
 
     pub(crate) fn save(&mut self, cx: &mut Context<Self>) {

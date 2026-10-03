@@ -95,8 +95,6 @@ impl Route {
     }
 }
 
-const NOTE_ROUTE_PREFIX: &str = "/note/";
-
 /// `parseEntryRouteId` — Vue guards: no `/?#` encoded, decoded id ≤200
 /// chars, no `\`/whitespace/`?`/`#`/control chars inside it.
 pub(crate) fn parse_entry_route_id(route: &str, prefix: &str) -> Option<String> {
@@ -114,11 +112,6 @@ pub(crate) fn parse_entry_route_id(route: &str, prefix: &str) -> Option<String> 
         return None;
     }
     Some(entry_id)
-}
-
-/// `parseKeplerRoute` → entry id.
-pub fn parse_note_route(route: &str) -> Option<String> {
-    parse_entry_route_id(route, NOTE_ROUTE_PREFIX)
 }
 
 #[cfg(test)]
