@@ -45,9 +45,6 @@ wildcards = "allow"
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
-# imago-gpui and mundus-gpui-kit are consumed straight from the makekosmos
-# repos by rev.
-allow-git = [
-    "https://github.com/makekosmos/imago.git",
-    "https://github.com/makekosmos/kosmos-gpui-kit",
-]
+# imago-gpui and mundus-gpui-kit are consumed straight from the imago repo
+# by rev (the kit moved in under KOS-319).
+allow-git = ["https://github.com/makekosmos/imago.git"]
