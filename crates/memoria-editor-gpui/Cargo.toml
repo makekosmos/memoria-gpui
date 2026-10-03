@@ -38,7 +38,7 @@ gpui-component = { version = "=0.6.2", features = [
     "tree-sitter-typescript",
     "tree-sitter-yaml",
 ] }
-imago-gpui = { git = "https://github.com/makekosmos/imago.git", rev = "96858d899c4a6dd4af37704427cc91fcb1fcc52d" }
+imago-gpui = { git = "https://github.com/makekosmos/imago.git", rev = "f3e783705796a7a9d02e3baac4d2c6c8bd5c9929" }
 # ropey pinned to the exact version gpui-component's highlighter uses —
 # `SyntaxHighlighter::update` takes `&ropey::Rope` from this release line.
 ropey = "=2.0.0-beta.1"
