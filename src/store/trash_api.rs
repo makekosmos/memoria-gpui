@@ -140,11 +140,6 @@ impl<B: ArkBridge> TrashStorageApi<B> {
         })
     }
 
-    /// `purgeExpiredTrash` — no expiry in the current Vue contract.
-    pub fn purge_expired_trash(&self) -> (bool, usize) {
-        (true, 0)
-    }
-
     /// `getVaultStorageInfo`.
     pub fn get_vault_storage_info(&mut self) -> VaultStorageInfo {
         let objects = self.list_all_objects();
@@ -174,11 +169,6 @@ impl<B: ArkBridge> TrashStorageApi<B> {
             entry_count: active.len(),
             trash_count: trashed.len(),
         }
-    }
-
-    /// `getDiskFreeSpace` — the Vue stub returns 0.
-    pub fn get_disk_free_space(&self) -> i64 {
-        0
     }
 }
 

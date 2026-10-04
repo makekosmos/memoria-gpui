@@ -11,9 +11,7 @@ use crate::note_type_schemas::parse_note_type_definition;
 use crate::note_types::{
     get_note_type_collection_name, normalize_note_type, normalize_slug, parse_note_type_ui_schema,
 };
-use crate::system_types::{
-    is_system_type, normalize_system_note_type, should_show_as_eden_collection,
-};
+use crate::system_types::{normalize_system_note_type, should_show_as_eden_collection};
 use crate::system_types_data::SYSTEM_TYPE_COLLECTION;
 use crate::time::{millis_to_iso, timestamp_to_millis};
 
@@ -267,9 +265,4 @@ pub fn should_include_object_in_eden_list(type_id: &str, props_json: &Value) -> 
         Some(object_type_id) => should_show_as_eden_collection(object_type_id),
         None => false,
     }
-}
-
-/// `isSystemType` re-export used by callers in this layer.
-pub fn is_known_system_type(id: &str) -> bool {
-    is_system_type(id)
 }

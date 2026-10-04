@@ -89,18 +89,9 @@ impl NavHistory {
         Some(target)
     }
 
-    /// The entry id of the route that back would land on — used to decide
-    /// whether a back navigation needs an `Entry` load.
-    pub fn peek_back(&self) -> Option<&Route> {
-        self.back.last()
-    }
-
     /// Test helpers — stack sizes for assertions.
     pub fn back_len(&self) -> usize {
         self.back.len()
-    }
-    pub fn forward_len(&self) -> usize {
-        self.forward.len()
     }
 }
 

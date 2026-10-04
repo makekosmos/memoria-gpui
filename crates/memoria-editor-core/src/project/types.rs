@@ -144,9 +144,4 @@ impl Projection {
         }
         c.src.start + (vis_pos - c.vis.start).min(c.src.end - c.src.start)
     }
-
-    /// Visible range covering the given source selection (for caret/highlight).
-    pub fn visible_range(&self, src: RangeB) -> RangeB {
-        self.to_visible(src.start)..self.to_visible(src.end)
-    }
 }

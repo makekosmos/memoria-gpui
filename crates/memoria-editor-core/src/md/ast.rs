@@ -99,25 +99,6 @@ impl Node {
     pub fn is_block(&self) -> bool {
         matches!(self, Node::Block { .. })
     }
-
-    /// First descendant range start inside the node (for marker gaps).
-    pub fn first_child_start(&self) -> Option<usize> {
-        match self {
-            Node::Block { children, .. } | Node::Inline { children, .. } => {
-                children.first().map(|c| c.range().start)
-            }
-            _ => None,
-        }
-    }
-
-    pub fn last_child_end(&self) -> Option<usize> {
-        match self {
-            Node::Block { children, .. } | Node::Inline { children, .. } => {
-                children.last().map(|c| c.range().end)
-            }
-            _ => None,
-        }
-    }
 }
 
 /// Document root — a block container spanning the whole source.

@@ -11,7 +11,7 @@ use serde_json::{Map, Value};
 
 use crate::local_time::{civil_at, civil_date_key};
 
-use super::{normalize_bubble_kind, BubbleKind, BubbleTimelineNode};
+use super::{BubbleKind, BubbleTimelineNode};
 
 /// `TAG_PATTERN` — `/#[\p{L}\p{N}_-]+/gu`.
 static TAG_PATTERN: LazyLock<Regex> =
@@ -205,20 +205,6 @@ fn strip_tags_from_tiptap_node(node: &Value, inside_code_block: bool) -> Option<
     Some(out)
 }
 
-/// `createDraftBubble` with a string input — doc is `plainTextToTiptapDoc`.
-pub fn create_draft_bubble_from_text(
-    text: &str,
-    now_ms: i64,
-    offset_min: i64,
-) -> Option<BubbleTimelineNode> {
-    create_draft_bubble(
-        &plain_text_to_tiptap_doc(text),
-        Some(text),
-        now_ms,
-        offset_min,
-    )
-}
-
 /// `createDraftBubble` — `contentJson` is either the string's plain doc or a
 /// tiptap tree the caller supplies; `plainText` defaults like the Vue
 /// signature (`input` itself for strings, `tiptapPlainText` for docs).
@@ -277,9 +263,4 @@ pub(crate) fn create_bubble_from_content(
         kind: BubbleKind::Plain,
         ..Default::default()
     })
-}
-
-/// `normalizeBubbleKind` for callers holding a `&str` (API/store layer).
-pub fn bubble_kind_from_str(value: &str) -> BubbleKind {
-    normalize_bubble_kind(&Value::from(value))
 }

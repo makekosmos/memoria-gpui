@@ -163,18 +163,6 @@ impl<B: ArkBridge> EngineVault<B> {
         ))
     }
 
-    /// `filesystem.vault.read` — bytes for one vault-relative path.
-    pub fn read_file(&self, root_id: &str, path: &str) -> Result<Vec<u8>, EngineError> {
-        let data = self.bridge.rpc(
-            "filesystem.vault.read",
-            json!({ "rootId": root_id, "path": path }),
-        )?;
-        decode_base64(read_string(&data, "bytesBase64")?).ok_or(EngineError::local(
-            crate::store::transport::ErrorKind::Malformed,
-            "malformed response",
-        ))
-    }
-
     /// `filesystem.vault.export` — write/copy the planned files under a
     /// registered root. Returns `exportedCount` (skipped copies don't count).
     pub fn export_vault(
@@ -203,43 +191,4 @@ impl<B: ArkBridge> EngineVault<B> {
             .rpc("filesystem.vault.close", json!({ "rootId": root_id }))?;
         Ok(())
     }
-}
-
-/// Minimal base64 decoder for `bytesBase64` payloads (avoids a base64 dep for
-/// one RPC field).
-fn decode_base64(input: &str) -> Option<Vec<u8>> {
-    fn value(byte: u8) -> Option<u8> {
-        match byte {
-            b'A'..=b'Z' => Some(byte - b'A'),
-            b'a'..=b'z' => Some(byte - b'a' + 26),
-            b'0'..=b'9' => Some(byte - b'0' + 52),
-            b'+' => Some(62),
-            b'/' => Some(63),
-            _ => None,
-        }
-    }
-    let clean: Vec<u8> = input.bytes().filter(|b| !b.is_ascii_whitespace()).collect();
-    if !clean.len().is_multiple_of(4) {
-        return None;
-    }
-    let mut out = Vec::with_capacity(clean.len() / 4 * 3);
-    for chunk in clean.chunks(4) {
-        let pad = chunk.iter().filter(|&&b| b == b'=').count();
-        if pad > 2 || chunk.iter().take(4 - pad).any(|&b| b == b'=') {
-            return None;
-        }
-        let mut acc: u32 = 0;
-        for (i, &byte) in chunk.iter().enumerate() {
-            let v = if byte == b'=' { 0 } else { value(byte)? } as u32;
-            acc |= v << (18 - 6 * i);
-        }
-        out.push((acc >> 16) as u8);
-        if pad < 2 {
-            out.push((acc >> 8) as u8);
-        }
-        if pad < 1 {
-            out.push(acc as u8);
-        }
-    }
-    Some(out)
 }

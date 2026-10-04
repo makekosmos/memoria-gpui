@@ -43,12 +43,6 @@ impl Selection {
         self.start() <= end && start <= self.end()
     }
 
-    /// Strict containment of a point inside a range (for "cursor strictly
-    /// inside content" checks).
-    pub fn caret_inside(&self, start: usize, end: usize) -> bool {
-        self.is_empty() && start < self.head && self.head < end
-    }
-
     /// Clamp into a valid byte range.
     pub fn clamp(&self, len: usize) -> Self {
         Self {

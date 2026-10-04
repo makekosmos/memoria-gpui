@@ -87,16 +87,6 @@ fn as_set(list: Option<&[String]>) -> HashSet<&str> {
         .collect()
 }
 
-/// `getResolvedNoteTypeField`.
-pub fn get_resolved_note_type_field(
-    note_type: Option<&NoteType>,
-    field_id: &str,
-) -> Option<ResolvedNoteTypeField> {
-    resolve_note_type_fields(note_type)
-        .into_iter()
-        .find(|f| f.field.id == field_id)
-}
-
 /// `getNoteTypePresentation`.
 pub fn get_note_type_presentation(note_type: Option<&NoteType>) -> NoteTypePresentation {
     let resolved = resolve_note_type_fields(note_type);

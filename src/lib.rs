@@ -36,7 +36,6 @@ pub mod obsidian;
 pub mod preview;
 pub mod routes;
 pub mod save_actions;
-pub mod save_result;
 pub mod search_model;
 pub mod sidebar_model;
 pub mod sticker_route;

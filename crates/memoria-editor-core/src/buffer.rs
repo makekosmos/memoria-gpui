@@ -123,23 +123,6 @@ impl Buffer {
         (start, end)
     }
 
-    /// All lines intersecting `[start, end)` as (content_range) per line.
-    pub fn lines_of_range(&self, start: usize, end: usize) -> Vec<(usize, usize)> {
-        if self.len_bytes() == 0 {
-            return vec![(0, 0)];
-        }
-        let l0 = self.byte_to_line(start.min(self.len_bytes().saturating_sub(1)));
-        let l1 = self.byte_to_line(
-            end.saturating_sub(1)
-                .min(self.len_bytes().saturating_sub(1)),
-        );
-        let mut out = Vec::new();
-        for l in l0..=l1.max(l0) {
-            out.push(self.line_range(self.line_to_byte(l)));
-        }
-        out
-    }
-
     /// Previous grapheme cluster boundary before `byte` (same line context).
     pub fn prev_grapheme(&self, byte: usize) -> usize {
         let byte = byte.min(self.len_bytes());
@@ -210,21 +193,6 @@ impl Buffer {
             byte += c.len_utf8();
         }
         byte.min(self.len_bytes())
-    }
-
-    /// Byte offset `delta` grapheme clusters forward (negative = backward).
-    pub fn move_graphemes(&self, byte: usize, delta: isize) -> usize {
-        let mut pos = byte;
-        if delta >= 0 {
-            for _ in 0..delta {
-                pos = self.next_grapheme(pos);
-            }
-        } else {
-            for _ in 0..-delta {
-                pos = self.prev_grapheme(pos);
-            }
-        }
-        pos
     }
 }
 

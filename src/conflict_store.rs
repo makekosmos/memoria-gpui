@@ -7,8 +7,7 @@ use serde_json::Value;
 
 use crate::entry_conflicts::{
     conflict_for_entry, is_at_least_as_fresh, mark_entry_conflict_resolved, now,
-    update_entry_conflict_local, upsert_entry_conflict, EntryConflict, EntryConflictState,
-    ENTRY_CONFLICTS_FILE,
+    upsert_entry_conflict, EntryConflict, EntryConflictState, ENTRY_CONFLICTS_FILE,
 };
 
 use serde_json::Map;
@@ -115,15 +114,6 @@ impl<S: ConflictStore> ConflictRepository<S> {
         self.conflicts =
             mark_entry_conflict_resolved(&self.conflicts, conflict_id, resolution, state, now());
         self.persist();
-    }
-
-    /// `updateLocal` — persists only when a pending snapshot actually moved.
-    pub fn update_local(&mut self, entry: &Entry) {
-        let next = update_entry_conflict_local(&self.conflicts, entry);
-        if next != self.conflicts {
-            self.conflicts = next;
-            self.persist();
-        }
     }
 }
 

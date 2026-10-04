@@ -230,19 +230,3 @@ pub fn validate_header_props(
     }
     Ok(normalized)
 }
-
-/// `safeParseHeaderProps` — JSON string in, defaults on any failure; a
-/// malformed type schema still propagates (Vue's `createDefaultHeaderProps`
-/// fallback re-parses the schema and re-throws).
-pub fn safe_parse_header_props(
-    note_type: Option<&NoteType>,
-    raw_json: Option<&str>,
-) -> Result<Map<String, Value>, String> {
-    let parsed: Value = raw_json
-        .and_then(|s| serde_json::from_str(s).ok())
-        .unwrap_or(Value::Object(Map::new()));
-    match validate_header_props(note_type, &parsed) {
-        Ok(map) => Ok(map),
-        Err(_) => create_default_header_props(note_type),
-    }
-}
