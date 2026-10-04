@@ -22,7 +22,7 @@ pub(crate) fn toggle_row(
     desc: String,
     on: bool,
     weak: gpui::WeakEntity<Memoria>,
-    apply: impl Fn(&mut Memoria, bool) + 'static,
+    apply: impl Fn(&mut Memoria, bool, &mut Context<Memoria>) + 'static,
 ) -> impl IntoElement {
     div()
         .id(SharedString::from(id.clone()))
@@ -38,7 +38,7 @@ pub(crate) fn toggle_row(
         .hover(|s| s.bg(rgba(FG(), 0.05)))
         .on_click(move |_, _, cx| {
             let _ = weak.update(cx, |this, cx| {
-                apply(this, !on);
+                apply(this, !on, cx);
                 this.persist_prefs();
                 cx.notify();
             });

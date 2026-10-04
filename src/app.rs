@@ -98,7 +98,7 @@ pub struct Memoria {
     pub(crate) toast_seq: u64,
     pub(crate) conflicts: ConflictRepository<DataDirStore>,
     pub(crate) conflict_op: Option<(String, ConflictOp)>,
-    pub(crate) pending_copy_save: Option<String>,
+    pub(crate) pending_copy_save: Option<(String, String)>,
     pub(crate) confirm: Option<Confirm>,
     pub(crate) ctx_menu: Option<CtxMenu>,
     // Typed-header state (M5): per-field text inputs live for the currently

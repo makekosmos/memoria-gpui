@@ -18,7 +18,7 @@ impl Memoria {
         self.busy = false;
         match reply {
             Reply::List(Ok(list)) => {
-                self.list = list;
+                self.list = self.filter_visible_types(list);
                 if self.online {
                     self.banner = None;
                 }
@@ -136,8 +136,11 @@ impl Memoria {
         result: Result<memoria_model::model::SaveEntryResult, String>,
         cx: &mut Context<Self>,
     ) {
-        // keepConflictLocalAsCopy → copy landed; run accept flow.
-        if let Some(conflict_id) = self.pending_copy_save.take() {
+        // keepConflictLocalAsCopy → copy landed; run accept flow. Only the
+        // copy's own reply consumes the marker — an unrelated in-flight
+        // `Saved` (autosave, another window) must not fire accept early.
+        if matches!(&self.pending_copy_save, Some((_, copy_id)) if *copy_id == id) {
+            let (conflict_id, _) = self.pending_copy_save.take().expect("matched");
             match &result {
                 Ok(saved) if saved.ok => {
                     self.send_accept_remote(conflict_id, cx);
