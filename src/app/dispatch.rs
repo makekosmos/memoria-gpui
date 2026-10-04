@@ -24,17 +24,27 @@ impl Memoria {
     }
 
     fn drain(&mut self, cx: &mut Context<Self>) -> bool {
+        let mut disconnected = false;
+        let mut replies = Vec::new();
         if let Backend::Engine(worker) = &self.backend {
-            if worker
-                .replies
-                .try_recv()
-                .is_err_and(|e| matches!(e, std::sync::mpsc::TryRecvError::Disconnected))
-            {
-                self.online = false;
-                self.banner = Some(ENGINE_OFFLINE.into());
+            loop {
+                match worker.replies.try_recv() {
+                    Ok(reply) => replies.push(reply),
+                    Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        disconnected = true;
+                        break;
+                    }
+                }
             }
+        } else {
+            replies = self.backend.drain();
         }
-        for reply in self.backend.drain() {
+        if disconnected {
+            self.online = false;
+            self.banner = Some(ENGINE_OFFLINE.into());
+        }
+        for reply in replies {
             self.on_reply(reply, cx);
         }
         true
