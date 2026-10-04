@@ -4,8 +4,8 @@
 
 use std::sync::{Arc, Mutex};
 
-use memoria_gpui::store::bubble_api::BubbleApi;
-use memoria_gpui::store::transport::{ArkBridge, EngineError};
+use memoria_model::store::bubble_api::BubbleApi;
+use memoria_model::store::transport::{ArkBridge, EngineError};
 use serde_json::{Map, Value};
 
 type Objects = Arc<Mutex<Map<String, Value>>>;
@@ -103,8 +103,8 @@ impl ArkBridge for FakeArk {
             "delete_object" => {
                 let mut objects = self.objects.lock().unwrap();
                 if let Some(object) = objects.get_mut(params["id"].as_str().unwrap_or_default()) {
-                    object["deletedAt"] = Value::from(memoria_gpui::time::millis_to_iso(
-                        memoria_gpui::time::now_millis(),
+                    object["deletedAt"] = Value::from(memoria_model::time::millis_to_iso(
+                        memoria_model::time::now_millis(),
                     ));
                 }
                 Ok(Value::from(true))

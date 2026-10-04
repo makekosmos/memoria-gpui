@@ -4,7 +4,7 @@
 use gpui::{div, prelude::*, px, Context, SharedString};
 use gpui_component::scroll::ScrollableElement;
 
-use memoria_gpui::routes::{Route, SettingsTab};
+use memoria_model::routes::{Route, SettingsTab};
 
 use super::settings_widgets::{section_header, settings_button, toggle_row};
 use super::Memoria;
@@ -16,7 +16,7 @@ impl Memoria {
     pub(crate) fn route_changed_settings(&mut self, cx: &mut Context<Self>) {
         if matches!(self.route, Route::Settings(SettingsTab::Trash)) && !self.trash_loaded {
             self.trash_loaded = true;
-            self.send(memoria_gpui::store::Command::LoadTrash, cx);
+            self.send(memoria_model::store::Command::LoadTrash, cx);
         }
     }
 
@@ -90,7 +90,7 @@ impl Memoria {
         let spell = self.prefs.preferences.spellcheck_enabled;
         let reader = self.prefs.preferences.reader_mode_enabled;
         let all_ids: Vec<String> = self.note_types.iter().map(|t| t.id.clone()).collect();
-        let visible = memoria_gpui::local_state::visible_type_set(
+        let visible = memoria_model::local_state::visible_type_set(
             &self.prefs.visible_object_type_ids,
             &all_ids,
         );
@@ -142,7 +142,7 @@ impl Memoria {
     pub(crate) fn set_object_type_visible(&mut self, type_id: &str, visible: bool) {
         let all: Vec<String> = self.note_types.iter().map(|t| t.id.clone()).collect();
         let mut set =
-            memoria_gpui::local_state::visible_type_set(&self.prefs.visible_object_type_ids, &all);
+            memoria_model::local_state::visible_type_set(&self.prefs.visible_object_type_ids, &all);
         if visible {
             set.insert(type_id.to_string());
         } else {

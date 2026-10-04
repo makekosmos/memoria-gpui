@@ -20,7 +20,7 @@ use gpui::{
 };
 use gpui_component::input::{Input, InputState};
 
-use memoria_gpui::sticker_route::{
+use memoria_model::sticker_route::{
     sticker_always_on_top_supported, sticker_window_key_for, STICKER_WINDOW_HEIGHT,
     STICKER_WINDOW_MIN_HEIGHT, STICKER_WINDOW_MIN_WIDTH, STICKER_WINDOW_WIDTH,
 };

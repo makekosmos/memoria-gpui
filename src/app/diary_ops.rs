@@ -4,13 +4,13 @@
 use gpui::{prelude::*, Context, Entity, Focusable, Window};
 use gpui_component::input::TextareaState;
 use memoria_editor_gpui::{EditorEvent, MemoriaEditor};
-use memoria_gpui::content::markdown_to_tiptap_doc;
-use memoria_gpui::diary::{
+use memoria_model::content::markdown_to_tiptap_doc;
+use memoria_model::diary::{
     bubble_plain_text, parse_bubble_draft, strip_tags_from_tiptap_doc, BubbleKind,
     BubbleTimelineNode, LOCAL_BUBBLES_STORAGE_KEY,
 };
-use memoria_gpui::store::{BubblePatch, Command};
-use memoria_gpui::time::now_millis;
+use memoria_model::store::{BubblePatch, Command};
+use memoria_model::time::now_millis;
 
 use super::Memoria;
 

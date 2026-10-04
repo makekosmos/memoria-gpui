@@ -1,6 +1,6 @@
 //! `window.confirm` equivalent — centered modal for destructive actions.
 use gpui::{div, prelude::*, px, Context, MouseButton};
-use memoria_gpui::store::Command;
+use memoria_model::store::Command;
 
 use super::types::Confirm;
 use super::Memoria;

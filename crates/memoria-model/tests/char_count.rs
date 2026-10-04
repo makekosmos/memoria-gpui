@@ -1,6 +1,8 @@
 //! Port of `tests/charCount.test.ts` — zen-mode counter counting.
 
-use memoria_gpui::char_count::{count_chars_in_prose_mirror_doc, count_chars_in_prose_mirror_node};
+use memoria_model::char_count::{
+    count_chars_in_prose_mirror_doc, count_chars_in_prose_mirror_node,
+};
 use serde_json::{json, Value};
 
 fn doc(content: Value) -> String {

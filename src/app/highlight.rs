@@ -1,7 +1,7 @@
 //! `v-memo` search highlight — shared span splitter for overlay results.
 use gpui::{div, prelude::*, px, IntoElement, SharedString};
 
-use memoria_gpui::search_model::highlight_ranges;
+use memoria_model::search_model::highlight_ranges;
 
 use crate::theme::*;
 

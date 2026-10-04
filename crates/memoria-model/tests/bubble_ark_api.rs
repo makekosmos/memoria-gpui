@@ -5,7 +5,7 @@
 mod common;
 
 use common::fake_ark::{api_for, FakeArk};
-use memoria_gpui::diary::BubbleKind;
+use memoria_model::diary::BubbleKind;
 use serde_json::json;
 
 #[test]
@@ -51,7 +51,7 @@ fn updates_in_place_preserving_occurrence_and_unrelated_props() {
 
     api.update_bubble(
         &id,
-        memoria_gpui::store::BubblePatch {
+        memoria_model::store::BubblePatch {
             input: Some("После #новое".into()),
             kind: Some(BubbleKind::Idea),
         },
@@ -84,12 +84,12 @@ fn kind_only_update_preserves_unknown_tiptap_nodes() {
     let before = ark.objects.lock().unwrap()[&id]["contentJson"].clone();
     assert_eq!(
         before,
-        memoria_gpui::content::write_entry_tiptap_doc(doc.clone())
+        memoria_model::content::write_entry_tiptap_doc(doc.clone())
     );
 
     api.update_bubble(
         &id,
-        memoria_gpui::store::BubblePatch {
+        memoria_model::store::BubblePatch {
             input: None,
             kind: Some(BubbleKind::Highlight),
         },

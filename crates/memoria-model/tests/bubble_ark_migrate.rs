@@ -5,9 +5,9 @@
 mod common;
 
 use common::fake_ark::{api_for, FakeArk};
-use memoria_gpui::diary::{BubbleKind, BubbleTimelineNode};
-use memoria_gpui::store::bubble_api::migrate_diary;
-use memoria_gpui::store::EntryApi;
+use memoria_model::diary::{BubbleKind, BubbleTimelineNode};
+use memoria_model::store::bubble_api::migrate_diary;
+use memoria_model::store::EntryApi;
 use serde_json::json;
 
 #[test]

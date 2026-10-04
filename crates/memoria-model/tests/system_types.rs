@@ -1,11 +1,11 @@
 //! Port of `tests/systemTypes.test.ts` — book/image system-type contracts.
 
-use memoria_gpui::icon_resolver::object_icon_uri;
-use memoria_gpui::note_type_fields::resolve_note_type_fields;
-use memoria_gpui::note_type_schemas::{parse_header_template, parse_note_type_definition};
-use memoria_gpui::note_types::parse_note_type_ui_schema;
-use memoria_gpui::system_types::is_system_type;
-use memoria_gpui::system_types_data::{
+use memoria_model::icon_resolver::object_icon_uri;
+use memoria_model::note_type_fields::resolve_note_type_fields;
+use memoria_model::note_type_schemas::{parse_header_template, parse_note_type_definition};
+use memoria_model::note_types::parse_note_type_ui_schema;
+use memoria_model::system_types::is_system_type;
+use memoria_model::system_types_data::{
     system_types, SYSTEM_TYPE_BOOK, SYSTEM_TYPE_BOOK_ID, SYSTEM_TYPE_IMAGE, SYSTEM_TYPE_IMAGE_ID,
 };
 

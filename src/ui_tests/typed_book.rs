@@ -5,7 +5,7 @@
 use gpui::{ExternalPaths, FileDropEvent, PlatformInput, TestAppContext};
 use serde_json::Value;
 
-use memoria_gpui::system_types_data::{SYSTEM_TYPE_GAME_ID, SYSTEM_TYPE_IMAGE_ID};
+use memoria_model::system_types_data::{SYSTEM_TYPE_GAME_ID, SYSTEM_TYPE_IMAGE_ID};
 
 use super::typed::{header_props, seed_entry, seeded_entry};
 use super::*;

@@ -1,10 +1,10 @@
 //! `TrashSettings` — trash list + restore/delete/empty actions.
 use gpui::{div, prelude::*, px, Context, SharedString};
 
-use memoria_gpui::dates::trash_time_ago_label;
-use memoria_gpui::model::Entry;
-use memoria_gpui::object_views::entry_display_title;
-use memoria_gpui::sidebar_model::IconId;
+use memoria_model::dates::trash_time_ago_label;
+use memoria_model::model::Entry;
+use memoria_model::object_views::entry_display_title;
+use memoria_model::sidebar_model::IconId;
 
 use super::settings_widgets::{section_header, settings_button, settings_button_danger};
 use super::{icon, Memoria};
@@ -81,7 +81,7 @@ impl Memoria {
                                 "Удалено {}",
                                 trash_time_ago_label(
                                     e.deleted_at.unwrap_or(e.updated_at),
-                                    memoria_gpui::time::now_millis(),
+                                    memoria_model::time::now_millis(),
                                 )
                             )),
                     ),
@@ -105,6 +105,6 @@ impl Memoria {
     }
 
     pub(crate) fn restore_trash(&mut self, id: String, cx: &mut Context<Self>) {
-        self.send(memoria_gpui::store::Command::RestoreEntry(id), cx);
+        self.send(memoria_model::store::Command::RestoreEntry(id), cx);
     }
 }

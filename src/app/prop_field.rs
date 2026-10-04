@@ -5,8 +5,8 @@ use gpui::{div, prelude::*, px, Context, SharedString, Window};
 use gpui_component::input::Input;
 use serde_json::{Map, Value};
 
-use memoria_gpui::model::{Entry, NoteType, ResolvedNoteTypeField};
-use memoria_gpui::object_fields::format_object_field_value;
+use memoria_model::model::{Entry, NoteType, ResolvedNoteTypeField};
+use memoria_model::object_fields::format_object_field_value;
 
 use super::types::PropPicker;
 use super::Memoria;

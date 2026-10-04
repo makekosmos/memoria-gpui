@@ -3,9 +3,9 @@
 //! the Rust worker is single-threaded, so ordering is exercised through
 //! sequential `handle_save` calls — each caller still gets its own result.
 
-use memoria_gpui::entry_conflicts::EntryConflictState;
-use memoria_gpui::model::{Entry, SaveEntryResult};
-use memoria_gpui::save_actions::{SaveActions, SaveBridge};
+use memoria_model::entry_conflicts::EntryConflictState;
+use memoria_model::model::{Entry, SaveEntryResult};
+use memoria_model::save_actions::{SaveActions, SaveBridge};
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::rc::Rc;

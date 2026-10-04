@@ -5,7 +5,7 @@
 use std::time::Duration;
 
 use gpui::{AnyWindowHandle, AppContext, Keystroke, Modifiers, TestAppContext};
-use memoria_gpui::sticker_route::sticker_window_key_for;
+use memoria_model::sticker_route::sticker_window_key_for;
 
 use super::{click, launch, redraw};
 

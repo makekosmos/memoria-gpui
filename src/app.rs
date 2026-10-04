@@ -51,12 +51,12 @@ use gpui::{Context, Entity, FocusHandle, Subscription, WindowHandle};
 use gpui_component::input::InputState;
 use memoria_editor_gpui::MemoriaEditor;
 
-use memoria_gpui::conflict_store::ConflictRepository;
-use memoria_gpui::local_state::{load_local_state, LocalState};
-use memoria_gpui::model::{Entry, NoteType};
-use memoria_gpui::nav_history::NavHistory;
-use memoria_gpui::routes::Route;
-use memoria_gpui::store::{Command, Engine, Worker};
+use memoria_model::conflict_store::ConflictRepository;
+use memoria_model::local_state::{load_local_state, LocalState};
+use memoria_model::model::{Entry, NoteType};
+use memoria_model::nav_history::NavHistory;
+use memoria_model::routes::Route;
+use memoria_model::store::{Command, Engine, Worker};
 
 use types::{
     Confirm, ConflictOp, CoverModal, CtxMenu, DataDirStore, MetadataModal, PropPicker, Toast,
@@ -91,7 +91,7 @@ pub struct Memoria {
     pub(crate) search_open: bool,
     pub(crate) search_input: Option<Entity<InputState>>,
     pub(crate) search_query_cache: String,
-    pub(crate) search_results: Vec<memoria_gpui::model::SearchResult>,
+    pub(crate) search_results: Vec<memoria_model::model::SearchResult>,
     pub(crate) search_selected: usize,
     pub(crate) search_gen: u64,
     pub(crate) toasts: Vec<Toast>,
@@ -134,7 +134,7 @@ pub struct Memoria {
     pub(crate) stickers: HashMap<String, WindowHandle<gpui_component::Root>>,
     // ---- diary (M6) ---------------------------------------------------------
     /// Thread-normalized diary feed (`listBubbles` reply).
-    pub(crate) bubbles: Vec<memoria_gpui::diary::BubbleTimelineNode>,
+    pub(crate) bubbles: Vec<memoria_model::diary::BubbleTimelineNode>,
     pub(crate) bubbles_loaded: bool,
     /// `calendarOpen` — the titlebar toggle drives the calendar sidebar.
     pub(crate) diary_calendar_open: bool,
@@ -189,7 +189,7 @@ impl Memoria {
             .unwrap_or_default();
         let mut conflicts = ConflictRepository::new(state_dir.clone().map(DataDirStore));
         if let Some(store) = conflicts.store.as_ref() {
-            conflicts.conflicts = memoria_gpui::conflict_store::load_entry_conflicts(store);
+            conflicts.conflicts = memoria_model::conflict_store::load_entry_conflicts(store);
         }
         let mut this = Self {
             backend,

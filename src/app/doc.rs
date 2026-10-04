@@ -21,9 +21,9 @@ use gpui_component::input::{InputEvent, InputState};
 use memoria_editor_gpui::{EditorEvent, MemoriaEditor, AUTOSAVE_DEBOUNCE};
 
 use super::refresh;
-use memoria_gpui::content;
-use memoria_gpui::live_refresh::RemoteEntryDecision;
-use memoria_gpui::model::Entry;
+use memoria_model::content;
+use memoria_model::live_refresh::RemoteEntryDecision;
+use memoria_model::model::Entry;
 
 /// Doc→app events — `Memoria` subscribes at doc creation and forwards saves
 /// through `Backend::send` (Engine worker or the in-memory demo store).
@@ -221,7 +221,7 @@ impl NoteDoc {
     /// revision/title (typing during the save stays dirty).
     pub(crate) fn on_saved(
         &mut self,
-        result: Result<memoria_gpui::model::SaveEntryResult, String>,
+        result: Result<memoria_model::model::SaveEntryResult, String>,
         cx: &mut Context<Self>,
     ) {
         match result {

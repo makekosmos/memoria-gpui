@@ -2,10 +2,10 @@
 //! finish steps that run once the canonical `loadEntry` reply arrives.
 use gpui::Context;
 
-use memoria_gpui::entry_conflicts::{EntryConflict, EntryConflictState};
-use memoria_gpui::live_refresh::entry_visible_fingerprint;
-use memoria_gpui::model::Entry;
-use memoria_gpui::routes::Route;
+use memoria_model::entry_conflicts::{EntryConflict, EntryConflictState};
+use memoria_model::live_refresh::entry_visible_fingerprint;
+use memoria_model::model::Entry;
+use memoria_model::routes::Route;
 
 use super::types::ConflictOp;
 use super::Memoria;

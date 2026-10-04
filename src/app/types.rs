@@ -2,7 +2,7 @@
 //! continuation ops, and the `ConflictStore` bridge over the Engine data dir.
 use std::path::PathBuf;
 
-use memoria_gpui::conflict_store::ConflictStore;
+use memoria_model::conflict_store::ConflictStore;
 
 pub(crate) const ENGINE_OFFLINE: &str =
     "Engine не запущен. Запустите Mundus — список обновится автоматически.";
@@ -63,7 +63,7 @@ pub(crate) struct MetadataModal {
     pub source_input: gpui::Entity<gpui_component::input::InputState>,
     pub loading: bool,
     pub error: Option<String>,
-    pub metadata: Option<memoria_gpui::book_metadata::BookMetadata>,
+    pub metadata: Option<memoria_model::book_metadata::BookMetadata>,
     pub selected: Vec<String>,
     /// Set while a `fetchPage` result awaits its `lookupIsbn` enrichment.
     pub enrich_isbn: Option<String>,

@@ -1,8 +1,8 @@
 //! Review-fix regressions — wired-path divergences found by the M1 parity
 //! review, exercised through the same `ArkBridge` fake as `ark_api.rs`.
 
-use memoria_gpui::store::transport::{ArkBridge, EngineError, ErrorKind};
-use memoria_gpui::store::{EntryApi, NoteTypeApi, TrashStorageApi};
+use memoria_model::store::transport::{ArkBridge, EngineError, ErrorKind};
+use memoria_model::store::{EntryApi, NoteTypeApi, TrashStorageApi};
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 
@@ -34,8 +34,8 @@ fn record(id: &str, type_id: &str) -> Value {
     })
 }
 
-fn entry(id: &str) -> memoria_gpui::model::Entry {
-    memoria_gpui::model::Entry {
+fn entry(id: &str) -> memoria_model::model::Entry {
+    memoria_model::model::Entry {
         id: id.into(),
         title: id.into(),
         content_json: serde_json::to_string(&json!({

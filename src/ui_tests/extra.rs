@@ -3,8 +3,8 @@
 
 use gpui::TestAppContext;
 
-use memoria_gpui::entry_conflicts::{upsert_entry_conflict, EntryConflictState};
-use memoria_gpui::routes::Route;
+use memoria_model::entry_conflicts::{upsert_entry_conflict, EntryConflictState};
+use memoria_model::routes::Route;
 
 use super::*;
 /// and lands in trash.
@@ -78,7 +78,7 @@ fn conflict_banner_accept_remote(cx: &mut TestAppContext) {
             &local,
             Some(&remote),
             EntryConflictState::RemoteUpdated,
-            memoria_gpui::entry_conflicts::now(),
+            memoria_model::entry_conflicts::now(),
         );
         cx.notify();
     });
@@ -89,7 +89,7 @@ fn conflict_banner_accept_remote(cx: &mut TestAppContext) {
     redraw(cx);
     app.read_with(cx, |a, _| {
         assert!(
-            memoria_gpui::entry_conflicts::unresolved_entry_conflicts(&a.conflicts.conflicts)
+            memoria_model::entry_conflicts::unresolved_entry_conflicts(&a.conflicts.conflicts)
                 .is_empty(),
             "conflict must resolve after accept-remote"
         );
@@ -106,7 +106,7 @@ fn settings_toggles_and_trash_tab(cx: &mut TestAppContext) {
     click(cx, "sb-settings");
     assert_eq!(
         route_of(cx, &app),
-        Route::Settings(memoria_gpui::routes::SettingsTab::General)
+        Route::Settings(memoria_model::routes::SettingsTab::General)
     );
     redraw(cx);
     click(cx, "pref-spellcheck");
@@ -126,15 +126,15 @@ fn sticker_routes_resolve(_cx: &mut TestAppContext) {
     // Route helpers are pure — covered here via the UI build so the shell's
     // sticker entry point exercises the same strings.
     assert_eq!(
-        memoria_gpui::sticker_route::sticker_route_for("n-1"),
+        memoria_model::sticker_route::sticker_route_for("n-1"),
         "/sticker/n-1"
     );
     assert_eq!(
-        memoria_gpui::sticker_route::parse_sticker_route("/sticker/n-1"),
+        memoria_model::sticker_route::parse_sticker_route("/sticker/n-1"),
         Some("n-1".to_string())
     );
     assert_eq!(
-        memoria_gpui::sticker_route::parse_sticker_route("/note/n-1"),
+        memoria_model::sticker_route::parse_sticker_route("/note/n-1"),
         None
     );
 }

@@ -1,7 +1,7 @@
 //! `markdownFrontmatter.ts` edge cases from the parity review.
 
-use memoria_gpui::frontmatter::build_entry_markdown_document;
-use memoria_gpui::model::Entry;
+use memoria_model::frontmatter::build_entry_markdown_document;
+use memoria_model::model::Entry;
 
 #[test]
 fn empty_type_id_falls_back_like_js_or() {

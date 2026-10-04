@@ -2,8 +2,8 @@
 use gpui::{div, prelude::*, px, Context, SharedString, WindowControlArea};
 use imago_gpui::chrome;
 
-use memoria_gpui::routes::{Route, SettingsTab};
-use memoria_gpui::sidebar_model::{build_sidebar, IconId, SidebarRow};
+use memoria_model::routes::{Route, SettingsTab};
+use memoria_model::sidebar_model::{build_sidebar, IconId, SidebarRow};
 
 use super::{icon, icon_name, Memoria};
 use crate::a11y::A11y;

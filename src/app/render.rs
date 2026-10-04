@@ -5,7 +5,7 @@
 //! primitives (see PARITY.md).
 use gpui::{div, prelude::*, px, Context, IntoElement, ParentElement, Render, Styled, Window};
 
-use memoria_gpui::routes::Route;
+use memoria_model::routes::Route;
 
 use super::Memoria;
 use crate::theme::*;
@@ -21,7 +21,7 @@ impl Render for Memoria {
         // editor + this window's title binding on first paint and pushes the
         // canonical title into the binding (`set_value` needs a `Window`).
         if let Some(entry) = self.pending_fill.take() {
-            let markdown = memoria_gpui::content::read_entry_markdown(
+            let markdown = memoria_model::content::read_entry_markdown(
                 &serde_json::from_str(&entry.content_json).unwrap_or(serde_json::Value::Null),
             );
             let doc = self.ensure_doc(&entry.id, window, cx);

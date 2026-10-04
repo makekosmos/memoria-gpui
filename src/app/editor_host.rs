@@ -5,8 +5,8 @@
 //! existing render code.
 use gpui::{prelude::*, Context, Entity, Window};
 use memoria_editor_gpui::EditorEvent;
-use memoria_gpui::content;
-use memoria_gpui::store::Command;
+use memoria_model::content;
+use memoria_model::store::Command;
 
 use super::{DocEvent, Memoria, NoteDoc};
 

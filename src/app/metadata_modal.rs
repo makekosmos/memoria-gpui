@@ -6,8 +6,10 @@ use gpui_component::input::{Input, InputState};
 use gpui_component::scroll::ScrollableElement;
 use serde_json::Value;
 
-use memoria_gpui::book_metadata::{book_metadata_field_value, is_empty_book_value, normalize_isbn};
-use memoria_gpui::object_views::parse_entry_header_props;
+use memoria_model::book_metadata::{
+    book_metadata_field_value, is_empty_book_value, normalize_isbn,
+};
+use memoria_model::object_views::parse_entry_header_props;
 
 use super::modal::{ghost_btn, modal_panel, modal_shell, primary_btn};
 use super::types::MetadataModal;

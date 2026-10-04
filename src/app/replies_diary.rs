@@ -3,8 +3,8 @@
 //! replies re-list; `DiaryMigrated` writes remaining local-blob sources back
 //! (Vue `localStorage.setItem`/`removeItem` on the same key).
 use gpui::Context;
-use memoria_gpui::diary::LOCAL_BUBBLES_STORAGE_KEY;
-use memoria_gpui::store::{Command, Reply};
+use memoria_model::diary::LOCAL_BUBBLES_STORAGE_KEY;
+use memoria_model::store::{Command, Reply};
 
 use super::Memoria;
 
@@ -16,7 +16,7 @@ impl Memoria {
                 Ok(nodes) => {
                     self.bubbles = nodes;
                     self.bubbles_loaded = true;
-                    self.label_now = memoria_gpui::time::now_millis();
+                    self.label_now = memoria_model::time::now_millis();
                 }
                 Err(e) => self.toast(e, cx),
             },

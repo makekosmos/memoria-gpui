@@ -1,10 +1,10 @@
 //! Port of `tests/liveRefresh.test.ts` — `shouldApplyRemoteEntry` decisions.
 
-use memoria_gpui::content::write_entry_markdown;
-use memoria_gpui::live_refresh::{
+use memoria_model::content::write_entry_markdown;
+use memoria_model::live_refresh::{
     is_older_remote_entry, should_apply_remote_entry, RemoteEntryDecision, RemoteEntryParams,
 };
-use memoria_gpui::model::Entry;
+use memoria_model::model::Entry;
 
 fn make_entry(id: &str, markdown: &str) -> Entry {
     Entry {

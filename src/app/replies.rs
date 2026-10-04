@@ -2,12 +2,12 @@
 //! operation continuations (recheck/accept need a canonical remote read).
 use gpui::Context;
 
-use memoria_gpui::entry_conflicts::EntryConflictState;
-use memoria_gpui::live_refresh::RemoteEntryDecision;
-use memoria_gpui::model::Entry;
-use memoria_gpui::object_views::collection_target_type_id;
-use memoria_gpui::routes::Route;
-use memoria_gpui::store::{Command, EngineEvent, Reply};
+use memoria_model::entry_conflicts::EntryConflictState;
+use memoria_model::live_refresh::RemoteEntryDecision;
+use memoria_model::model::Entry;
+use memoria_model::object_views::collection_target_type_id;
+use memoria_model::routes::Route;
+use memoria_model::store::{Command, EngineEvent, Reply};
 
 use super::refresh;
 use super::types::ENGINE_OFFLINE;
@@ -30,7 +30,7 @@ impl Memoria {
             Reply::NoteTypes(Ok(types)) => {
                 self.note_types = types
                     .iter()
-                    .map(memoria_gpui::system_types::normalize_system_note_type)
+                    .map(memoria_model::system_types::normalize_system_note_type)
                     .collect();
             }
             Reply::Entry { id, result } => self.on_entry_loaded(id, result, cx),
@@ -133,7 +133,7 @@ impl Memoria {
     fn on_saved(
         &mut self,
         id: String,
-        result: Result<memoria_gpui::model::SaveEntryResult, String>,
+        result: Result<memoria_model::model::SaveEntryResult, String>,
         cx: &mut Context<Self>,
     ) {
         // keepConflictLocalAsCopy → copy landed; run accept flow.
@@ -185,7 +185,7 @@ impl Memoria {
     fn on_deleted(
         &mut self,
         id: String,
-        result: Result<memoria_gpui::model::DeleteEntryResult, String>,
+        result: Result<memoria_model::model::DeleteEntryResult, String>,
         cx: &mut Context<Self>,
     ) {
         match result {

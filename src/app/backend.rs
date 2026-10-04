@@ -3,7 +3,7 @@
 //! feeds through `on_reply` — for `Engine` the replies arrive asynchronously
 //! via `drain` instead.
 
-use memoria_gpui::store::{Command, Reply, Worker};
+use memoria_model::store::{Command, Reply, Worker};
 
 use super::demo::DemoStore;
 

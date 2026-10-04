@@ -5,7 +5,7 @@
 //! `contentJson`/`tags`/`kind`) — decode → encode must be byte-identical,
 //! and arbitrary JSON must never panic normalize/decode/render.
 
-use memoria_gpui::diary::{
+use memoria_model::diary::{
     decode_local_bubbles_sources, decode_local_bubbles_storage, encode_local_bubbles_storage,
     normalize_local_bubbles, render_blocks, RenderBlock,
 };

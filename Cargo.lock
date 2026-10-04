@@ -2584,8 +2584,7 @@ dependencies = [
 [[package]]
 name = "gpui-pre"
 version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0437c0b83e636a92bd1a39fa1d05fb632ae671289537497b35871ffbe231b84"
+source = "git+https://github.com/makekosmos/imago.git?rev=a0d6ee3feb0e35935483df050fe0df9be7f2fa5f#a0d6ee3feb0e35935483df050fe0df9be7f2fa5f"
 dependencies = [
  "accesskit",
  "anyhow",
@@ -3033,8 +3032,7 @@ dependencies = [
 [[package]]
 name = "gpui-pre-windows"
 version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27662e65bfcf4445d2cccfad91f1570ec07f4b1b5de98400a9f207fd19c464cf"
+source = "git+https://github.com/makekosmos/imago.git?rev=a0d6ee3feb0e35935483df050fe0df9be7f2fa5f#a0d6ee3feb0e35935483df050fe0df9be7f2fa5f"
 dependencies = [
  "accesskit",
  "accesskit_windows",
@@ -4214,12 +4212,21 @@ dependencies = [
 name = "memoria-gpui"
 version = "0.7.2"
 dependencies = [
- "chrono",
  "embed-resource",
  "gpui-component",
  "gpui-kit",
  "imago-gpui",
  "memoria-editor-gpui",
+ "memoria-model",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "memoria-model"
+version = "0.7.2"
+dependencies = [
+ "chrono",
  "mundus-gpui-kit",
  "percent-encoding",
  "proptest",

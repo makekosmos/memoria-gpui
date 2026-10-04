@@ -2,11 +2,11 @@
 //! (accept remote / keep local copy / copy local / recheck / cancel).
 use gpui::Context;
 
-use memoria_gpui::content::read_entry_markdown;
-use memoria_gpui::entry_conflicts::{
+use memoria_model::content::read_entry_markdown;
+use memoria_model::entry_conflicts::{
     conflict_for_entry, unresolved_entry_conflicts, EntryConflict, EntryConflictState,
 };
-use memoria_gpui::store::Command;
+use memoria_model::store::Command;
 
 use super::types::ConflictOp;
 use super::Memoria;
@@ -77,7 +77,7 @@ impl Memoria {
             },
             &suffix[..8]
         );
-        copy.created_at = memoria_gpui::time::now_millis();
+        copy.created_at = memoria_model::time::now_millis();
         copy.updated_at = copy.created_at;
         copy.deleted_at = None;
         copy.content_loaded = Some(true);

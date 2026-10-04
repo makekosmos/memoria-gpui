@@ -1,6 +1,6 @@
 //! Port of `tests/liveListFilter.test.ts`.
 
-use memoria_gpui::live_list_filter::should_include_type_in_eden_list_for_live_update;
+use memoria_model::live_list_filter::should_include_type_in_eden_list_for_live_update;
 use serde_json::{json, Value};
 
 fn include(type_id: &str, props_json: Value, visible: &[&str]) -> bool {

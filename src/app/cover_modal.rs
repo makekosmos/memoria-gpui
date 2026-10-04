@@ -5,8 +5,8 @@ use gpui::{div, prelude::*, px, Context, Window};
 use gpui_component::input::{Input, InputState};
 use serde_json::Value;
 
-use memoria_gpui::object_views::parse_entry_header_props;
-use memoria_gpui::store::Command;
+use memoria_model::object_views::parse_entry_header_props;
+use memoria_model::store::Command;
 
 use super::modal::{ghost_btn, modal_panel, modal_shell, primary_btn};
 use super::types::CoverModal;

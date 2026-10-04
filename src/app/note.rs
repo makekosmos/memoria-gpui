@@ -2,9 +2,9 @@
 //! the M4 shell (title input + editor + object chrome) with M5 typed header.
 use gpui::{div, prelude::*, px, Context, SharedString, Window};
 use gpui_component::input::Input;
-use memoria_gpui::dates::format_russian_date_ms;
-use memoria_gpui::model::Entry;
-use memoria_gpui::sidebar_model::IconId;
+use memoria_model::dates::format_russian_date_ms;
+use memoria_model::model::Entry;
+use memoria_model::sidebar_model::IconId;
 
 use super::{icon, Memoria};
 use crate::a11y::A11y;
@@ -28,8 +28,8 @@ impl Memoria {
         let header_owns_title = note_type
             .as_ref()
             .map(|nt| {
-                nt.id == memoria_gpui::system_types_data::SYSTEM_TYPE_BOOK_ID
-                    || nt.id == memoria_gpui::system_types_data::SYSTEM_TYPE_PERSON_ID
+                nt.id == memoria_model::system_types_data::SYSTEM_TYPE_BOOK_ID
+                    || nt.id == memoria_model::system_types_data::SYSTEM_TYPE_PERSON_ID
             })
             .unwrap_or(false);
         let title_state = self
