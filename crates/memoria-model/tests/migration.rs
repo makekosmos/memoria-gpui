@@ -2,12 +2,12 @@
 //! manifest/compatibility.json assertions are package-contract checks with no
 //! Rust manifest counterpart (documented in PORT_TESTS.md).
 
-use memoria_gpui::mapping::{map_ark_object_to_entry, map_entry_to_ark_object};
-use memoria_gpui::migration::{
+use memoria_model::mapping::{map_ark_object_to_entry, map_entry_to_ark_object};
+use memoria_model::migration::{
     canonical_command_channel, compatibility_ark_type_ids, migrate_legacy_storage,
     migrate_legacy_user_data, KeyValueStorage, UserDataBridge, LEGACY_STORAGE_ALIASES,
 };
-use memoria_gpui::model::ArkObjectRecord;
+use memoria_model::model::ArkObjectRecord;
 use serde_json::{json, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;

@@ -5,9 +5,9 @@
 use gpui::{div, prelude::*, px, Context, Entity, MouseButton, SharedString, Window};
 use gpui_component::input::{Input, InputEvent, InputState};
 
-use memoria_gpui::object_views::entry_display_title;
-use memoria_gpui::routes::Route;
-use memoria_gpui::store::Command;
+use memoria_model::object_views::entry_display_title;
+use memoria_model::routes::Route;
+use memoria_model::store::Command;
 
 use super::types::SEARCH_DEBOUNCE;
 use super::Memoria;

@@ -26,9 +26,9 @@ fn window_bounds(cx: &mut App) -> Bounds<gpui::Pixels> {
 /// verification while the M4 export UI isn't on this branch. All file IO runs
 /// through Engine `filesystem.vault.*` grants; the app writes nothing itself.
 fn run_export(dir: &str) -> ! {
-    let engine = memoria_gpui::store::Engine::default();
-    let mut entries = memoria_gpui::store::EntryApi::new(engine.clone());
-    let notes = memoria_gpui::store::NoteTypeApi::new(engine.clone());
+    let engine = memoria_model::store::Engine::default();
+    let mut entries = memoria_model::store::EntryApi::new(engine.clone());
+    let notes = memoria_model::store::NoteTypeApi::new(engine.clone());
     let result = (|| -> Result<u64, String> {
         let entries = entries.list_all_entries().map_err(|e| format!("{e:?}"))?;
         let note_types = notes.list_note_types().map_err(|e| format!("{e:?}"))?;
@@ -39,7 +39,7 @@ fn run_export(dir: &str) -> ! {
                     serde_json::from_str(&e.content_json).unwrap_or(serde_json::Value::Null);
                 (
                     e.id.clone(),
-                    memoria_gpui::content::read_entry_markdown(&value),
+                    memoria_model::content::read_entry_markdown(&value),
                 )
             })
             .collect();
@@ -47,7 +47,7 @@ fn run_export(dir: &str) -> ! {
             .iter()
             .map(|e| (e.id.clone(), e.title.clone()))
             .collect();
-        memoria_gpui::obsidian::export_obsidian_vault_dir(
+        memoria_model::obsidian::export_obsidian_vault_dir(
             &engine,
             entries,
             &note_types,

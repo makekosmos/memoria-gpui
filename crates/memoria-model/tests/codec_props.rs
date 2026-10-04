@@ -2,7 +2,7 @@
 //! tiptap envelopes normalize idempotently, and neither reader panics on
 //! arbitrary trees (Engine data is untrusted).
 
-use memoria_gpui::content::{
+use memoria_model::content::{
     is_entry_tiptap_content, read_entry_markdown, read_entry_tiptap_doc, write_entry_markdown,
     write_entry_tiptap_doc,
 };

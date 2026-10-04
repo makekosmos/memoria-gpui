@@ -2,10 +2,10 @@
 use gpui::{div, img, prelude::*, px, Context, SharedString};
 use gpui_component::scroll::ScrollableElement;
 
-use memoria_gpui::dates::format_russian_date_ms;
-use memoria_gpui::model::Entry;
-use memoria_gpui::object_views::entry_display_title;
-use memoria_gpui::routes::Route;
+use memoria_model::dates::format_russian_date_ms;
+use memoria_model::model::Entry;
+use memoria_model::object_views::entry_display_title;
+use memoria_model::routes::Route;
 
 use super::Memoria;
 use crate::a11y::A11y;
@@ -17,7 +17,7 @@ impl Memoria {
         let eid = e.id.clone();
         let sel = format!("image-tile-{eid}");
         let weak = cx.weak_entity();
-        let src = memoria_gpui::image_src::entry_image_src(e);
+        let src = memoria_model::image_src::entry_image_src(e);
         div()
             .id(SharedString::from(format!("img-{eid}")))
             .debug_selector(move || sel.clone())
@@ -59,7 +59,7 @@ impl Memoria {
         e: &Entry,
         _cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        let src = memoria_gpui::image_src::entry_image_src(e);
+        let src = memoria_model::image_src::entry_image_src(e);
         div()
             .id("image-object-view")
             .debug_selector(|| "image-object-view".into())

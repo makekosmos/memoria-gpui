@@ -1,7 +1,7 @@
 //! Port of the `kepler-command-bus` halves of `tests/memoriaMigration.test.ts` —
 //! canonical `memoria:` dispatches reach legacy `eden:` listeners.
 
-use memoria_gpui::command_bus::CommandBus;
+use memoria_model::command_bus::CommandBus;
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 

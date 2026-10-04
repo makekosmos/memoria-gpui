@@ -1,14 +1,14 @@
 //! Port of `tests/bubbleDiaryModel.test.ts` (Vue SoT @7ccbb9f) —
 //! journal import, draft parsing, occurrence labels, thread normalization.
 
-use memoria_gpui::content::write_entry_tiptap_doc;
-use memoria_gpui::diary::{
+use memoria_model::content::write_entry_tiptap_doc;
+use memoria_model::diary::{
     create_draft_bubble, create_journal_bubbles_from_entry, decode_local_bubbles_storage,
     is_legacy_dated_journal_entry, normalize_bubble_threads, parse_bubble_draft, BubbleKind,
     BubbleTimelineNode, ReplyLink,
 };
-use memoria_gpui::local_time::local_ms;
-use memoria_gpui::model::Entry;
+use memoria_model::local_time::local_ms;
+use memoria_model::model::Entry;
 use serde_json::{json, Value};
 
 fn entry(content: Value) -> Entry {
@@ -63,7 +63,7 @@ fn sorts_later_legacy_blocks_above_earlier_and_drops_empty() {
         bubbles.iter().map(|b| b.text.as_str()).collect::<Vec<_>>(),
         ["первая", "вторая"]
     );
-    let midnight = memoria_gpui::time::iso_to_millis("2021-01-21T00:00:00.000Z").unwrap() as f64;
+    let midnight = memoria_model::time::iso_to_millis("2021-01-21T00:00:00.000Z").unwrap() as f64;
     assert_eq!(
         bubbles.iter().map(|b| b.sort_key).collect::<Vec<_>>(),
         [Some(midnight), Some(midnight + 2.0)]
@@ -84,7 +84,7 @@ fn repairs_sort_order_for_already_imported_legacy_bubbles() {
             "kind": "plain",
         }],
     }));
-    let midnight = memoria_gpui::time::iso_to_millis("2021-01-21T00:00:00.000Z").unwrap() as f64;
+    let midnight = memoria_model::time::iso_to_millis("2021-01-21T00:00:00.000Z").unwrap() as f64;
     assert_eq!(decoded[0].sort_key, Some(midnight + 2.0));
 }
 
@@ -125,7 +125,7 @@ fn tag_extraction_dedupes_case_insensitively() {
 
 #[test]
 fn occurrence_labels_use_local_calendar_boundaries() {
-    use memoria_gpui::diary::occurrence_label_from_ms;
+    use memoria_model::diary::occurrence_label_from_ms;
     // `new Date(2026, 0, 1, 0, 15)` — host-local civil time.
     let now = local_ms(2026, 1, 1, 0, 15);
     assert_eq!(
@@ -150,7 +150,7 @@ fn occurrence_labels_use_local_calendar_boundaries() {
 
 #[test]
 fn label_flips_to_yesterday_after_local_midnight() {
-    use memoria_gpui::diary::occurrence_label_from_ms;
+    use memoria_model::diary::occurrence_label_from_ms;
     let occurrence = local_ms(2026, 7, 10, 23, 58);
     assert_eq!(
         occurrence_label_from_ms(occurrence, local_ms(2026, 7, 10, 23, 59)),

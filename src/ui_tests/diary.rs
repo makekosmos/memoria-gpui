@@ -4,8 +4,8 @@
 #![allow(clippy::missing_panics_doc)]
 
 use gpui::TestAppContext;
-use memoria_gpui::diary::{format_bubble_date_key, BubbleKind};
-use memoria_gpui::routes::Route;
+use memoria_model::diary::{format_bubble_date_key, BubbleKind};
+use memoria_model::routes::Route;
 
 use super::*;
 
@@ -256,7 +256,7 @@ fn calendar_day_jump(cx: &mut TestAppContext) {
 
     click(cx, "titlebar-diary-calendar-toggle");
     redraw(cx);
-    let today = format_bubble_date_key(memoria_gpui::time::now_millis());
+    let today = format_bubble_date_key(memoria_model::time::now_millis());
     let day_sel = sel(format!("diary-calendar-day-{today}"));
     assert!(cx.debug_bounds(day_sel).is_some());
     click_owned(cx, day_sel);

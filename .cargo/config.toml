@@ -6,6 +6,11 @@ git-fetch-with-cli = true
 # dev symlinks for those — link them by soname.
 [target.x86_64-unknown-linux-gnu]
 rustflags = [
+  # KOS-328: link dev builds with lld (measured ~40% faster incremental
+  # links, docs/experiments/2026-09-30-build-speed.md in cortex). Requires
+  # `ld.lld` on PATH — e.g. the `lld` package, or a symlink to the
+  # toolchain's rust-lld (rustup component add llvm-tools).
+  "-C", "link-arg=-fuse-ld=lld",
   "-C", "link-arg=-Wl,-l:libXau.so.6",
   "-C", "link-arg=-Wl,-l:libXdmcp.so.6",
 ]

@@ -1,9 +1,9 @@
 //! Port of `tests/entryChanges.test.ts` — `hasUserVisibleEntryChanges`.
 
-use memoria_gpui::content::{write_entry_markdown, write_entry_tiptap_doc};
-use memoria_gpui::entry_changes::has_user_visible_entry_changes;
-use memoria_gpui::model::{Entry, NoteType};
-use memoria_gpui::system_types_data::{SYSTEM_TYPE_NOTE, SYSTEM_TYPE_PERSON};
+use memoria_model::content::{write_entry_markdown, write_entry_tiptap_doc};
+use memoria_model::entry_changes::has_user_visible_entry_changes;
+use memoria_model::model::{Entry, NoteType};
+use memoria_model::system_types_data::{SYSTEM_TYPE_NOTE, SYSTEM_TYPE_PERSON};
 use serde_json::json;
 use std::sync::LazyLock;
 

@@ -2,11 +2,11 @@
 //! the real `BubbleApi`, so `MEMORIA_DEMO=1` and UI tests exercise the same
 //! code path as Engine (`reply_to` links, migration, propsJson contract).
 
-use memoria_gpui::model::Entry;
-use memoria_gpui::store::bubble_api::{migrate_journal_entry, migrate_local_blob, BubbleApi};
-use memoria_gpui::store::transport::{ArkBridge, EngineError};
-use memoria_gpui::store::{Command, Reply};
-use memoria_gpui::time::now_millis;
+use memoria_model::model::Entry;
+use memoria_model::store::bubble_api::{migrate_journal_entry, migrate_local_blob, BubbleApi};
+use memoria_model::store::transport::{ArkBridge, EngineError};
+use memoria_model::store::{Command, Reply};
+use memoria_model::time::now_millis;
 use serde_json::{Map, Value};
 use std::sync::{Arc, Mutex};
 
@@ -60,7 +60,7 @@ impl ArkBridge for DemoArk {
                     .get_mut(params["id"].as_str().unwrap_or_default())
                 {
                     object["deletedAt"] =
-                        Value::from(memoria_gpui::time::millis_to_iso(now_millis()));
+                        Value::from(memoria_model::time::millis_to_iso(now_millis()));
                 }
                 Ok(Value::from(true))
             }
@@ -141,7 +141,7 @@ impl DemoStore {
                 let mut legacy: Vec<Entry> = self
                     .entries
                     .iter()
-                    .filter(|e| memoria_gpui::diary::is_legacy_dated_journal_entry(e))
+                    .filter(|e| memoria_model::diary::is_legacy_dated_journal_entry(e))
                     .cloned()
                     .collect();
                 legacy.sort_by(|l, r| {

@@ -6,9 +6,9 @@
 use gpui::TestAppContext;
 use serde_json::Value;
 
-use memoria_gpui::model::Entry;
-use memoria_gpui::object_views::parse_entry_header_props;
-use memoria_gpui::routes::Route;
+use memoria_model::model::Entry;
+use memoria_model::object_views::parse_entry_header_props;
+use memoria_model::routes::Route;
 
 use super::*;
 
@@ -33,7 +33,7 @@ pub(super) fn seed_entry(app: &Entity<Memoria>, cx: &mut VisualTestContext, entr
         if let crate::app::Backend::Demo(store) = &mut a.backend {
             store.entries.push(entry);
         }
-        a.send(memoria_gpui::store::Command::LoadList(Vec::new()), cx);
+        a.send(memoria_model::store::Command::LoadList(Vec::new()), cx);
     });
     redraw(cx);
 }
@@ -42,7 +42,7 @@ pub(super) fn seeded_entry(id: &str, type_id: &str, title: &str, props_json: &st
     Entry {
         id: id.into(),
         title: title.into(),
-        content_json: memoria_gpui::content::write_entry_markdown("тело").to_string(),
+        content_json: memoria_model::content::write_entry_markdown("тело").to_string(),
         content_loaded: Some(true),
         type_id: Some(type_id.into()),
         header_props_json: Some(props_json.into()),
@@ -141,8 +141,8 @@ fn object_type_picker_retypes_entry(cx: &mut TestAppContext) {
 /// Custom type whose schema exposes a visible relation field — system types
 /// keep `related_notes`/`photo` hidden or in the hero (Vue puts note links
 /// in their own section), so a custom type exercises the relation picker.
-fn rel_type() -> memoria_gpui::model::NoteType {
-    memoria_gpui::model::NoteType {
+fn rel_type() -> memoria_model::model::NoteType {
+    memoria_model::model::NoteType {
         id: "rel_test_obj".into(),
         name: "Тип со связями".into(),
         slug: "rel-test".into(),

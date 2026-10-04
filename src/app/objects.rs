@@ -5,12 +5,12 @@ use gpui::{div, prelude::*, px, Context, SharedString, Window};
 use gpui_component::scroll::ScrollableElement;
 use serde_json::Value;
 
-use memoria_gpui::dates::format_readable_russian_date;
-use memoria_gpui::model::{Entry, NoteType};
-use memoria_gpui::object_fields::format_object_field_value;
-use memoria_gpui::object_views::entry_display_title;
-use memoria_gpui::routes::Route;
-use memoria_gpui::system_types_data::{SYSTEM_TYPE_IMAGE_ID, SYSTEM_TYPE_PERSON_ID};
+use memoria_model::dates::format_readable_russian_date;
+use memoria_model::model::{Entry, NoteType};
+use memoria_model::object_fields::format_object_field_value;
+use memoria_model::object_views::entry_display_title;
+use memoria_model::routes::Route;
+use memoria_model::system_types_data::{SYSTEM_TYPE_IMAGE_ID, SYSTEM_TYPE_PERSON_ID};
 
 use super::Memoria;
 use crate::a11y::A11y;
@@ -71,7 +71,7 @@ impl Memoria {
                     .text_size(px(20.))
                     .font_weight(gpui::FontWeight::SEMIBOLD)
                     .text_color(c(FG()))
-                    .child(memoria_gpui::note_types::get_note_type_collection_name(
+                    .child(memoria_model::note_types::get_note_type_collection_name(
                         nt.as_ref(),
                     )),
             )
@@ -88,7 +88,7 @@ impl Memoria {
     ) -> impl IntoElement {
         // summaryFields — ≤2 visible non-media fields (TypeObjectsView.vue).
         let fields = nt
-            .map(memoria_gpui::object_views::summary_fields)
+            .map(memoria_model::object_views::summary_fields)
             .unwrap_or_default();
 
         let header_cell = |label: &str, w: gpui::DefiniteLength| {
@@ -166,12 +166,12 @@ impl Memoria {
                         .whitespace_nowrap()
                         .text_ellipsis()
                         .child(if is_person {
-                            memoria_gpui::object_views::person_display_name(e)
+                            memoria_model::object_views::person_display_name(e)
                         } else {
                             entry_display_title(e)
                         }),
                 );
-            let props = memoria_gpui::object_views::parse_entry_header_props(e);
+            let props = memoria_model::object_views::parse_entry_header_props(e);
             for f in &fields {
                 let val = props.get(&f.field.id).cloned().unwrap_or(Value::Null);
                 let text = format_object_field_value(f, &val);

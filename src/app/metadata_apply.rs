@@ -4,12 +4,12 @@
 use gpui::Context;
 use serde_json::Value;
 
-use memoria_gpui::book_metadata::{
+use memoria_model::book_metadata::{
     book_metadata_field_value, fill_missing_book_metadata, has_extracted_book_data,
     is_empty_book_value, normalize_isbn, BookMetadata, BookMetadataPage,
 };
-use memoria_gpui::object_views::parse_entry_header_props;
-use memoria_gpui::store::Command;
+use memoria_model::object_views::parse_entry_header_props;
+use memoria_model::store::Command;
 
 use super::metadata_modal::FIELD_LABELS;
 use super::Memoria;
@@ -104,7 +104,7 @@ impl Memoria {
         };
         match result {
             Ok(Some(page)) => {
-                let extracted = memoria_gpui::book_metadata_extract::extract_book_metadata(&page);
+                let extracted = memoria_model::book_metadata_extract::extract_book_metadata(&page);
                 if let Some(isbn) = extracted.isbn.clone().filter(|s| !s.is_empty()) {
                     modal.metadata = Some(extracted);
                     modal.enrich_isbn = Some(isbn.clone());

@@ -4,12 +4,12 @@
 //! matches title/body case-insensitively.
 use serde_json::Value;
 
-use memoria_gpui::model::{DeleteEntryResult, Entry, NoteType, SaveEntryResult, SearchResult};
-use memoria_gpui::store::{Command, Reply};
-use memoria_gpui::system_types_data::{
+use memoria_model::model::{DeleteEntryResult, Entry, NoteType, SaveEntryResult, SearchResult};
+use memoria_model::store::{Command, Reply};
+use memoria_model::system_types_data::{
     system_types, SYSTEM_TYPE_BOOK_ID, SYSTEM_TYPE_COLLECTION_ID, SYSTEM_TYPE_NOTE_ID,
 };
-use memoria_gpui::time::now_millis;
+use memoria_model::time::now_millis;
 mod ark;
 pub(crate) use ark::DemoArk;
 
@@ -24,7 +24,7 @@ pub(crate) struct DemoStore {
 }
 
 fn markdown_body(text: &str) -> String {
-    memoria_gpui::content::write_entry_markdown(text).to_string()
+    memoria_model::content::write_entry_markdown(text).to_string()
 }
 
 impl DemoStore {
@@ -173,7 +173,7 @@ impl DemoStore {
                 // note type shown as a collection (Vue kepler-entry-mappers).
                 let mut created = Vec::new();
                 for nt in self.note_types.clone() {
-                    if !memoria_gpui::system_types::should_show_as_eden_collection(&nt.id) {
+                    if !memoria_model::system_types::should_show_as_eden_collection(&nt.id) {
                         continue;
                     }
                     let id = format!("collection:{}", nt.id);
@@ -183,7 +183,7 @@ impl DemoStore {
                     let mut e = self.entry(
                         &id,
                         SYSTEM_TYPE_COLLECTION_ID,
-                        &memoria_gpui::note_types::get_note_type_collection_name(Some(&nt)),
+                        &memoria_model::note_types::get_note_type_collection_name(Some(&nt)),
                         "",
                     );
                     e.header_props_json = Some(format!(r#"{{"object_type_id":"{}"}}"#, nt.id));
@@ -201,7 +201,7 @@ impl DemoStore {
                     }
                     let title_hit = e.title.to_lowercase().contains(&q);
                     let body =
-                        memoria_gpui::preview::entry_preview(&e.content_json, 800).to_lowercase();
+                        memoria_model::preview::entry_preview(&e.content_json, 800).to_lowercase();
                     let body_hit = !title_hit && body.contains(&q);
                     if title_hit || body_hit {
                         results.push(SearchResult {
@@ -228,9 +228,9 @@ impl DemoStore {
             // path on cover drop, `{finalUrl, html}` for page fetch.
             Command::LookupIsbn(isbn) => {
                 let normalized =
-                    memoria_gpui::book_metadata::normalize_isbn(&Value::from(isbn));
+                    memoria_model::book_metadata::normalize_isbn(&Value::from(isbn));
                 let metadata = match normalized.as_str() {
-                    "9780306406157" => Some(memoria_gpui::book_metadata::BookMetadata {
+                    "9780306406157" => Some(memoria_model::book_metadata::BookMetadata {
                         title: Some("Солярис".into()),
                         author: Some("Станислав Лем".into()),
                         isbn: Some(normalized.clone()),
@@ -241,7 +241,7 @@ impl DemoStore {
                         ..Default::default()
                     }),
                     "" => None,
-                    _ => Some(memoria_gpui::book_metadata::BookMetadata {
+                    _ => Some(memoria_model::book_metadata::BookMetadata {
                         title: Some("Фантастический мистер Фокс".into()),
                         isbn: Some(normalized.clone()),
                         publisher: Some("Puffin".into()),
@@ -251,7 +251,7 @@ impl DemoStore {
                 Reply::BookMetadata(Ok(metadata))
             }
             Command::FetchBookPage(url) => Reply::BookMetadataPage(Ok(Some(
-                memoria_gpui::book_metadata::BookMetadataPage {
+                memoria_model::book_metadata::BookMetadataPage {
                     final_url: url.clone(),
                     html: concat!(
                         r#"<!doctype html><html><head>"#,

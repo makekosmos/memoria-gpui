@@ -1,9 +1,9 @@
 //! Live-refresh gating for the open note — wraps the M1
 //! `should_apply_remote_entry` port with the note-switch override.
 
-use memoria_gpui::content;
-use memoria_gpui::live_refresh;
-use memoria_gpui::model::Entry;
+use memoria_model::content;
+use memoria_model::live_refresh;
+use memoria_model::model::Entry;
 
 /// Should a loaded/refreshed entry replace the editor text? Switching to a
 /// different note always applies; for the same note the M1 live-refresh
@@ -29,7 +29,7 @@ pub(super) fn refresh_decision(
 mod tests {
     use super::*;
     use live_refresh::RemoteEntryDecision;
-    use memoria_gpui::content::write_entry_markdown;
+    use memoria_model::content::write_entry_markdown;
 
     fn entry(id: &str, md: &str, updated_at: i64) -> Entry {
         Entry {

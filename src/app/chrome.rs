@@ -4,8 +4,8 @@
 use gpui::{div, prelude::*, px, ClickEvent, Context, Window, WindowControlArea};
 use imago_gpui::chrome;
 
-use memoria_gpui::routes::{Route, SettingsTab};
-use memoria_gpui::sidebar_model::IconId;
+use memoria_model::routes::{Route, SettingsTab};
+use memoria_model::sidebar_model::IconId;
 
 use super::{icon, Memoria};
 use crate::a11y::A11y;
@@ -57,7 +57,7 @@ impl Memoria {
         let can_back = self.history.can_go_back();
         let can_fwd = self.history.can_go_forward();
         let unresolved =
-            memoria_gpui::entry_conflicts::unresolved_entry_conflicts(&self.conflicts.conflicts)
+            memoria_model::entry_conflicts::unresolved_entry_conflicts(&self.conflicts.conflicts)
                 .len();
 
         let bar = chrome::titlebar()
@@ -146,7 +146,7 @@ impl Memoria {
                     .when(
                         !self.zen
                             && matches!(self.route, Route::Entry(_))
-                            && memoria_gpui::sticker_route::can_open_in_sticker(
+                            && memoria_model::sticker_route::can_open_in_sticker(
                                 self.current.as_ref().and_then(|e| e.type_id.as_deref()),
                             ),
                         |d| {
@@ -196,12 +196,12 @@ impl Memoria {
                 .note_types
                 .iter()
                 .find(|nt| &nt.id == t)
-                .map(|nt| memoria_gpui::note_types::get_note_type_collection_name(Some(nt)))
+                .map(|nt| memoria_model::note_types::get_note_type_collection_name(Some(nt)))
                 .unwrap_or_else(|| "Коллекция".into()),
             Route::Entry(_) => self
                 .current
                 .as_ref()
-                .map(memoria_gpui::object_views::entry_display_title)
+                .map(memoria_model::object_views::entry_display_title)
                 .unwrap_or_default(),
             Route::Settings(_) => "Настройки".into(),
         }

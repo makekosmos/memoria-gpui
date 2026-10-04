@@ -5,8 +5,8 @@
 use gpui::{div, prelude::*, px, Context, Entity, Focusable, Window};
 use gpui_component::Sizable;
 use memoria_editor_gpui::MemoriaEditor;
-use memoria_gpui::content::markdown_to_tiptap_doc;
-use memoria_gpui::diary::{bubble_plain_text, parse_bubble_draft};
+use memoria_model::content::markdown_to_tiptap_doc;
+use memoria_model::diary::{bubble_plain_text, parse_bubble_draft};
 
 use super::Memoria;
 use crate::a11y::A11y;
@@ -21,7 +21,7 @@ impl Memoria {
         // `labelNow` re-resolves on every diary render (Vue additionally
         // schedules a midnight timer + visibilitychange — residual GAP:
         // labels can stay stale only while the app sits idle at midnight).
-        self.label_now = memoria_gpui::time::now_millis();
+        self.label_now = memoria_model::time::now_millis();
         if let Some(date) = self.diary_jump.take() {
             if let Some(ix) = self.diary_jump_target(&date) {
                 self.diary_scroll.scroll_to_item(ix);

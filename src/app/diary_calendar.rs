@@ -3,7 +3,7 @@
 //! timeline via `select_diary_date`.
 use gpui::{div, prelude::*, px, Context};
 
-use memoria_gpui::diary::build_weeks;
+use memoria_model::diary::build_weeks;
 
 use super::Memoria;
 use crate::theme::*;

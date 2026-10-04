@@ -4,13 +4,13 @@
 use gpui::{div, prelude::*, px, Context, MouseButton, MouseDownEvent, SharedString};
 use gpui_component::scroll::ScrollableElement;
 
-use memoria_gpui::model::Entry;
-use memoria_gpui::object_views::entry_display_title;
-use memoria_gpui::preview::{entry_preview, PREVIEW_LIMIT};
-use memoria_gpui::routes::Route;
-use memoria_gpui::sidebar_model::IconId;
-use memoria_gpui::store::Command;
-use memoria_gpui::system_types_data::SYSTEM_TYPE_COLLECTION_ID;
+use memoria_model::model::Entry;
+use memoria_model::object_views::entry_display_title;
+use memoria_model::preview::{entry_preview, PREVIEW_LIMIT};
+use memoria_model::routes::Route;
+use memoria_model::sidebar_model::IconId;
+use memoria_model::store::Command;
+use memoria_model::system_types_data::SYSTEM_TYPE_COLLECTION_ID;
 
 use super::{icon, Memoria};
 use crate::a11y::A11y;
@@ -153,7 +153,7 @@ impl Memoria {
                     .items_center()
                     .gap_2()
                     .child(icon(
-                        memoria_gpui::sidebar_model::icon_for_name(type_icon.as_deref()),
+                        memoria_model::sidebar_model::icon_for_name(type_icon.as_deref()),
                         15.,
                         rgba(FG(), 0.7),
                     ))
@@ -184,18 +184,18 @@ impl Memoria {
     /// `createNewEntry(typeId?)` — untitled entry through `saveEntry`, then
     /// navigate. Tiptap editing lands in M3; the shell still creates + opens.
     pub(crate) fn create_entry(&mut self, type_id: Option<String>, cx: &mut Context<Self>) {
-        let now = memoria_gpui::time::now_millis();
+        let now = memoria_model::time::now_millis();
         let entry = Entry {
             id: uuid::Uuid::new_v4().to_string(),
             title: String::new(),
-            content_json: memoria_gpui::content::write_entry_markdown("").to_string(),
+            content_json: memoria_model::content::write_entry_markdown("").to_string(),
             content_loaded: Some(true),
             created_at: now,
             updated_at: now,
             type_id,
             header_props_json: Some(
                 serde_json::to_string(
-                    &memoria_gpui::entry_titles::create_untitled_entry_header_props(),
+                    &memoria_model::entry_titles::create_untitled_entry_header_props(),
                 )
                 .unwrap_or_default(),
             ),

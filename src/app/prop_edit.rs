@@ -5,10 +5,10 @@ use gpui::{prelude::*, Context, Window};
 use gpui_component::input::{InputEvent, InputState};
 use serde_json::Value;
 
-use memoria_gpui::model::{Entry, ResolvedNoteTypeField};
-use memoria_gpui::object_fields::format_object_field_value;
-use memoria_gpui::object_views::{entry_display_title, parse_entry_header_props};
-use memoria_gpui::store::Command;
+use memoria_model::model::{Entry, ResolvedNoteTypeField};
+use memoria_model::object_fields::format_object_field_value;
+use memoria_model::object_views::{entry_display_title, parse_entry_header_props};
+use memoria_model::store::Command;
 
 use super::types::PropPicker;
 use super::Memoria;
@@ -108,7 +108,7 @@ impl Memoria {
             return;
         }
         let next_type = self.note_types.iter().find(|n| n.id == type_id).cloned();
-        let props = memoria_gpui::header_props::create_header_props_for_type_change(
+        let props = memoria_model::header_props::create_header_props_for_type_change(
             next_type.as_ref(),
             &entry.title,
         )

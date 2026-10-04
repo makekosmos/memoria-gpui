@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use gpui::Context;
 
-use memoria_gpui::local_state::save_local_state;
-use memoria_gpui::store::Command;
+use memoria_model::local_state::save_local_state;
+use memoria_model::store::Command;
 
 use super::types::{Toast, ENGINE_OFFLINE, TOAST_TTL};
 use super::{Backend, Memoria};

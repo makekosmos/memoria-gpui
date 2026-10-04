@@ -2,7 +2,7 @@
 //! card (rich text + time edit affordance + tags). Edit/reply forms and the
 //! «Ответить» affordance live in `diary_forms.rs`; shared chrome in this file.
 use gpui::{div, prelude::*, px, Context, Window};
-use memoria_gpui::diary::{
+use memoria_model::diary::{
     format_bubble_occurrence_label, node_occurrence, BubbleKind, BubbleTimelineNode,
 };
 

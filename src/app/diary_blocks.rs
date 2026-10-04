@@ -4,7 +4,7 @@
 use std::ops::Range;
 
 use gpui::{div, prelude::*, px, AnyElement, HighlightStyle, StyledText};
-use memoria_gpui::diary::{render_blocks, BubbleTimelineNode, InlineRun, RenderBlock};
+use memoria_model::diary::{render_blocks, BubbleTimelineNode, InlineRun, RenderBlock};
 
 use super::Memoria;
 use crate::theme::*;

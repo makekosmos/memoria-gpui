@@ -66,7 +66,7 @@ impl Memoria {
                     .filter(|e| e.id == entry_id)
                     .and_then(|e| e.type_id.clone())
             });
-        if !memoria_gpui::sticker_route::can_open_in_sticker(type_id.as_deref()) {
+        if !memoria_model::sticker_route::can_open_in_sticker(type_id.as_deref()) {
             self.toast("Стикер доступен только для заметок и книг", cx);
             return;
         }

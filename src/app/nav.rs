@@ -1,10 +1,10 @@
 //! Navigation — route application, `navigateTo` port, history replay.
 use gpui::Context;
 
-use memoria_gpui::entry_conflicts::conflict_for_entry;
-use memoria_gpui::object_views::collection_target_type_id;
-use memoria_gpui::routes::Route;
-use memoria_gpui::store::Command;
+use memoria_model::entry_conflicts::conflict_for_entry;
+use memoria_model::object_views::collection_target_type_id;
+use memoria_model::routes::Route;
+use memoria_model::store::Command;
 
 use super::Memoria;
 
@@ -138,7 +138,7 @@ impl Memoria {
     }
     /// Stash the entry for the shared doc — `InputState::set_value` needs a
     /// `Window`, so `Render` applies it via `NoteDoc::apply_fill`.
-    fn queue_editor_fill(&mut self, entry: &memoria_gpui::model::Entry) {
+    fn queue_editor_fill(&mut self, entry: &memoria_model::model::Entry) {
         self.pending_fill = Some(entry.clone());
         self.dirty = false;
     }

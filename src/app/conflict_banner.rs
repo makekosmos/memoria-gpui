@@ -1,8 +1,8 @@
 //! `EntryConflictBanner` — banner rendering + button row.
 use gpui::{div, prelude::*, px, Context};
 
-use memoria_gpui::entry_conflicts::unresolved_entry_conflicts;
-use memoria_gpui::store::Command;
+use memoria_model::entry_conflicts::unresolved_entry_conflicts;
+use memoria_model::store::Command;
 
 use super::types::ConflictOp;
 use super::Memoria;
@@ -68,7 +68,7 @@ impl Memoria {
                     } else {
                         format!(
                             "Локальная версия изменена: {}",
-                            memoria_gpui::dates::format_russian_date_ms(conflict.local.updated_at)
+                            memoria_model::dates::format_russian_date_ms(conflict.local.updated_at)
                         )
                     },
                 ))

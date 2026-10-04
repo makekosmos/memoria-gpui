@@ -8,11 +8,11 @@ use gpui::{div, img, prelude::*, px, Context, SharedString, Window};
 use gpui_component::input::Input;
 use serde_json::{Map, Value};
 
-use memoria_gpui::model::{Entry, NoteType, ResolvedNoteTypeField};
-use memoria_gpui::note_type_fields::get_note_type_presentation;
-use memoria_gpui::object_views::parse_entry_header_props;
-use memoria_gpui::store::Command;
-use memoria_gpui::system_types_data::{
+use memoria_model::model::{Entry, NoteType, ResolvedNoteTypeField};
+use memoria_model::note_type_fields::get_note_type_presentation;
+use memoria_model::object_views::parse_entry_header_props;
+use memoria_model::store::Command;
+use memoria_model::system_types_data::{
     SYSTEM_TYPE_BOOK_ID, SYSTEM_TYPE_IMAGE_ID, SYSTEM_TYPE_JOURNAL_ID, SYSTEM_TYPE_NOTE_ID,
     SYSTEM_TYPE_PERSON_ID,
 };
@@ -60,13 +60,13 @@ impl Memoria {
             .collect();
         let raw = props
             .get(field_id)
-            .map(|v| memoria_gpui::object_images::resolve_object_image_src(v, &entries))
+            .map(|v| memoria_model::object_images::resolve_object_image_src(v, &entries))
             .unwrap_or_default();
         if raw.is_empty() {
             return String::new();
         }
         if let Some(path) = raw.strip_prefix("kosmos-local-image://file/") {
-            return memoria_gpui::object_images::percent_decode_path(path);
+            return memoria_model::object_images::percent_decode_path(path);
         }
         if raw.starts_with("http://") || raw.starts_with("https://") {
             if let Some(local) = self.image_cache.get(&raw) {

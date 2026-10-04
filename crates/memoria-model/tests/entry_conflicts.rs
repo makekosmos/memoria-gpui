@@ -2,14 +2,14 @@
 //! The Vue `localStorage` fallback tests map onto `ConflictStore` bridges:
 //! `merge_entry_conflict_snapshots` covers the bridge/local merge cases.
 
-use memoria_gpui::conflict_store::{
+use memoria_model::conflict_store::{
     load_entry_conflicts, persist_entry_conflicts, ConflictRepository, ConflictStore,
 };
-use memoria_gpui::entry_conflicts::{
+use memoria_model::entry_conflicts::{
     conflict_for_entry, mark_entry_conflict_resolved, unresolved_entry_conflicts,
     update_entry_conflict_local, upsert_entry_conflict, EntryConflictState, ENTRY_CONFLICTS_FILE,
 };
-use memoria_gpui::model::Entry;
+use memoria_model::model::Entry;
 use serde_json::Value;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -179,14 +179,14 @@ fn malformed_local_checkpoint_keeps_valid_bridge_snapshot() {
     // `localStorage` was corrupt (`{ malformed`) → contributes nothing; the
     // bridge snapshot must survive the merge.
     let loaded =
-        memoria_gpui::conflict_store::merge_entry_conflict_snapshots(bridge.clone(), vec![]);
+        memoria_model::conflict_store::merge_entry_conflict_snapshots(bridge.clone(), vec![]);
     assert!(loaded[0].local.content_json.contains("bridge draft"));
 
     // And a fresher local conflict wins over a stale bridge one.
     let mut local = bridge.clone();
     local[0].detected_at = 99;
     let merged =
-        memoria_gpui::conflict_store::merge_entry_conflict_snapshots(bridge, local.clone());
+        memoria_model::conflict_store::merge_entry_conflict_snapshots(bridge, local.clone());
     assert_eq!(merged[0].detected_at, 99);
 }
 

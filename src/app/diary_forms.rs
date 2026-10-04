@@ -3,7 +3,7 @@
 //! `bubble-reply-draft` (rail stub + textarea + actions).
 use gpui::{div, prelude::*, px, Context, Window};
 use gpui_component::input::Textarea;
-use memoria_gpui::diary::{parse_bubble_draft, BubbleTimelineNode};
+use memoria_model::diary::{parse_bubble_draft, BubbleTimelineNode};
 
 use super::diary_item::{border_strong, small_button};
 use super::Memoria;

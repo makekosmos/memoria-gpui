@@ -2,7 +2,7 @@
 //! survive decode → encode byte-for-byte (unknown keys ride along in `extra`
 //! and preserve wire order via serde_json's `preserve_order`).
 
-use memoria_gpui::model::{ArkObjectLink, ArkObjectRecord};
+use memoria_model::model::{ArkObjectLink, ArkObjectRecord};
 use serde_json::Value;
 
 const FIXTURE: &str = include_str!("../fixtures/ark-snapshot.json");

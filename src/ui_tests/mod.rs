@@ -13,7 +13,7 @@ use gpui::{
     Pixels, PlatformInput, TestAppContext, VisualTestContext,
 };
 
-use memoria_gpui::routes::Route;
+use memoria_model::routes::Route;
 
 use crate::app::Memoria;
 

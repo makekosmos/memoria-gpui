@@ -6,9 +6,9 @@ use gpui::{div, img, prelude::*, px, Context, MouseButton, SharedString, Window}
 use gpui_component::scroll::ScrollableElement;
 use serde_json::Value;
 
-use memoria_gpui::model::Entry;
-use memoria_gpui::object_views::{entry_display_title, parse_entry_header_props};
-use memoria_gpui::system_types_data::SYSTEM_TYPE_IMAGE_ID;
+use memoria_model::model::Entry;
+use memoria_model::object_views::{entry_display_title, parse_entry_header_props};
+use memoria_model::system_types_data::SYSTEM_TYPE_IMAGE_ID;
 
 use super::types::PropPicker;
 use super::Memoria;

@@ -2,8 +2,8 @@
 //! root-level overlay (backdrop + Esc dismissal, like `render_ctx_menu`;
 //! Vue gets both from the shared `Dropdown` component).
 use gpui::{div, prelude::*, px, Context, MouseButton};
-use memoria_gpui::diary::{BubbleKind, BubbleTimelineNode};
-use memoria_gpui::store::{BubblePatch, Command};
+use memoria_model::diary::{BubbleKind, BubbleTimelineNode};
+use memoria_model::store::{BubblePatch, Command};
 
 use super::diary_item::kind_dot_color;
 use super::Memoria;

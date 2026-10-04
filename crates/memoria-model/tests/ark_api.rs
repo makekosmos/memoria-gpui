@@ -2,9 +2,9 @@
 //! `createEntryApi`/`createNoteTypeApi`/`createTrashStorageApi` exercised
 //! through an in-memory `ArkBridge` (the Vue `ark` request fn seam).
 
-use memoria_gpui::store::transport::{ArkBridge, EngineError, ErrorKind};
-use memoria_gpui::store::{EntryApi, NoteTypeApi, TrashStorageApi, MEMORIA_NOTE_TYPE_PROP};
-use memoria_gpui::system_types_data::SYSTEM_TYPE_IMAGE;
+use memoria_model::store::transport::{ArkBridge, EngineError, ErrorKind};
+use memoria_model::store::{EntryApi, NoteTypeApi, TrashStorageApi, MEMORIA_NOTE_TYPE_PROP};
+use memoria_model::system_types_data::SYSTEM_TYPE_IMAGE;
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 

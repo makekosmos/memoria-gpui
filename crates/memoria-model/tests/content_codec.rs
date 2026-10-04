@@ -1,6 +1,6 @@
 //! Port of `tests/content.test.ts` — `editor-content/content.ts` codec.
 
-use memoria_gpui::content::{
+use memoria_model::content::{
     is_entry_tiptap_content, is_markdown_content, is_readable_entry_content,
     legacy_prose_mirror_to_text, markdown_to_tiptap_doc, read_entry_markdown,
     read_entry_tiptap_doc, tiptap_doc_to_markdown, write_entry_markdown, write_entry_tiptap_doc,

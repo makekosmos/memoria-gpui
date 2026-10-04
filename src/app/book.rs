@@ -3,7 +3,7 @@
 //! (`cover_modal.rs`). The app renders only Engine-returned local paths.
 use gpui::{div, img, prelude::*, px, Context, SharedString};
 
-use memoria_gpui::store::Command;
+use memoria_model::store::Command;
 
 use super::Memoria;
 use crate::a11y::A11y;

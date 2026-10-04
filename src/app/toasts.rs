@@ -7,9 +7,9 @@ use super::Memoria;
 use crate::theme::*;
 
 /// `IconId` → `gpui::assets::IconName` (full bundled Lucide catalog).
-pub(crate) fn icon_name(id: memoria_gpui::sidebar_model::IconId) -> gpui::assets::IconName {
+pub(crate) fn icon_name(id: memoria_model::sidebar_model::IconId) -> gpui::assets::IconName {
     use gpui::assets::IconName as N;
-    use memoria_gpui::sidebar_model::IconId as I;
+    use memoria_model::sidebar_model::IconId as I;
     match id {
         I::File => N::File,
         I::FileText => N::FileText,
@@ -52,7 +52,7 @@ pub(crate) fn icon_name(id: memoria_gpui::sidebar_model::IconId) -> gpui::assets
 }
 
 pub(crate) fn icon(
-    id: memoria_gpui::sidebar_model::IconId,
+    id: memoria_model::sidebar_model::IconId,
     size: f32,
     color: gpui::Hsla,
 ) -> gpui_component::Icon {
