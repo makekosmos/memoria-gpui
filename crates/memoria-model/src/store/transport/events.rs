@@ -11,18 +11,30 @@ impl Engine {
     pub fn subscribe_events(&self, sink: Sender<EngineEvent>, stop: Arc<AtomicBool>) {
         let engine = self.clone();
         std::thread::spawn(move || {
+            // `Offline` fires once per online→offline transition; failed
+            // retries while already offline don't re-signal.
+            let mut offline_sent = false;
             while !stop.load(Ordering::Relaxed) {
                 match engine.lock() {
                     Ok(lock) => {
                         if let Some(ws_port) = lock.ws_port {
-                            subscribe_socket(&lock, ws_port, &sink, &stop);
-                            // Dropped socket (or no hello_ok) — one signal per
-                            // transition, then retry after the delay.
-                            let _ = sink.send(EngineEvent::Offline);
+                            let greeted = subscribe_socket(&lock, ws_port, &sink, &stop);
+                            if greeted {
+                                // A completed hello means we were online —
+                                // this drop is a real transition.
+                                offline_sent = false;
+                            }
+                            if !stop.load(Ordering::Relaxed) && !offline_sent {
+                                let _ = sink.send(EngineEvent::Offline);
+                                offline_sent = true;
+                            }
                         }
                     }
                     Err(_) => {
-                        let _ = sink.send(EngineEvent::Offline);
+                        if !offline_sent {
+                            let _ = sink.send(EngineEvent::Offline);
+                            offline_sent = true;
+                        }
                     }
                 }
                 if stop.load(Ordering::Relaxed) {
@@ -39,10 +51,10 @@ fn subscribe_socket(
     ws_port: u16,
     sink: &Sender<EngineEvent>,
     stop: &Arc<AtomicBool>,
-) {
+) -> bool {
     let url = format!("ws://127.0.0.1:{ws_port}/");
     let Ok((mut socket, _)) = tungstenite::connect(&url) else {
-        return;
+        return false;
     };
     // Poll `stop` between frames: a pure blocking read would keep the
     // subscription alive past shutdown.
@@ -62,13 +74,13 @@ fn subscribe_socket(
         .send(tungstenite::Message::Text(hello.to_string().into()))
         .is_err()
     {
-        return;
+        return false;
     }
     let mut greeted = false;
     loop {
         if stop.load(Ordering::Relaxed) {
             let _ = socket.close(None);
-            return;
+            return greeted;
         }
         match socket.read() {
             Ok(tungstenite::Message::Text(text)) => {
@@ -76,11 +88,11 @@ fn subscribe_socket(
                     continue;
                 };
                 match value.get("kind").and_then(Value::as_str) {
-                    Some("hello_error") => return,
+                    Some("hello_error") => return false,
                     Some("hello_ok") => {
                         greeted = true;
                         if sink.send(EngineEvent::Online).is_err() {
-                            return;
+                            return true;
                         }
                         continue;
                     }
@@ -90,19 +102,19 @@ fn subscribe_socket(
                     continue;
                 }
                 if value.get("event").is_some() && sink.send(EngineEvent::Changed(value)).is_err() {
-                    return;
+                    return greeted;
                 }
             }
             Ok(tungstenite::Message::Ping(payload)) => {
                 let _ = socket.send(tungstenite::Message::Pong(payload));
             }
-            Ok(tungstenite::Message::Close(_)) => return,
+            Ok(tungstenite::Message::Close(_)) => return greeted,
             Err(tungstenite::Error::Io(e))
                 if matches!(
                     e.kind(),
                     std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
                 ) => {}
-            Err(_) => return,
+            Err(_) => return greeted,
             _ => {}
         }
     }
