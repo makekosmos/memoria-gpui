@@ -24,7 +24,10 @@ pub const LEGACY_STORAGE_ALIASES: [(&str, &str); 12] = [
     ("memoria:nav:lastScreen", "eden:nav:lastScreen"),
     ("memoria:nav:lastEntryId", "eden:nav:lastEntryId"),
     ("memoria-theme", "vite-ui-theme"),
-    ("memoria-bubbles", "eden-bubble-diary-local-bubbles"),
+    (
+        crate::diary::LOCAL_BUBBLES_STORAGE_KEY,
+        "eden-bubble-diary-local-bubbles",
+    ),
 ];
 
 /// `LEGACY_STORAGE_FALLBACKS` — extra legacy keys consulted in order.

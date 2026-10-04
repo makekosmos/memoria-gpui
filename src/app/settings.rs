@@ -104,7 +104,7 @@ impl Memoria {
                 nt.id.clone(),
                 on,
                 cx.weak_entity(),
-                move |this, v| this.set_object_type_visible(&tid, v),
+                move |this, v, cx| this.set_object_type_visible(&tid, v, cx),
             ));
         }
 
@@ -116,7 +116,7 @@ impl Memoria {
             "Подчёркивает слова с возможными опечатками.".to_string(),
             spell,
             cx.weak_entity(),
-            |this, v| this.prefs.preferences.spellcheck_enabled = v,
+            |this, v, _cx| this.prefs.preferences.spellcheck_enabled = v,
         ));
         list = list.child(toggle_row(
             "pref-reader-mode".to_string(),
@@ -124,7 +124,7 @@ impl Memoria {
             "Открывать объекты в режиме чтения.".to_string(),
             reader,
             cx.weak_entity(),
-            |this, v| this.prefs.preferences.reader_mode_enabled = v,
+            |this, v, _cx| this.prefs.preferences.reader_mode_enabled = v,
         ));
         list = list.child(section_header("Отображаемые типы"));
         list = list.children(type_rows);
@@ -139,7 +139,12 @@ impl Memoria {
     }
 
     /// `setObjectTypeVisible` — normalized: all-visible ⇒ stored list = [].
-    pub(crate) fn set_object_type_visible(&mut self, type_id: &str, visible: bool) {
+    pub(crate) fn set_object_type_visible(
+        &mut self,
+        type_id: &str,
+        visible: bool,
+        cx: &mut Context<Self>,
+    ) {
         let all: Vec<String> = self.note_types.iter().map(|t| t.id.clone()).collect();
         let mut set =
             memoria_model::local_state::visible_type_set(&self.prefs.visible_object_type_ids, &all);
@@ -155,6 +160,9 @@ impl Memoria {
             next
         };
         self.persist_prefs();
+        // Re-fetch: hidden entries were filtered out of `self.list`, and a
+        // re-shown type's entries are only recoverable from a fresh list.
+        self.send(memoria_model::store::Command::LoadList(Vec::new()), cx);
     }
 
     /// `ExportSettings` — UI only; buttons surface «M8» toast (no logic).

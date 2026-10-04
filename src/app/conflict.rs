@@ -81,7 +81,7 @@ impl Memoria {
         copy.updated_at = copy.created_at;
         copy.deleted_at = None;
         copy.content_loaded = Some(true);
-        self.pending_copy_save = Some(conflict_id);
+        self.pending_copy_save = Some((conflict_id, copy.id.clone()));
         self.send(Command::SaveEntry(Box::new(copy)), cx);
     }
 

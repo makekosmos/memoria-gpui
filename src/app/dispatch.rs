@@ -50,6 +50,24 @@ impl Memoria {
         true
     }
 
+    /// «Отображаемые типы» (`visibleObjectTypeIds`) — an empty stored list
+    /// means all; a stored subset filters entries by resolved type id. Applied
+    /// at `Reply::List` so refetch and the settings toggle share the predicate.
+    pub(crate) fn filter_visible_types(
+        &self,
+        list: Vec<memoria_model::model::Entry>,
+    ) -> Vec<memoria_model::model::Entry> {
+        if self.prefs.visible_object_type_ids.is_empty() {
+            return list;
+        }
+        let all: Vec<String> = self.note_types.iter().map(|t| t.id.clone()).collect();
+        let visible =
+            memoria_model::local_state::visible_type_set(&self.prefs.visible_object_type_ids, &all);
+        list.into_iter()
+            .filter(|e| e.type_id.as_deref().is_none_or(|t| visible.contains(t)))
+            .collect()
+    }
+
     pub(crate) fn send(&mut self, command: Command, cx: &mut Context<Self>) {
         for reply in self.backend.send(command) {
             self.on_reply(reply, cx);
