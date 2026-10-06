@@ -2,7 +2,7 @@
 use gpui::{div, prelude::*, px, Context, MouseButton};
 use memoria_model::store::Command;
 
-use super::types::Confirm;
+use super::types::{Confirm, ViewAction};
 use super::Memoria;
 use crate::a11y::A11y;
 use crate::theme::*;
@@ -26,7 +26,7 @@ impl Memoria {
         let btn = |id: &'static str,
                    label: &'static str,
                    danger: bool,
-                   f: Box<dyn Fn(&mut Memoria, &mut Context<Memoria>)>,
+                   f: ViewAction,
                    cx: &mut Context<Self>| {
             let weak = cx.weak_entity();
             let mut el = div()

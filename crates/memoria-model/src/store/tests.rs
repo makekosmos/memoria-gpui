@@ -44,8 +44,7 @@ struct FakeEngine {
 fn fake_engine(
     respond: impl Fn(&Value) -> (u16, String) + Send + Sync + 'static,
 ) -> (tempfile::TempDir, FakeEngine) {
-    let respond: std::sync::Arc<dyn Fn(&Value) -> (u16, String) + Send + Sync> =
-        std::sync::Arc::new(respond);
+    let respond = std::sync::Arc::new(respond);
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     let (tx, requests) = mpsc::channel();
@@ -226,7 +225,7 @@ fn timeout_is_typed() {
 #[test]
 fn lock_missing_is_typed() {
     let dir = tempdir();
-    let error = engine_at(dir.path()).list_objects("x".into()).unwrap_err();
+    let error = engine_at(dir.path()).list_objects("x").unwrap_err();
     assert_eq!(error.kind, ErrorKind::NotRunning);
 }
 
@@ -244,7 +243,7 @@ fn lock_incompatible_api_major() {
         .to_string(),
     )
     .unwrap();
-    let error = engine_at(dir.path()).list_objects("x".into()).unwrap_err();
+    let error = engine_at(dir.path()).list_objects("x").unwrap_err();
     assert_eq!(error.kind, ErrorKind::NotCompatible);
 }
 
@@ -262,7 +261,7 @@ fn lock_bad_token_is_incompatible() {
         .to_string(),
     )
     .unwrap();
-    let error = engine_at(dir.path()).list_objects("x".into()).unwrap_err();
+    let error = engine_at(dir.path()).list_objects("x").unwrap_err();
     assert_eq!(error.kind, ErrorKind::NotCompatible);
 }
 
@@ -270,7 +269,7 @@ fn lock_bad_token_is_incompatible() {
 fn lock_invalid_json_is_typed() {
     let dir = tempdir();
     std::fs::write(dir.path().join("engine.lock.json"), "{nope").unwrap();
-    let error = engine_at(dir.path()).list_objects("x".into()).unwrap_err();
+    let error = engine_at(dir.path()).list_objects("x").unwrap_err();
     assert_eq!(error.kind, ErrorKind::NotCompatible);
 }
 

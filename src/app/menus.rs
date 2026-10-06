@@ -3,7 +3,7 @@
 //! trash actions.
 use gpui::{div, prelude::*, px, Context, MouseButton, Window};
 
-use super::types::{Confirm, CtxMenu};
+use super::types::{Confirm, CtxMenu, WindowAction};
 use super::Memoria;
 use crate::a11y::A11y;
 use crate::theme::*;
@@ -104,32 +104,30 @@ impl Memoria {
         let menu_x = menu.x.min(f32::from(viewport.width) - menu_w - 8.).max(8.);
         let menu_y = menu.y.min(f32::from(viewport.height) - menu_h - 8.).max(8.);
 
-        let item = |id: &'static str,
-                    label: &'static str,
-                    f: Box<dyn Fn(&mut Memoria, &mut Window, &mut Context<Memoria>)>,
-                    cx: &mut Context<Self>| {
-            let weak = cx.weak_entity();
-            div()
-                .id(id)
-                .debug_selector(move || id.to_string())
-                .a11y_menu_item(label)
-                .px_3()
-                .h(px(30.))
-                .flex()
-                .items_center()
-                .rounded_md()
-                .text_size(px(13.))
-                .text_color(c(FG()))
-                .cursor_pointer()
-                .hover(|s| s.bg(rgba(FG(), 0.08)))
-                .on_click(move |_, window, cx| {
-                    let _ = weak.update(cx, |this, cx| {
-                        this.ctx_menu = None;
-                        f(this, window, cx);
-                    });
-                })
-                .child(label)
-        };
+        let item =
+            |id: &'static str, label: &'static str, f: WindowAction, cx: &mut Context<Self>| {
+                let weak = cx.weak_entity();
+                div()
+                    .id(id)
+                    .debug_selector(move || id.to_string())
+                    .a11y_menu_item(label)
+                    .px_3()
+                    .h(px(30.))
+                    .flex()
+                    .items_center()
+                    .rounded_md()
+                    .text_size(px(13.))
+                    .text_color(c(FG()))
+                    .cursor_pointer()
+                    .hover(|s| s.bg(rgba(FG(), 0.08)))
+                    .on_click(move |_, window, cx| {
+                        let _ = weak.update(cx, |this, cx| {
+                            this.ctx_menu = None;
+                            f(this, window, cx);
+                        });
+                    })
+                    .child(label)
+            };
 
         let id1 = entry_id.clone();
         let id2 = entry_id.clone();

@@ -4,7 +4,7 @@ use gpui::{div, prelude::*, px, Context};
 use memoria_model::entry_conflicts::unresolved_entry_conflicts;
 use memoria_model::store::Command;
 
-use super::types::ConflictOp;
+use super::types::{ConflictOp, ViewAction};
 use super::Memoria;
 use crate::a11y::A11y;
 use crate::theme::*;
@@ -163,7 +163,7 @@ fn conflict_button(
     id: &'static str,
     label: &'static str,
     primary: bool,
-    f: Box<dyn Fn(&mut Memoria, &mut Context<Memoria>)>,
+    f: ViewAction,
 ) -> gpui::Stateful<gpui::Div> {
     let weak = cx.weak_entity();
     let mut el = div()

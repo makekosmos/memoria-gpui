@@ -210,7 +210,8 @@ impl Memoria {
     /// Linux window caption buttons (macOS uses traffic lights instead).
     #[cfg(not(target_os = "macos"))]
     fn render_window_controls(&self, _cx: &mut Context<Self>) -> impl IntoElement {
-        let specs: [(&'static str, IconId, &'static str, fn(&mut Window)); 3] = [
+        type ControlSpec = (&'static str, IconId, &'static str, fn(&mut Window));
+        let specs: [ControlSpec; 3] = [
             ("win-min", IconId::Minus, "Свернуть", |w| {
                 w.minimize_window()
             }),

@@ -9,8 +9,10 @@ use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 
 /// Closure-backed `ArkBridge` — the `ark: ArkRequest` injection point.
+type ArkHandler = Arc<dyn Fn(&str, &Value) -> Result<Value, EngineError> + Send + Sync>;
+
 #[derive(Clone)]
-struct FakeArk(Arc<dyn Fn(&str, &Value) -> Result<Value, EngineError> + Send + Sync>);
+struct FakeArk(ArkHandler);
 
 impl FakeArk {
     fn new(f: impl Fn(&str, &Value) -> Result<Value, EngineError> + Send + Sync + 'static) -> Self {
