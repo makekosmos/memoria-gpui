@@ -8,9 +8,9 @@ use memoria_model::system_types_data::SYSTEM_TYPE_IMAGE;
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 
-/// Closure-backed `ArkBridge` — the `ark: ArkRequest` injection point.
 type ArkHandler = Arc<dyn Fn(&str, &Value) -> Result<Value, EngineError> + Send + Sync>;
 
+/// Closure-backed `ArkBridge` — the `ark: ArkRequest` injection point.
 #[derive(Clone)]
 struct FakeArk(ArkHandler);
 
