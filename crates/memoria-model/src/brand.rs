@@ -1,8 +1,6 @@
 //! Product brand constants — the single source for the Mundus name and the
 //! legacy Kosmos identifiers kept for the 0.10.0 migration window.
 
-/// User-visible product name (UI text, error messages).
-pub const NAME: &str = "Mundus";
 /// Env var overriding the Engine data dir.
 pub const DATA_DIR_ENV: &str = "MUNDUS_DATA_DIR";
 /// Data dir name under the per-OS config dir.
