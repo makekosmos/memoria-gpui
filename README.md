@@ -4,6 +4,7 @@ Native GPUI-приложение Memoria для Mundus. Правила для а
 
 Source of truth: `makekosmos/memoria` @ `7ccbb9f89841fc93c8bcb48aef67f3df2d3df84e` (0.6.9).
 Feature parity matrix: [`PARITY.md`](PARITY.md). Test-port plan: [`PORT_TESTS.md`](PORT_TESTS.md).
+Модули, которые есть, но пока не подключены к UI: [`docs/unwired-modules.md`](docs/unwired-modules.md).
 Seeded ARK snapshot + reference screenshots: [`fixtures/`](fixtures/),
 [`reference/screens/`](reference/screens/).
 
