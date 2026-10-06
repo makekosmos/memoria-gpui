@@ -101,27 +101,6 @@ impl Editor {
         project(doc, &src, sel)
     }
 
-    /// Cached projection for the render loop — reparses/reprojects only when
-    /// the buffer revision or the selection changed since the last call.
-    /// Callers may hold the `&Projection` only as long as the borrow allows;
-    /// copy out what a frame needs.
-    pub fn project_cached(&mut self) -> &Projection {
-        let hit = self
-            .proj_cache
-            .as_ref()
-            .is_some_and(|(rev, sel, _)| *rev == self.rev && *sel == self.sel);
-        if !hit {
-            let src = self.buf.text();
-            let sel = self.sel;
-            let proj = {
-                let doc = self.doc();
-                project(doc, &src, sel)
-            };
-            self.proj_cache = Some((self.rev, sel, proj));
-        }
-        &self.proj_cache.as_ref().unwrap().2
-    }
-
     /// Buffer revision — increments on every content mutation. Renderers key
     /// shaped-line/highlighter caches on this.
     pub fn revision(&self) -> u64 {
