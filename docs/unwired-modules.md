@@ -51,7 +51,7 @@ Engine. Всё идёт через трейт `ArkBridge`, без прямого
 
 **Где подключать.** В Memoria пока нет UI задач. Когда понадобится
 (например, превращать строку заметки в задачу): вызывать функции с
-`ArkBridge`, который реализует `store::Engine`, из обработчика
+`ArkBridge`, который реализует `store::Engine` (`store/transport/bridge.rs`), из обработчика
 `Command` в `memoria_model::store`, а `classify_object_change`
 подключить в `Memoria::on_engine_event` (`src/app/replies.rs`, ветка
 `EngineEvent::Changed`).
@@ -108,7 +108,7 @@ ProseMirror/TipTap JSON (кодпоинты, плюс по одному симв
 `data:` URI с монохромным SVG (`stroke="currentColor"` для mask-image).
 
 **Статус.** UI рисует иконки через `IconId`
-(`sidebar_model::icon_for_name`, `src/app/sidebar.rs`), так что модуль
+(`sidebar_model::icon_for_name`, используется в `build_sidebar` и `src/app/everything.rs`; рисуется в `src/app/sidebar.rs`), так что модуль
 дублирует это для случаев, где нужен именно URI: если иконку надо
 отдать в виджет, принимающий только изображение. Не удаляйте без решения
 мейнтейнера: если URI-иконки не понадобятся, модуль можно убрать вместе с его тестом.
@@ -119,8 +119,8 @@ ProseMirror/TipTap JSON (кодпоинты, плюс по одному симв
 
 **Что делает.** `should_include_type_in_eden_list_for_live_update`
 решает, должен ли изменённый «вживую» объект попасть в список: исключает
-пузыри дневника, скрытые типы коллекций и коллекции с невидимым
-`object_type_id`.
+пузыри дневника, скрытые типы коллекций коллекции с невидимым
+`object_type_id` и типы вне списка видимых `visible_type_ids`.
 
 **Где подключать.** Сейчас `Memoria::on_engine_event`
 (`src/app/replies.rs`, `EngineEvent::Changed`) просто заново загружает
