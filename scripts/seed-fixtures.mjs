@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Seed fixtures/ark-snapshot.json into a running Mundus Engine.
+// Seed crates/memoria-model/fixtures/ark-snapshot.json into a running Mundus Engine.
 //
 // Usage:
 //   node scripts/seed-fixtures.mjs [--data-dir <dir>] [--snapshot <file>]
@@ -33,7 +33,7 @@ const dataDir =
   candidates[0];
 const snapshotPath =
   opt("--snapshot") ||
-  path.join(path.dirname(new URL(import.meta.url).pathname), "..", "fixtures", "ark-snapshot.json");
+  path.join(path.dirname(new URL(import.meta.url).pathname), "..", "crates", "memoria-model", "fixtures", "ark-snapshot.json");
 
 const lock = JSON.parse(readFileSync(path.join(dataDir, "engine.lock.json"), "utf8"));
 if (!lock.http_port || !lock.auth_token) {
