@@ -48,9 +48,10 @@ cortex (`--data-dir DIR`, тот же `DIR` отдай приложению че
 
 CI запускается на каждый PR и на push в `main`: `ci.yml` (Ubuntu: fmt, clippy
 с `-D warnings`, nextest, `cargo deny`, `cargo shear`, размер файлов) и
-`build.yml` (сборка и тесты на Windows, Linux и macOS, проверка правил версий
+`build.yml` (на Windows, Linux и macOS: fmt, тесты, release-сборка; clippy и
+размер файлов — только на Windows; плюс проверка правил версий
 `python scripts/test_release.py`). Ночью (00:00 МСК) `build.yml` выпускает
-релиз.
+релиз, если исходники изменились с прошлого.
 
 Локально те же проверки гонит `hk` (`hk.pkl`):
 
@@ -73,11 +74,12 @@ hk run pre-push                             # или hk check --all
   модули из `docs/unwired-modules.md`: они намеренно оставлены для будущего
   подключения, их не удаляй. Политика линтов
   одна — таблица `[workspace.lints]` в корневом `Cargo.toml` плюс
-  `-D warnings`; сейчас исключений нет. Не добавляй `-A …` в командную строку
-  и `#[allow(dead_code)]` в код: чини код.
+  `-D warnings`; в `[workspace.lints]` исключений нет. Не добавляй `-A …` в командную строку,
+  `#[allow(dead_code)]` и новые `#[allow(clippy::…)]`: чини код (старые
+  точечные allow в тестах и `memoria-model` уже есть).
 - Размер файла — не больше 300 строк (`src/bin/check-source-size.rs`);
-  список `GRANDFATHERED` только сокращается.
-- `gpui` (псевдоним `gpui-kit`), `gpui-component`, `gpui-base` закреплены
+  список `GRANDFATHERED` сейчас пуст — не добавляй в него файлы.
+- `gpui` (псевдоним `gpui-kit`) и `gpui-component` закреплены
   точными версиями и должны совпадать с cortex/manager-gpui, agenda-gpui и
   dictation: две версии gpui в одной сборке — ошибка типов. Поднимай вместе.
   `imago-gpui`, `mundus-gpui-kit` и `[patch.crates-io]` закреплены по rev
