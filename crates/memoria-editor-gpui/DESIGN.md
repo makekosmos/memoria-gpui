@@ -9,7 +9,7 @@ the `EditorEvent` surface the app shell (`src/app.rs`) consumes.
 
 ```
 markdown source ──► memoria_editor_core::Editor
-                        │ project_cached()  (M2: parse → Doc → Projection)
+                        │ project_and_doc()  (M2: parse → Doc → Projection)
                         ▼
 MemoriaEditor (entity)  rows::build  →  Vec<Row> (visible-text rows, block tags)
         │ Render        element.rs::EditorElement (custom canvas Element)
