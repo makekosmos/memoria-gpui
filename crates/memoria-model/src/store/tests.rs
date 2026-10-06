@@ -31,6 +31,7 @@ fn write_lock(dir: &std::path::Path, port: u16) {
 fn engine_at(dir: &std::path::Path) -> Engine {
     Engine {
         data_dir: Some(dir.to_path_buf()),
+        ..Engine::default()
     }
 }
 
@@ -201,7 +202,6 @@ fn malformed_body_is_not_success() {
 
 #[test]
 fn timeout_is_typed() {
-    std::env::set_var("MEMORIA_RPC_TIMEOUT_MS", "200");
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let port = listener.local_addr().unwrap().port();
     // Accept and never reply.
@@ -212,10 +212,11 @@ fn timeout_is_typed() {
     });
     let dir = tempdir();
     write_lock(dir.path(), port);
-    let error = engine_at(dir.path())
-        .list_objects("com.kosmos.note")
-        .unwrap_err();
-    std::env::remove_var("MEMORIA_RPC_TIMEOUT_MS");
+    let engine = Engine {
+        rpc_timeout: Some(std::time::Duration::from_millis(200)),
+        ..engine_at(dir.path())
+    };
+    let error = engine.list_objects("com.kosmos.note").unwrap_err();
     assert!(matches!(
         error.kind,
         ErrorKind::Timeout | ErrorKind::Transport
