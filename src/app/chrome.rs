@@ -1,7 +1,7 @@
 //! Shell chrome — `DesktopChrome`/`Titlebar` pattern via imago-gpui
 //! `chrome::*` primitives: sidebar shell, drag titlebar with history buttons,
 //! search + settings triggers, native window controls on Linux/Windows.
-use gpui::{div, prelude::*, px, ClickEvent, Context, Window, WindowControlArea};
+use gpui::{div, prelude::*, px, Context, Window, WindowControlArea};
 use imago_gpui::chrome;
 
 use memoria_model::routes::{Route, SettingsTab};
@@ -243,7 +243,7 @@ impl Memoria {
                             rgba(FG(), 0.10)
                         })
                     })
-                    .on_click(move |_: &ClickEvent, window, _| action(window))
+                    .on_click(move |_: &gpui::ClickEvent, window, _| action(window))
                     .child(icon(ic, 14., rgba(FG(), 0.82))),
             );
         }
