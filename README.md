@@ -1,7 +1,6 @@
 # memoria-gpui
 
-Experimental native GPUI clone of Memoria (KOS-146). Not a replacement for the
-Vue/Mundus package Memoria.
+Native GPUI-приложение Memoria для Mundus. Правила для агентов: [AGENTS.md](AGENTS.md).
 
 Source of truth: `makekosmos/memoria` @ `7ccbb9f89841fc93c8bcb48aef67f3df2d3df84e` (0.6.9).
 Feature parity matrix: [`PARITY.md`](PARITY.md). Test-port plan: [`PORT_TESTS.md`](PORT_TESTS.md).
@@ -11,10 +10,9 @@ Seeded ARK snapshot + reference screenshots: [`fixtures/`](fixtures/),
 
 ## Требования
 
-- Rust stable
+- Rust stable; на Linux ещё `ld.lld` в `PATH`
 - `hk` для Git hooks: `cargo install hk --locked`, затем `hk install` в корне репозитория
 - Гейты pre-push: `cargo nextest`, `cargo shear`, `cargo clippy`, `cargo deny` (ставятся через `cargo install` по необходимости)
-- Linux: обычный `cargo run`
 - `pkg-config` + `libfontconfig-dev` (Linux; для gpui text stack)
 
 Весь гейт можно прогнать вручную: `hk check --all` или `hk run pre-push`.
@@ -22,8 +20,7 @@ Seeded ARK snapshot + reference screenshots: [`fixtures/`](fixtures/),
 ## Сборка
 
 Обычный запуск читает заметки через локальный Mundus Engine API v1.
-Сначала запусти Mundus Engine с той же папкой данных, что использует
-Vue Memoria. Приложение читает `engine.lock.json` из `%APPDATA%\Mundus`
+Сначала запусти Mundus Engine (`pnpm run dev -- --engine-only` в корне cortex). Приложение читает `engine.lock.json` из `%APPDATA%\Mundus`
 (Windows), `~/Library/Application Support/Mundus` (macOS) или
 `$XDG_CONFIG_HOME/Mundus` / `~/.config/Mundus` (Linux) и вызывает
 `http://127.0.0.1:<port>/v1/rpc` с bearer-токеном из lock-файла.
@@ -58,32 +55,11 @@ Run workflow на основной ветке. `scripts/release.py` берёт �
 GitHub Release со всеми архивами и `SHA256SUMS.txt` — оттуда Memoria ставит
 магазин Mundus (KOS-265).
 
-## Упаковка в состав Mundus (KOS-156)
+## Установка в составе Mundus
 
-Transitional Windows-инсталлер Mundus зашивает этот бинарь как компонент
-`resources/components/memoria/Mundus Memoria.exe` рядом с `components/manager`
-(GPUI Manager) и `components/agenda` (KOS-137). Сборкой управляет
-`cortex/desktop/scripts/build-package-components.mjs`: он берёт checkout этого
-репозитория из `KOSMOS_MEMORIA_GPUI_SRC` (или sibling `../memoria-gpui`),
-проверяет `git rev-parse HEAD` по пину `desktop/component-pins.json` и собирает
-`cargo build --locked --release --target x86_64-pc-windows-msvc` с
-`MUNDUS_MEMORIA_VERSION=<win-версия релиза>` — build.rs штампует VERSIONINFO
-этой версией (legacy `KOSMOS_MEMORIA_VERSION` тоже читается) (без env — версия из Cargo.toml).
-
-Запуск из установленного продукта: launcher-команда «Открыть Memoria (GPUI)»,
-ярлык Start Menu «Mundus Memoria» и кнопка «Открыть Memoria» в GPUI Manager —
-все три пути резолвят один exe и используют общий `MUNDUS_DATA_DIR`
-(`%APPDATA%\Mundus` в prod), поэтому Memoria GPUI читает тот же
-`engine.lock.json`, что и Manager. Vue Memoria (`com.kosmos.memoria` .kspkg)
-остаётся fallback и не удаляется.
-
-Linux → MSVC evidence-build (не для публикации):
-
-```bash
-cargo xwin build --release --locked --target x86_64-pc-windows-msvc
-GPUI_FXC_PATH=/path/to/fxc scripts/compile-shaders-xwin.sh
-cargo xwin build --release --locked --target x86_64-pc-windows-msvc
-```
+Memoria не входит в установщик Mundus: Engine ставит её из GitHub Releases этого
+репозитория (KOS-265) в `%LOCALAPPDATA%\Mundus\Apps`. Приложение читает тот же
+`engine.lock.json` в `MUNDUS_DATA_DIR`, что и Manager.
 
 ## Статус
 
