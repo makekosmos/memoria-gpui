@@ -34,7 +34,7 @@ hk run pre-push                          # or: hk check --all
 ```
 
 Gate = `cargo nextest run --workspace --all-features`, `cargo shear`,
-`cargo clippy` (with the allow-list in `hk.pkl`), `cargo deny check
+`cargo clippy` (lint policy in `[workspace.lints]`), `cargo deny check
 advisories bans sources`, `cargo run -q --bin check-source-size`.
 Pre-commit runs `cargo check` + `cargo fmt --check` on touched Rust files.
 Install `cargo-nextest`, `cargo-shear`, `cargo-deny` on demand.

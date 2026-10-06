@@ -5,7 +5,8 @@ GPUI parity tests.
 
 ## Contents
 
-- `ark-snapshot.json` — objects + object links as stored by Engine:
+- `ark-snapshot.json` (generated into `crates/memoria-model/fixtures/`, next to
+  the tests that byte-compare it) — objects + object links as stored by Engine:
   - `com.kosmos.note` notes: kitchen-sink markup (headings, marks, link,
     nested bullet/ordered/task lists, blockquote, `codeBlock` in
     rust/typescript/python, `horizontalRule`, `hardBreak`, `image`),
@@ -33,7 +34,7 @@ GPUI parity tests.
 
 ## Regenerate
 
-    node fixtures/build-snapshot.mjs   # rewrites both JSON files deterministically
+    node fixtures/build-snapshot.mjs   # rewrites the snapshot and `large-note.json` deterministically
 
 ## Seed into a clean Engine
 

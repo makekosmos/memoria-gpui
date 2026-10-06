@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generates fixtures/ark-snapshot.json and fixtures/large-note.json.
+// Generates crates/memoria-model/fixtures/ark-snapshot.json and fixtures/large-note.json.
 // Deterministic: fixed ids and ISO timestamps. `node fixtures/build-snapshot.mjs`.
 //
 // Canonical-write contract (ark-core canonical_ingress, enforced by Engine):
@@ -125,7 +125,7 @@ for (const o of snapshot.objects) {
   if (o.contentJson && o.contentJson.$ref === "large-note.json") o.contentJson = large;
 }
 writeFileSync(
-  path.join(root, "fixtures", "ark-snapshot.json"),
+  path.join(root, "crates", "memoria-model", "fixtures", "ark-snapshot.json"),
   JSON.stringify(snapshot, null, 2) + "\n",
 );
 writeFileSync(

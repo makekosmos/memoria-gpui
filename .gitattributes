@@ -5,7 +5,11 @@
 # them to CRLF on Windows checkouts: parsing still succeeds but the blob's
 # trailing byte differs, so the round-trip assertions fail on Windows only.
 fixtures/** text eol=lf
-src/obsidian/tests/golden/** text eol=lf
+crates/memoria-model/fixtures/** text eol=lf
+crates/memoria-model/src/obsidian/tests/golden/** text eol=lf
+# Editor fixtures: byte-exact too; crlf.md must keep its CRLF on every OS.
+crates/memoria-editor-core/tests/fixtures/*.md text eol=lf
+crates/memoria-editor-core/tests/fixtures/crlf.md -text
 
 # Binary payloads must never be EOL-normalized.
 *.png binary
