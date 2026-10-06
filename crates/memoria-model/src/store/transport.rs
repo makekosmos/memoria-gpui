@@ -22,14 +22,7 @@ pub use bridge::*;
 pub use mundus_gpui_kit::engine_error::{EngineError, ErrorKind};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(3);
-/// Test seam: `MEMORIA_RPC_TIMEOUT_MS` shortens the request deadline.
-fn rpc_timeout() -> Duration {
-    std::env::var("MEMORIA_RPC_TIMEOUT_MS")
-        .ok()
-        .and_then(|v| v.parse::<u64>().ok())
-        .map(Duration::from_millis)
-        .unwrap_or(Duration::from_secs(15))
-}
+const DEFAULT_RPC_TIMEOUT: Duration = Duration::from_secs(15);
 const RETRY_BACKOFF: Duration = Duration::from_millis(300);
 const RECONNECT_DELAY: Duration = Duration::from_secs(1);
 
@@ -81,6 +74,8 @@ impl EngineLock {
 #[derive(Clone, Default)]
 pub struct Engine {
     pub data_dir: Option<PathBuf>,
+    /// Per-request deadline; `None` means `DEFAULT_RPC_TIMEOUT`.
+    pub rpc_timeout: Option<Duration>,
 }
 
 /// One WS change event pushed to the UI loop.
@@ -148,7 +143,7 @@ impl Engine {
     fn rpc_with_lock(&self, lock: &EngineLock, params: Value) -> Result<Value, EngineError> {
         let agent = ureq::AgentBuilder::new()
             .timeout_connect(CONNECT_TIMEOUT)
-            .timeout(rpc_timeout())
+            .timeout(self.rpc_timeout.unwrap_or(DEFAULT_RPC_TIMEOUT))
             .redirects(0)
             .build();
         let url = format!("http://127.0.0.1:{}/v1/rpc", lock.http_port);

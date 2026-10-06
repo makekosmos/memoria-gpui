@@ -25,6 +25,8 @@ opens the ARK database itself (write boundary: cortex `docs/write-boundary.md`).
   bearer token from the lock file.
 - All persistence goes through Engine ops; never write SQLite directly.
 - `MEMORIA_OFFSCREEN=1` parks the window off-screen for headless runs.
+- `MEMORIA_DEMO=1` runs against an in-memory demo store (no Engine needed);
+  `MEMORIA_IMAGES_DIR` sets the editor's image root.
 
 ## Setup and verification
 
