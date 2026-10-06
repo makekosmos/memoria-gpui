@@ -193,16 +193,7 @@ NOT_RUN:
 ## Coverage check
 
 Every file under Vue `src/` is either mapped to a milestone above or marked
-«не нужен». Verify with:
-
-```bash
-cd /workspace/wt/memoria-kos-147   # Vue SoT worktree @7ccbb9f
-comm -23 <(cd src && find . -type f | sort) \
-         <(grep -oE 'src/[A-Za-z0-9_./-]+' /workspace/wt/memoria-gpui-kos-156/PARITY.md | sed 's|src/||;s|/$||' | sort -u)
-```
-
-(Expected output: only files whose names appear inside directory rows —
-see "не нужен" row above — everything else must be empty.)
+«не нужен».
 
 ## Byte-compat contract
 
