@@ -115,9 +115,6 @@ pub struct BubbleTimelineNode {
     pub kind: BubbleKind,
 }
 
-/// `BubbleThreadNode` is the same shape plus the resolved `parentId`.
-pub type BubbleThreadNode = BubbleTimelineNode;
-
 /// `reply_to` ARK link fields the thread normalizer consumes.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReplyLink {

@@ -7,18 +7,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::LazyLock;
 
-/// `BOOK_METADATA_FIELD_IDS` — order matches the Vue preview rows.
-pub const BOOK_METADATA_FIELD_IDS: &[&str] = &[
-    "author",
-    "cover_image",
-    "isbn",
-    "page_count",
-    "language",
-    "publisher",
-    "published_date",
-    "source_url",
-];
-
 /// `BookMetadata` — snake_case keys mirror the TS interface and the Engine
 /// op payload verbatim.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
