@@ -5,8 +5,8 @@ GPUI parity tests.
 
 ## Contents
 
-- `crates/memoria-model/fixtures/ark-snapshot.json` (generated, committed
-  next to the tests that byte-compare it) — objects + object links as stored by Engine:
+- `ark-snapshot.json` (generated into `crates/memoria-model/fixtures/`, next to
+  the tests that byte-compare it) — objects + object links as stored by Engine:
   - `com.kosmos.note` notes: kitchen-sink markup (headings, marks, link,
     nested bullet/ordered/task lists, blockquote, `codeBlock` in
     rust/typescript/python, `horizontalRule`, `hardBreak`, `image`),
