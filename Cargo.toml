@@ -10,10 +10,8 @@ default-run = "memoria-gpui"
 members = ["crates/*"]
 
 # Single source for lint policy; CI and hk.pkl only add `-D warnings`.
+# No clippy allows at the moment; add them here, never on the command line.
 [workspace.lints.clippy]
-type_complexity = "allow"
-useless_conversion = "allow"
-result_large_err = "allow"
 
 [lints]
 workspace = true

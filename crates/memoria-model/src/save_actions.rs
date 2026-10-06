@@ -48,14 +48,17 @@ fn mark_latest_local_entry(state: &mut SaveActionState, entry: &Entry) {
     }
 }
 
+type RecordConflictHook = Box<dyn FnMut(&Entry, Option<&Entry>, EntryConflictState)>;
+type RecheckConflictsHook = Box<dyn FnMut(&str)>;
+
 /// `createEdenStoreSaveActions` — owns the state + bridge; the caller wires
 /// the two callbacks (`record_conflict` keeps `EntryConflictState::StaleSave`
 /// explicit like Vue's `Extract<…, "stale-save">`).
 pub struct SaveActions<B: SaveBridge> {
     pub state: SaveActionState,
     pub bridge: Option<B>,
-    pub record_conflict: Box<dyn FnMut(&Entry, Option<&Entry>, EntryConflictState)>,
-    pub recheck_conflicts: Option<Box<dyn FnMut(&str)>>,
+    pub record_conflict: RecordConflictHook,
+    pub recheck_conflicts: Option<RecheckConflictsHook>,
 }
 
 impl<B: SaveBridge> SaveActions<B> {

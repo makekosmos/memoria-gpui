@@ -6,8 +6,10 @@ use memoria_model::store::{EntryApi, NoteTypeApi, TrashStorageApi};
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 
+type ArkHandler = Arc<dyn Fn(&str, &Value) -> Result<Value, EngineError> + Send + Sync>;
+
 #[derive(Clone)]
-struct FakeArk(Arc<dyn Fn(&str, &Value) -> Result<Value, EngineError> + Send + Sync>);
+struct FakeArk(ArkHandler);
 
 impl FakeArk {
     fn new(f: impl Fn(&str, &Value) -> Result<Value, EngineError> + Send + Sync + 'static) -> Self {

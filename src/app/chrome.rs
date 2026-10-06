@@ -1,7 +1,7 @@
 //! Shell chrome — `DesktopChrome`/`Titlebar` pattern via imago-gpui
 //! `chrome::*` primitives: sidebar shell, drag titlebar with history buttons,
 //! search + settings triggers, native window controls on Linux/Windows.
-use gpui::{div, prelude::*, px, ClickEvent, Context, Window, WindowControlArea};
+use gpui::{div, prelude::*, px, Context, Window, WindowControlArea};
 use imago_gpui::chrome;
 
 use memoria_model::routes::{Route, SettingsTab};
@@ -207,10 +207,11 @@ impl Memoria {
         }
     }
 
-    /// Linux window caption buttons (macOS uses traffic lights instead).
-    #[cfg(not(target_os = "macos"))]
+    /// Linux window caption buttons (macOS uses traffic lights, Windows native chrome).
+    #[cfg(target_os = "linux")]
     fn render_window_controls(&self, _cx: &mut Context<Self>) -> impl IntoElement {
-        let specs: [(&'static str, IconId, &'static str, fn(&mut Window)); 3] = [
+        type ControlSpec = (&'static str, IconId, &'static str, fn(&mut Window));
+        let specs: [ControlSpec; 3] = [
             ("win-min", IconId::Minus, "Свернуть", |w| {
                 w.minimize_window()
             }),
@@ -242,7 +243,7 @@ impl Memoria {
                             rgba(FG(), 0.10)
                         })
                     })
-                    .on_click(move |_: &ClickEvent, window, _| action(window))
+                    .on_click(move |_: &gpui::ClickEvent, window, _| action(window))
                     .child(icon(ic, 14., rgba(FG(), 0.82))),
             );
         }

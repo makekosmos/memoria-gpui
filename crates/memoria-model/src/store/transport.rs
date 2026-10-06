@@ -152,6 +152,8 @@ impl Engine {
             .redirects(0)
             .build();
         let url = format!("http://127.0.0.1:{}/v1/rpc", lock.http_port);
+        // `ureq::Error` is large; the closure is called at most twice per RPC.
+        #[allow(clippy::result_large_err)]
         let send = || -> Result<ureq::Response, ureq::Error> {
             agent
                 .post(&url)

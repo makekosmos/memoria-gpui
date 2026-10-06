@@ -64,17 +64,23 @@ pub fn parse_journal(raw: &Value) -> Option<ObsidianImportJournal> {
     serde_json::from_value(raw.clone()).ok()
 }
 
+type BeforeOperationHook<'a> =
+    Box<dyn FnMut(&ObsidianImportOperation, usize) -> Result<(), String> + 'a>;
+type ProgressHook<'a> = Box<dyn FnMut(usize, usize, &ObsidianImportOperation) + 'a>;
+type FailureHook<'a> = Box<dyn FnMut(Option<usize>, &str) + 'a>;
+type RollbackHook<'a> = Box<dyn FnMut(&[usize]) + 'a>;
+type CommitHook<'a> = Box<dyn FnMut() -> Result<(), String> + 'a>;
+
 /// `runObsidianImportTransaction` options — hooks are optional callbacks.
 #[derive(Default)]
 pub struct ImportTransactionOptions<'a> {
     pub transaction_id: Option<String>,
     pub is_cancelled: Option<Box<dyn Fn() -> bool + 'a>>,
-    pub before_operation:
-        Option<Box<dyn FnMut(&ObsidianImportOperation, usize) -> Result<(), String> + 'a>>,
-    pub on_progress: Option<Box<dyn FnMut(usize, usize, &ObsidianImportOperation) + 'a>>,
-    pub on_rollback: Option<Box<dyn FnMut(&[usize]) + 'a>>,
-    pub on_failure: Option<Box<dyn FnMut(Option<usize>, &str) + 'a>>,
-    pub on_commit: Option<Box<dyn FnMut() -> Result<(), String> + 'a>>,
+    pub before_operation: Option<BeforeOperationHook<'a>>,
+    pub on_progress: Option<ProgressHook<'a>>,
+    pub on_rollback: Option<RollbackHook<'a>>,
+    pub on_failure: Option<FailureHook<'a>>,
+    pub on_commit: Option<CommitHook<'a>>,
 }
 
 /// `runObsidianImportTransaction` — apply each op with an `inFlight` intent

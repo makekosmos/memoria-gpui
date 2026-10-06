@@ -4,6 +4,11 @@ use std::path::PathBuf;
 
 use memoria_model::conflict_store::ConflictStore;
 
+/// Click handler closures the modal/banner/menu builders take as a `Box`.
+pub(crate) type ViewAction = Box<dyn Fn(&mut super::Memoria, &mut gpui::Context<super::Memoria>)>;
+pub(crate) type WindowAction =
+    Box<dyn Fn(&mut super::Memoria, &mut gpui::Window, &mut gpui::Context<super::Memoria>)>;
+
 pub(crate) const ENGINE_OFFLINE: &str =
     "Engine не запущен. Запустите Mundus — список обновится автоматически.";
 pub(crate) const TOAST_TTL: std::time::Duration = std::time::Duration::from_millis(3500);
