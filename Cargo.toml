@@ -9,6 +9,15 @@ default-run = "memoria-gpui"
 [workspace]
 members = ["crates/*"]
 
+# Single source for lint policy; CI and hk.pkl only add `-D warnings`.
+[workspace.lints.clippy]
+type_complexity = "allow"
+useless_conversion = "allow"
+result_large_err = "allow"
+
+[lints]
+workspace = true
+
 [dependencies]
 # gpui-kit pins the matching gpui-pre snapshot and puts GPUI at its root, so
 # `use gpui::...` keeps working through this alias.
