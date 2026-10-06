@@ -207,8 +207,8 @@ impl Memoria {
         }
     }
 
-    /// Linux window caption buttons (macOS uses traffic lights instead).
-    #[cfg(not(target_os = "macos"))]
+    /// Linux window caption buttons (macOS uses traffic lights, Windows native chrome).
+    #[cfg(target_os = "linux")]
     fn render_window_controls(&self, _cx: &mut Context<Self>) -> impl IntoElement {
         type ControlSpec = (&'static str, IconId, &'static str, fn(&mut Window));
         let specs: [ControlSpec; 3] = [
